@@ -24,7 +24,7 @@ pnpm test:e2e
 
 ## GitHub Actions
 
-`.github/workflows/ci.yml` は pull request と `main` への push で、Node.js 24 / pnpm lockfile を使って標準 quality gate と Playwright の基本 E2E を実行する。
+`.github/workflows/ci.yml` は pull request と `main` への push で、Node.js 24 / pnpm lockfile を使って標準 quality gate と Playwright の基本 E2E を実行する。pnpm の依存ストアと Playwright Chromium はキャッシュし、lockfile が変わらない限り再ダウンロードを省略する。
 
 ## DB / RLS
 
