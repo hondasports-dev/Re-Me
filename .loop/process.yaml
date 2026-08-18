@@ -1,0 +1,175 @@
+version: 1
+name: re-me-agent-loop
+skills_root: skills
+default_base_branch: main
+entrypoint: AGENTS.md
+entry_state: workspace_preflight
+
+principles:
+  - evidence_before_progress
+  - cheap_deterministic_gates_are_always_on
+  - expensive_reasoning_gates_are_risk_or_event_driven
+  - specification_confidence_is_separate_from_change_risk
+  - c0_never_advances_to_implementation
+  - risk_is_based_on_impact_not_line_count
+  - risk_may_escalate_immediately
+  - max_observed_risk_is_completion_floor_after_implementation_starts
+  - pr_creation_is_checkpoint_not_completion
+  - latest_pr_head_is_the_only_merge_ready_evidence_target
+  - one_session_one_current_task_by_default
+  - one_task_one_delivery_pr_by_default
+
+always_on_skills:
+  - skills/prompt-injection-guard/SKILL.md
+  - skills/service-ops-safety/SKILL.md
+
+specification_confidence:
+  levels:
+    c2_confirmed:
+      implementation_allowed: true
+    c1_reconstructed:
+      implementation_allowed: true
+    c0_unclear:
+      implementation_allowed: false
+      action: requirements_discovery_then_human_gate
+    c0_conflicted:
+      implementation_allowed: false
+      action: source_reconciliation_then_human_gate
+  evidence_order:
+    - current_user_instruction
+    - latest_explicitly_approved_spec_or_adr
+    - current_task_issue_and_comments
+    - canonical_docs
+    - tests
+    - current_implementation_and_existing_patterns
+
+risk_model:
+  axes:
+    blast_radius: { local: 0, several_surfaces: 1, shared_or_system_wide: 2 }
+    data_security: { none: 0, indirect: 1, direct_boundary_change: 2 }
+    reversibility: { easy: 0, procedural_rollback: 1, difficult_or_stateful: 2 }
+    uncertainty: { known_pattern: 0, some_unknowns: 1, novel_or_impact_unclear: 2 }
+  score_mapping:
+    r1_low: 0-2
+    r2_medium: 3-4
+    r3_high: 5-8
+  r0_trivial_examples:
+    - typo
+    - pure_documentation
+    - formatting
+    - behavior_preserving_micro_change
+  r3_floor_triggers:
+    - authentication
+    - authorization
+    - user_data_boundary_or_rls
+    - schema_or_migration
+    - data_deletion_or_retention
+    - privileged_secret_or_env
+    - oauth_or_external_service_write
+    - cloudflare_r2_or_worker_privileged_write
+    - production_behavior_configuration
+  r4_critical_triggers:
+    - production_database_migration
+    - bulk_or_irreversible_data_mutation
+    - account_deletion_semantics
+    - authorization_model_overhaul
+    - production_secret_rotation
+    - production_dns_or_domain_cutover
+  lifecycle:
+    initial: provisional
+    escalate_immediately_on_new_evidence: true
+    downgrade_only_before_implementation_with_evidence: true
+    completion_floor_after_implementation: max_observed_risk
+
+profiles:
+  r0_trivial:
+    name: trivial
+    independent_requirements_reviews: 0
+    separate_impact_analysis: false
+    verification: targeted
+    separate_code_review: false
+    separate_security_review: false
+    process_learning: event_driven
+  r1_low:
+    name: fast
+    independent_requirements_reviews: 0
+    impact: requirements_summary
+    verification: targeted
+    code_review: combined_code_and_security_quick_scan
+    separate_security_review: false
+    process_learning: event_driven
+  r2_medium:
+    name: standard
+    independent_requirements_reviews_default: 0
+    independent_review_when:
+      - c1_reconstructed
+      - material_uncertainty
+      - cross_cutting_change
+    separate_impact_analysis: true
+    verification: affected_scope
+    code_review: code_review_with_security_quick_scan
+    separate_security_review: false_unless_r3_floor_trigger
+    process_learning: event_driven
+  r3_high:
+    name: high
+    independent_requirements_reviews: 2
+    separate_impact_analysis: true
+    verification: full_for_affected_scope
+    separate_code_review: true
+    separate_security_review: true
+    process_learning: full
+  r4_critical:
+    name: critical
+    independent_requirements_reviews: 3
+    post_synthesis_review: 1
+    human_gates:
+      - before_implementation
+      - before_production_or_irreversible_operation
+    verification: full_plus_recovery_evidence
+    separate_code_review: true
+    separate_security_review: true
+    process_learning: full
+
+verification_policy:
+  local_default:
+    - changed_or_directly_affected_tests
+    - scopeable_static_checks
+    - functional_e2e_when_acceptance_criteria_cross_browser_layer
+  ci_aftercare_default:
+    - full_repository_required_checks
+    - regression_e2e
+  no_blind_retry: true
+  duplicate_full_check_requires_reason: true
+  head_change_invalidates_delivery_evidence: true
+
+states:
+  workspace_preflight: { skill: skills/workspace-preflight/SKILL.md }
+  requirements: { skill: skills/requirements/SKILL.md }
+  impact_analysis: { skill: skills/impact-analysis/SKILL.md }
+  implementation: { skill: skills/implementation/SKILL.md }
+  verification: { skill: skills/verification/SKILL.md }
+  code_review: { skill: skills/code-review/SKILL.md }
+  security_review: { skill: skills/security-review/SKILL.md }
+  delivery: { skill: skills/delivery/SKILL.md }
+  pr_aftercare: { skill: skills/pr-aftercare/SKILL.md }
+  process_learning: { skill: skills/process-learning/SKILL.md }
+  task_transition: { skill: skills/task-transition/SKILL.md }
+  incident: { skill: skills/incident/SKILL.md }
+  human_gate: { terminal: false }
+  done: { terminal: true }
+
+delivery_contract:
+  default_target: merge_ready
+  explicit_stop_after_publish_requires_user_instruction: true
+
+completion:
+  done_requires:
+    - spec_confidence_c1_or_c2
+    - risk_level_recorded
+    - selected_profile_recorded
+    - profile_required_gates_pass_or_not_required_with_reason
+    - delivery_target_reached
+    - required_pr_aftercare_terminal
+    - learning_event_classified
+    - task_transition_complete
+    - no_required_blocker

@@ -1,0 +1,128 @@
+session:
+  current_task_id: ""
+  active_delivery_pr: ""
+  parallel_task_authorized: false
+
+task:
+  id: ""
+  source: ""
+  objective: ""
+  base_branch: main
+  delivery_target: merge_ready
+  current_state: workspace_preflight
+
+specification:
+  confidence: c0_unclear # c0_unclear | c0_conflicted | c1_reconstructed | c2_confirmed
+  authoritative_sources: []
+  conflicting_sources: []
+  unresolved_material_choices: []
+  evidence: []
+
+risk:
+  initial_level: pending
+  confirmed_level: pending
+  max_observed_level: pending
+  selected_profile: pending
+  axes:
+    blast_radius: { score: 0, reason: "" }
+    data_security: { score: 0, reason: "" }
+    reversibility: { score: 0, reason: "" }
+    uncertainty: { score: 0, reason: "" }
+  floor_triggers: []
+  critical_triggers: []
+  escalation_history: []
+
+workspace_preflight:
+  status: pending
+  branch: ""
+  worktree: ""
+  baseline_clean: false
+  evidence: []
+
+requirements:
+  status: pending
+  goal: ""
+  in_scope: []
+  out_of_scope: []
+  acceptance_criteria: []
+  impact_summary: []
+  evidence: []
+
+impact_analysis:
+  status: pending
+  direct_changes: []
+  callers_and_callees: []
+  shared_state: []
+  auth_data_schema: []
+  affected_flows: []
+  external_deployment: []
+  rollback: []
+  evidence: []
+
+implementation:
+  status: pending
+  changed_files: []
+  design_deviations: []
+  risk_escalation: []
+  integrity_check: pending
+  evidence: []
+
+verification:
+  status: pending
+  affected_scope: []
+  checks: []
+  e2e: []
+  skipped_with_reason: []
+  reruns: []
+  evidence: []
+
+code_review:
+  status: pending
+  reviewed_head_sha: ""
+  must_fix: []
+  nice_to_have: []
+  security_quick_scan: pending
+  evidence: []
+
+security_review:
+  status: pending
+  reviewed_head_sha: ""
+  must_fix: []
+  residual_risks: []
+  evidence: []
+
+delivery:
+  status: pending
+  branch: ""
+  commit: ""
+  pull_request: ""
+  published_head_sha: ""
+  delivery_target: merge_ready
+  evidence: []
+
+pr_aftercare:
+  status: pending
+  observed_head_sha: ""
+  checks: []
+  review_findings: []
+  requested_changes: []
+  approval_status: pending
+  conflict_status: pending
+  mergeable: pending
+  evidence: []
+
+process_learning:
+  status: pending
+  mode: pending
+  events: []
+  candidates: []
+
+task_transition:
+  status: pending
+  closing_task: ""
+  next_task: none
+  session_released: false
+
+completion:
+  status: in_progress
+  unresolved_required_items: []
