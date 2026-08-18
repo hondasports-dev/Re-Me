@@ -9,7 +9,7 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 - 今の気持ち・判断・迷い・出来事を、分類せず自由な手紙として残す
 - 届ける時期は「数日後くらい」「数週間後くらい」「数か月後くらい」などのざっくり指定、または「未来に任せる」
 - 手紙は「封をする / 封をしない」を選べる
-  - **封をする**: 到着まで自分でも本文を読めない
+  - **封をする**: 到着して明示的に開封するまで自分でも本文を読めない
   - **封をしない**: 送信後も読み返せる
 - 送信後の内容は編集できない
 - 到着した手紙には返信でき、その返信もさらに未来へ送れる
@@ -56,34 +56,67 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 
 詳細は [デザインリファレンス](docs/design/README.md) と [UX / 画面遷移](docs/product/ux-flow.md) を参照してください。
 
-## MVP 技術方針
+## 技術スタック
 
-- **Web**: モバイルファースト Web App / PWA
-- **Hosting / Backend**: Cloudflare
-- **Auth**: Supabase Auth（Social Login を中心に検討）
+- **Runtime**: Node.js 24 LTS
+- **Package manager**: pnpm
+- **Frontend**: Vue 3 + TypeScript + Vite
+- **Routing**: Vue Router
+- **UI**: PrimeVue + Re:Me custom design tokens / components
+- **Toolchain**: Oxlint + Oxfmt + `vue-tsc`
+- **Hosting / Backend**: Cloudflare Worker + `@cloudflare/vite-plugin` + Hono
+- **Auth**: Supabase Auth / Google OAuth first
 - **Database**: Supabase PostgreSQL + RLS
 - **Image Storage**: Cloudflare R2
-- **Delivery / Notification**: Cloudflare Workers + Cron Triggers
-- **Push**: Web Push を第一候補。到着保証の観点からメール通知も将来検討
+- **Delivery**: Cloudflare Cron Trigger + trusted Supabase RPC
+- **Notification**: Web Push + DB outbox
+- **Test**: Vitest + Vue Test Utils + Playwright
+
+詳細は [技術スタック](docs/architecture/tech-stack.md) を参照してください。
+
+## セキュリティ上の主要設計
+
+- `letters` metadata と `letter_contents` 本文を分離
+- sealed letter は RLS により、開封前の本人 client からも本文を取得不可
+- exact `scheduled_at` は private schema に保存し、ユーザーには delivery window のみ公開
+- 送信後編集不可を DB trigger でも強制
+- Delivery と Notification を outbox で分離
+- Service Role は Cloudflare Worker Secret のみ
+
+初期 DB migration は [`supabase/migrations/20260818120000_initial_schema.sql`](supabase/migrations/20260818120000_initial_schema.sql) に定義しています。
 
 > 無料枠は MVP / 初期検証のために活用する。本番運用では、可用性・休止条件・容量・料金を再評価する。
 
 ## ドキュメント
 
+### Product
+
 - [プロダクトビジョン](docs/product/vision.md)
 - [要件定義](docs/product/requirements.md)
 - [UX / 画面遷移](docs/product/ux-flow.md)
 - [MVP スコープ](docs/product/mvp.md)
+
+### Architecture
+
 - [アーキテクチャ概要](docs/architecture/overview.md)
+- [技術スタック](docs/architecture/tech-stack.md)
+- [プロジェクト構成](docs/architecture/project-structure.md)
 - [データモデル](docs/architecture/data-model.md)
 - [認証・セキュリティ](docs/architecture/auth-security.md)
 - [手紙の配送・通知](docs/architecture/delivery-notifications.md)
 - [ADR: Cloudflare + Supabase](docs/architecture/decisions/0001-cloudflare-supabase.md)
 - [ADR: 送信後編集不可](docs/architecture/decisions/0002-immutable-letter.md)
 - [ADR: ざっくり配送](docs/architecture/decisions/0003-delivery-window.md)
+- [ADR: Vue / Vite / pnpm / Oxc](docs/architecture/decisions/0004-frontend-toolchain.md)
+- [ADR: PrimeVue design system](docs/architecture/decisions/0005-primevue-design-system.md)
+- [ADR: exact delivery time を private にする](docs/architecture/decisions/0006-private-exact-delivery-time.md)
+
+### Implementation
+
+- [Supabase](supabase/README.md)
 - [デザインリファレンス](docs/design/README.md)
 - [開発ルール](AGENTS.md)
 
 ## ステータス
 
-現在はプロダクト要件・UX・アーキテクチャを設計している初期フェーズです。
+プロダクト要件・UX・初期アーキテクチャ・DB/RLS のベースラインを確定済み。GitHub Issues に沿って実装へ着手する段階です。
