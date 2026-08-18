@@ -1,0 +1,159 @@
+@import './tokens.css';
+
+:root {
+  color: var(--re-me-color-ink);
+  background: var(--re-me-color-mist);
+  font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--re-me-color-mist);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--re-me-color-sky-deep) 65%, white);
+  outline-offset: 3px;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.92), transparent 32rem),
+    linear-gradient(160deg, var(--re-me-color-mist), #eef5fb 58%, #f8f4f1);
+}
+
+.app-shell__header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 72rem;
+  min-height: 5.5rem;
+  margin: 0 auto;
+  padding: 1.25rem var(--re-me-spacing-page);
+}
+
+.brand-mark {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.brand-mark__name {
+  color: var(--re-me-color-ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+}
+
+.brand-mark__tagline {
+  color: var(--re-me-color-ink-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+}
+
+.app-shell__main {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem var(--re-me-spacing-page) 4rem;
+}
+
+.welcome-panel {
+  width: min(100%, 36rem);
+  padding: clamp(2rem, 10vw, 4.5rem) clamp(1.5rem, 8vw, 4rem);
+  border: 1px solid var(--re-me-color-border);
+  border-radius: var(--re-me-radius-panel);
+  background: color-mix(in srgb, var(--re-me-color-paper) 84%, transparent);
+  box-shadow: var(--re-me-shadow-soft);
+  text-align: center;
+  backdrop-filter: blur(1rem);
+}
+
+.welcome-panel__eyebrow {
+  margin: 0 0 1.5rem;
+  color: var(--re-me-color-sky-deep);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+.welcome-panel h1 {
+  margin: 0;
+  color: var(--re-me-color-ink);
+  font-family: Georgia, 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  font-size: clamp(2.2rem, 12vw, 4.5rem);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.welcome-panel__copy {
+  max-width: 19rem;
+  margin: 1.5rem auto 0;
+  color: var(--re-me-color-ink-muted);
+  font-size: 0.95rem;
+  line-height: 2;
+}
+
+.welcome-panel__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 2.5rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(216, 232, 247, 0.46);
+  color: var(--re-me-color-ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.welcome-panel__note-mark {
+  color: var(--re-me-color-accent);
+}
+
+@media (min-width: 640px) {
+  .app-shell__header {
+    min-height: 6.5rem;
+  }
+
+  .app-shell__main {
+    padding-top: 3rem;
+  }
+}

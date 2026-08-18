@@ -1,0 +1,17 @@
+@media (prefers-reduced-motion: no-preference) {
+  .welcome-panel {
+    animation: welcome-panel-enter 500ms var(--re-me-motion-standard) both;
+  }
+}
+
+@keyframes welcome-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
