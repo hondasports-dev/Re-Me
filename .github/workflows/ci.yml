@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v1
+        with:
+          version: 11.1.2
+          runtime: node@24
+          cache: true
+          cache-dependency-path: pnpm-lock.yaml
+          install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit and Worker tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: pnpm test:e2e
