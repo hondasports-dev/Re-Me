@@ -22,6 +22,10 @@ pnpm test:e2e
 2. sealed letter 到着 → 開封 → 本文表示
 3. 開封済み letter → 返信 → 返信を未来へ送信
 
+## GitHub Actions
+
+`.github/workflows/ci.yml` は pull request と `main` への push で、Node.js 24 / pnpm lockfile を使って標準 quality gate と Playwright の基本 E2E を実行する。pnpm の依存ストアと Playwright Chromium はキャッシュし、lockfile が変わらない限り再ダウンロードを省略する。
+
 ## DB / RLS
 
 migration を変更する場合は少なくとも以下を検証する。

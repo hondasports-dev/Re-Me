@@ -1,0 +1,14 @@
+:root {
+  --re-me-color-ink: #203047;
+  --re-me-color-ink-muted: #617189;
+  --re-me-color-paper: #ffffff;
+  --re-me-color-mist: #f4f8fc;
+  --re-me-color-sky: #d8e8f7;
+  --re-me-color-sky-deep: #7fa9ce;
+  --re-me-color-accent: #e7b8a5;
+  --re-me-color-border: rgba(127, 169, 206, 0.24);
+  --re-me-shadow-soft: 0 1.5rem 3rem rgba(72, 102, 132, 0.12);
+  --re-me-radius-panel: 1.75rem;
+  --re-me-spacing-page: clamp(1.25rem, 5vw, 2rem);
+  --re-me-motion-standard: 220ms ease;
+}

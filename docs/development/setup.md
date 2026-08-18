@@ -1,6 +1,6 @@
 # 開発セットアップ
 
-この文書は実装開始時の基準。実際の `package.json` / `wrangler.jsonc` / env example は scaffold issue で作成する。
+この文書は実装開始時の基準。Foundation scaffold 完了後は、リポジトリ直下の `package.json` / `wrangler.jsonc` / env example と `pnpm-lock.yaml` を正とする。
 
 ## Prerequisites
 
@@ -134,9 +134,19 @@ src/shared/types/database.generated.ts
 
 生成ファイルは format 対象にはするが、原則手編集しない。
 
+## Generated Worker types
+
+Wrangler の Worker runtime type は以下で生成する。
+
+```text
+pnpm cf:typegen
+```
+
+生成先は `worker-configuration.d.ts`。Wrangler の設定や binding を変更した場合は再生成し、生成ファイルは手編集しない。
+
 ## First local success criteria
 
-scaffold issue 完了時点で以下が通ること。
+Foundation scaffold の完了条件として以下が通ること。
 
 ```text
 pnpm install
@@ -147,5 +157,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+Playwright の基本 E2E はブラウザをインストールした環境で `pnpm test:e2e` を実行する。
 
 ブラウザで mobile viewport の空 AppShell が表示され、Worker health endpoint が local workerd で応答するところまでを foundation とする。

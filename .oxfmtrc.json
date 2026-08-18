@@ -1,0 +1,16 @@
+{
+  "printWidth": 100,
+  "singleQuote": true,
+  "semi": false,
+  "trailingComma": "all",
+  "ignorePatterns": [
+    ".github/pull_request_template.md",
+    ".loop/**",
+    "AGENTS.md",
+    "README.md",
+    "docs/**",
+    "skills/**",
+    "supabase/**",
+    "worker-configuration.d.ts"
+  ]
+}
