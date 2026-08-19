@@ -18,6 +18,7 @@ Full analysis trigger:
 - human correction
 - Gate / CI / E2E failure
 - actionable review finding
+- residual-risk disposition / head-evidence reconciliation miss
 - retry / incident
 - scope / impact miss
 - delivery / aftercare / transition miss

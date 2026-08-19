@@ -53,5 +53,10 @@ unit / component だけで AC を証明できる場合は E2E NOT_REQUIRED と�
 - spec mismatch → Requirements
 - unknown / repeated failure → Incident
 - required environment unavailable → BLOCKED
+- `test_gap` / material test gap（current AC / invariant を十分に証明できない未検証領域）→ BLOCKED。Human Gate で迂回せず、`risk_reconciliation` で defer や `non-must-fix` に分類して Verification PASS へ進めない。
+
+Verification の対象 head を `verification.verified_head_sha` として current head に固定する。`verification.findings` と `material_test_gaps` の各 item は stable / unique な id を持ち、non-empty `test_gap` には `test_gap_id` を付ける。material gap の `test_gap_id` は item の `id` と同一にし、source finding がある場合は source の `test_gap` / `test_gap_id` と完全一致させる。AC、invariant、auth denial、state rollback、idempotency、atomicity、immutability、privileged boundary のいずれかに対する material gap は、matching `test_gap_id` の residual-risk record に failure scenario、影響、追加証拠を記録する。全 finding / gap id は一件以上の reconciliation record の `source_finding_ids` へ移送する。source の non-empty `test_gap` は `verification.material_test_gaps` にも同じ id と text で現れなあかん。source context を residual に統合する場合は `source_fidelity` の equal / explicit-superset relation と evidence を要求する。test gap は `fix_now`、または Requirements / AC の正式変更後に再評価する。head が変わった場合は、前の Verification PASS を再利用しない。
+
+Verification evidence は `kind`、`source`、`ref_or_command`、`result`、`head_sha`、`observed_at` を持つ構造化 record にする。
 
 原因未確認の blind retry をしない。
