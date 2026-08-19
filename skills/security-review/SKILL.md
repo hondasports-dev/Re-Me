@@ -46,4 +46,20 @@ Required:
 - rollback / recovery
 - R4 Human Gate
 
-Must-fix があれば Implementation → Verification → Code Review → Security Review をやり直す。
+Must-fix があれば Implementation → Verification → Code Review → Security Review → Risk Reconciliation をやり直す。
+
+## Finding handoff
+
+Security Review の `PASS` や `non-must-fix` は最終 disposition ではない。Security Review で見つけた finding と test gap を一件ずつ `risk_reconciliation` へ渡し、次を構造化して記録する。
+
+```text
+id / finding / failure_scenario / affected_invariants /
+affected_acceptance_criteria / risk_domains / test_gap / test_gap_id /
+source / evidence / recommended_disposition
+```
+
+`security_review.findings` が Security Review の唯一の finding 入力経路や。曖昧な `security_review.residual_risks` summary field は使わず、生成・記録せえへん。互換入力でそれが non-empty なら、structured findings へ移送されていない summary-only risk として Reconciliation を BLOCK する。
+
+`recommended_disposition` は独立 reviewer の推薦であり、採用・defer・Human Gate・not applicable の最終判断は root が行う。`findings` の id は stable / unique にし、全て一件以上の reconciliation record の `source_finding_ids` へ移送する。summary の `must_fix` / `nice_to_have` だけで移送済みとみなさへん。non-empty `test_gap` には必ず `test_gap_id` を付け、同じ `test_gap` と id を Verification の `material_test_gaps` にも記録する。auth、RLS、data boundary、rollback、idempotency、immutability、privileged boundary などの finding をラベルだけで residual から除外せえへん。
+
+Reconciliation へ移すときは、source の `test_gap` / `test_gap_id` を完全一致で保持し、source にある protected `risk_domains` を全て含める。`failure_scenario`、`affected_invariants`、`affected_acceptance_criteria` は欠落・弱化させず、拡張する場合は `source_fidelity.relation: explicit_superset` と evidence を残す。移送漏れや fidelity evidence 欠落は deterministic rule で BLOCK される。

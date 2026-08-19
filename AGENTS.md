@@ -18,6 +18,12 @@
 - 必須 Gate が FAIL / BLOCKED のまま進まない。
 - `PR created` は checkpoint であり task completion ではない。
 - 通常の Delivery target は `merge_ready`。PR 公開後は最新 head の CI / review / conflict を追跡する。
+- Code / Security Review の finding と Verification の material test gap は、`security_review → risk_reconciliation → delivery` の順で root が最終 disposition を決める。reviewer の PASS / non-must-fix label は finding の解消を意味せえへん。
+- Security Review の source は structured `findings` のみ。summary-only `security_review.residual_risks` は使わず、source の test gap / protected domain / failure scenario / invariant / AC は reconciliation で欠落・弱化させへん。
+- `pending` / unresolved residual risk や `fix_now` が1件でもあれば Delivery は BLOCKED。R3/R4 または finding / residual がある task は Reconciliation 必須で、残存ゼロでも current head 一致の明示 PASS evidence を残す。
+- invariant、auth、RLS、data integrity、rollback、idempotency、atomicity、immutability、privileged boundary、current scope の finding は agent 単独で defer せず、fix または Human Gate に送る。test gap は Human Gate で迂回せず fix、または Requirements / AC 正式変更後に再評価する。
+- `availability`、`performance`、`maintainability`、`ux`、`compatibility`、`operations`、`documentation`、`reliability`、`observability` は非保護 risk domain として evidence 付き defer の候補にできるが、`other` は未分類の protected domain として扱う。
+- R3/R4、finding、residual、material test gap の trigger がある task は `risk_reconciliation.required: true` が必須。current / verified / reviewed / reconciled / published / observed head は full git object id と source付き evidence を照合し、PR Aftercare の latest head 変更後は全 evidence を再取得する。
 - 仕様不明と変更 risk を混同しない。`C0` のまま Implementation へ進まない。
 - 現在のユーザー指示を最優先し、過去 Issue / docs / review と衝突したら source reconciliation を行う。
 - scope 外の改善を勝手に同じ PR へ混ぜない。
