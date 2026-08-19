@@ -253,13 +253,19 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: {
           attempt_count: number
+          claim_token: string
           job_id: string
           letter_id: string
           user_id: string
         }[]
       }
       complete_notification_job: {
-        Args: { p_error?: string; p_job_id: string; p_success: boolean }
+        Args: {
+          p_claim_token: string
+          p_error?: string
+          p_job_id: string
+          p_success: boolean
+        }
         Returns: undefined
       }
       create_draft: {

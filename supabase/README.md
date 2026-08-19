@@ -20,6 +20,7 @@ DB schema と policy は Dashboard の手作業ではなく `supabase/migrations
 - `push_subscriptions`
 - private exact delivery schedule
 - private notification outbox
+- notification job の claim token による Worker 世代管理
 - RLS policies
 - sent letter immutability triggers
 - draft / send / open / delete RPC
@@ -94,5 +95,7 @@ pnpm db:stop
 9. authenticated user から delivery RPC を実行できない
 10. `create_draft -> send_letter` の基本遷移が成功する
 11. 一つの parent に複数の非削除 reply を作れない
+12. notification job の claim → complete が token 世代を検証する
+13. reclaim 後の旧 token 完了、完了済み job の再完了が拒否される
 
 追加で attachment visibility、soft-delete 後の immutability、delivery / notification outbox の冪等性、anon access denial も固定する。

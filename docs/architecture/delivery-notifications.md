@@ -99,14 +99,16 @@ Push が失敗しても Letter は `delivered` のまま。
 
 ## Notification outbox
 
-`claim_notification_jobs` が pending / failed job を lock し `processing` にする。
+`claim_notification_jobs` が pending / failed job を lock し `processing` にする。claim ごとに推測困難な `claim_token` を発行し、Worker は job id と一緒に保持する。
 
 処理中 Worker が落ちた場合、一定時間経過した `processing` job を reclaim できる。
 
-`complete_notification_job`:
+`complete_notification_job(job_id, claim_token, success, error)`:
 
 - success → `sent`
 - failure → `failed` + backoff 用 `available_at`
+- success / failure とも `claim_token` と lock を clear する
+- reclaim 後の古い token、または完了済み job の再完了は拒否し、job state を変更しない
 
 ## Push
 
@@ -133,7 +135,7 @@ scheduled()
   └─ each job
        ├─ load user push subscriptions
        ├─ send Web Push
-       └─ rpc(complete_notification_job)
+       └─ rpc(complete_notification_job(job_id, claim_token, success, error))
 ```
 
 1 cron で処理しきれない件数は batch limit を設け、次回実行へ回す。
