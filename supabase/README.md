@@ -37,7 +37,7 @@ DB schema と policy は Dashboard の手作業ではなく `supabase/migrations
 
 ユーザーは「数か月後くらい」という window は確認できるが、正確な到着日時は確認できない。
 
-`schedule_at` を public table に置くと browser から取得できてしまうため、`private.letter_delivery` に分離する。
+`scheduled_at` を public table に置くと browser から取得できてしまうため、`private.letter_delivery` に分離する。
 
 ### trusted state transition
 
@@ -61,15 +61,23 @@ Service Role は Cloudflare Worker Secret に置き、Browser bundle や reposit
 
 ## Local workflow
 
-実装 issue で Supabase CLI を導入した後の想定:
+Supabase CLI は project の dev dependency として固定している。Docker Desktop などの Docker-compatible runtime を起動してから実行する。
 
 ```text
-pnpm supabase start
-pnpm supabase db reset
-pnpm supabase gen types ...
+pnpm db:start
+pnpm db:reset
+pnpm db:lint
+pnpm db:advisors
+pnpm db:test
+pnpm db:types
+pnpm db:stop
 ```
 
-実際の scripts / project-id は scaffold 時に確定する。
+すべて local database を対象とする。remote project への migration 適用はこの workflow に含めない。
+
+`db:start` は migration / RLS test に必要な database service だけを起動する。初回は Docker image の取得に時間がかかる。`db:advisors` は security / performance の warning 以上を CI failure にする。
+
+生成した public schema の TypeScript types は `src/shared/types/database.generated.ts` に commit する。schema 変更後は `pnpm db:types` で再生成し、手編集しない。
 
 ## RLS test requirement
 
@@ -84,3 +92,7 @@ pnpm supabase gen types ...
 7. draft の本文 update は許可される
 8. exact `scheduled_at` が authenticated client から取得できない
 9. authenticated user から delivery RPC を実行できない
+10. `create_draft -> send_letter` の基本遷移が成功する
+11. 一つの parent に複数の非削除 reply を作れない
+
+追加で attachment visibility、soft-delete 後の immutability、delivery / notification outbox の冪等性、anon access denial も固定する。

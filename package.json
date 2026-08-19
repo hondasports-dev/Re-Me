@@ -18,6 +18,14 @@
     "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "supabase": "supabase",
+    "db:start": "supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset --local --no-seed --yes",
+    "db:lint": "supabase db lint --local --level warning",
+    "db:advisors": "supabase db advisors --local --type all --level warn --fail-on warn",
+    "db:test": "supabase test db --local",
+    "db:types": "supabase gen types --local --schema public > src/shared/types/database.generated.ts",
     "cf:typegen": "wrangler types"
   },
   "dependencies": {
@@ -38,6 +46,7 @@
     "jsdom": "^27.0.0",
     "oxfmt": "^0.63.0",
     "oxlint": "^1.78.0",
+    "supabase": "2.115.0",
     "typescript": "^6.0.3",
     "vite": "^8.2.1",
     "vitest": "^4.1.10",

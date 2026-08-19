@@ -109,12 +109,17 @@ LETTER_PHOTOS
 
 ## Local DB
 
-Supabase CLI を初期化後、migration を local DB に適用する。
+Supabase CLI は dev dependency として `pnpm-lock.yaml` に固定している。Docker-compatible runtime を起動後、migration HEAD を local DB に適用する。
 
 ```text
-supabase start
-supabase db reset
+pnpm db:start
+pnpm db:reset
+pnpm db:lint
+pnpm db:advisors
+pnpm db:test
 ```
+
+remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。
 
 初期 migration:
 
@@ -132,7 +137,13 @@ Supabase schema から TypeScript type を生成し、手書きで DB row type �
 src/shared/types/database.generated.ts
 ```
 
-生成ファイルは format 対象にはするが、原則手編集しない。
+public schema の生成コマンド:
+
+```text
+pnpm db:types
+```
+
+生成ファイルは format 対象にはするが、手編集しない。CI は再生成後の差分を検知する。
 
 ## Generated Worker types
 

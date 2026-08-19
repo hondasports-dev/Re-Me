@@ -87,7 +87,7 @@ Re:Me では「未来を旅していること」は見せたいが、「封を�
 - `user_id`
 - `body`
 
-送信後は DB trigger でも UPDATE / DELETE を拒否する。
+送信後は DB trigger でも後付け INSERT / UPDATE / DELETE を拒否する。
 
 ### letter_attachments
 

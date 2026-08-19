@@ -36,6 +36,19 @@ migration を変更する場合は少なくとも以下を検証する。
 - service-role-only RPC denial
 - exact scheduled time non-exposure
 
+local verification:
+
+```text
+pnpm db:start
+pnpm db:reset
+pnpm db:lint
+pnpm db:advisors
+pnpm db:test
+pnpm db:types
+```
+
+CI の `Database security gates` job は同じ migration reset / pgTAP を再実行し、generated DB types の drift も検知する。
+
 ## Design
 
 画面変更では mobile viewport を第一基準とし、`docs/design/re-me-mobile-flow.jpg` と UX doc の意図に照らして確認する。
