@@ -16,6 +16,8 @@ principles:
   - max_observed_risk_is_completion_floor_after_implementation_starts
   - pr_creation_is_checkpoint_not_completion
   - latest_pr_head_is_the_only_merge_ready_evidence_target
+  - residual_risk_must_be_reconciled_before_delivery
+  - review_labels_do_not_dispose_findings
   - one_session_one_current_task_by_default
   - one_task_one_delivery_pr_by_default
 
@@ -141,6 +143,301 @@ verification_policy:
   no_blind_retry: true
   duplicate_full_check_requires_reason: true
   head_change_invalidates_delivery_evidence: true
+  head_change_invalidates_verification_and_review_evidence: true
+
+head_binding_policy:
+  full_git_object_id_regex: "^[0-9a-f]{40}$"
+  required_evidence_fields:
+    - kind
+    - source
+    - ref_or_command
+    - result
+    - head_sha
+    - observed_at
+  accepted_sources:
+    local_checkout: "git rev-parse HEAD"
+    github_pr: "GitHub PR headRefOid"
+  equality_sets:
+    review_reconciliation: [current, verified, code_reviewed, security_reviewed, reconciled]
+    delivery: [current, verified, code_reviewed, security_reviewed, reconciled, published]
+    aftercare: [current, verified, code_reviewed, security_reviewed, reconciled, published, observed]
+  empty_equality_is_invalid: true
+
+risk_reconciliation_policy:
+  required_when:
+    - risk_levels: [r3_high, r4_critical]
+      reason: high_or_critical_risk
+    - event: review_finding_or_residual_risk
+      reason: review_or_verification_discovered_risk
+    - event: material_test_gap
+      reason: verification_cannot_prove_current_ac_or_invariant
+  fast_path:
+    profiles: [r0_trivial, r1_low, r2_medium]
+    allowed_when:
+      - no_review_findings
+      - no_residual_risks
+      - no_test_gap
+      - explicit_pass_evidence
+    still_requires:
+      - reviewed_head_matches_reconciled_head
+      - current_head_matches_reconciled_head
+  source_to_residual_fidelity:
+    source_records:
+      - code_review.findings
+      - security_review.findings
+      - verification.findings
+      - verification.material_test_gaps
+    exact_fields:
+      - test_gap
+      - test_gap_id
+    protected_domain_relation: residual_contains_all_source_protected_domains
+    context_relation:
+      - equal
+      - explicit_superset
+    explicit_superset_requires:
+      - source_fidelity.relation
+      - source_fidelity.evidence
+  deterministic_rules:
+    - id: required_reconciliation_gate
+      condition: "risk level is r3_high/r4_critical or any review finding, residual risk, or material test gap exists, and risk_reconciliation.required is not exactly true"
+      result: blocked
+    - id: review_head_sha_required
+      condition: "at review/reconciliation gate, any review_reconciliation head field is empty or not a full git object id"
+      result: blocked
+    - id: head_evidence_required
+      condition: "at any relevant gate, any required head lacks kind, source, ref_or_command, result, head_sha, or observed_at evidence"
+      result: blocked
+    - id: review_head_equality_required
+      condition: "at review/reconciliation gate, current, verified, code_reviewed, security_reviewed, and reconciled head ids are not all equal; empty equality is invalid"
+      result: blocked
+    - id: delivery_head_binding_required
+      condition: "at post-publish delivery checkpoint, current, verified, reviewed, reconciled, and published head ids are not full, evidenced, and equal"
+      result: blocked
+    - id: aftercare_head_binding_required
+      condition: "at PR aftercare checkpoint, current, verified, reviewed, reconciled, published, and observed head ids are not full, evidenced, and equal"
+      result: blocked
+    - id: head_evidence_source_required
+      condition: "head evidence source is not local_checkout with git rev-parse HEAD or github_pr with GitHub PR headRefOid"
+      result: blocked
+    - id: head_evidence_sha_must_match
+      condition: "a head_evidence.head_sha does not equal its corresponding current/verified/reviewed/reconciled/published/observed state field"
+      result: blocked
+    - id: evidence_records_must_be_structured
+      condition: "an evidence record lacks kind, source, ref_or_command, result, head_sha, or observed_at"
+      result: blocked
+    - id: source_finding_ids_required_unique
+      condition: "any code/security/verification finding or gap lacks a non-empty unique stable id"
+      result: blocked
+    - id: summary_findings_must_transfer
+      condition: "a code/security summary finding entry exists without a matching structured findings id"
+      result: blocked
+    - id: security_summary_residuals_forbidden
+      condition: "security_review.residual_risks is non-empty; residual risk may enter reconciliation only through structured findings and risk_reconciliation.residual_risks"
+      result: blocked
+    - id: every_input_finding_must_be_reconciled
+      condition: "a code/security/verification finding or gap id has no matching reconciliation record source_finding_ids entry"
+      result: blocked
+    - id: reconciliation_source_ids_must_exist
+      condition: "a reconciliation record source_finding_ids entry does not match a code/security/verification finding or gap id"
+      result: blocked
+    - id: residual_source_ids_required
+      condition: "a non-empty residual risk record has no source_finding_ids"
+      result: blocked
+    - id: source_fidelity_records_required
+      condition: "a residual risk source_finding_ids entry has no matching source_fidelity record"
+      result: blocked
+    - id: source_fidelity_source_ids_must_exist
+      condition: "a source_fidelity.source_finding_id does not match one of the residual source_finding_ids"
+      result: blocked
+    - id: source_residual_test_gap_exact
+      condition: "for any source_finding_ids link, residual test_gap or test_gap_id differs from the source finding; a source gap cannot be blanked, rewritten, or assigned a different id"
+      result: blocked
+    - id: source_fidelity_test_gap_exact
+      condition: "a source_fidelity record test_gap or test_gap_id differs from its linked source finding"
+      result: blocked
+    - id: source_residual_protected_domains_preserved
+      condition: "a residual risk record does not contain every protected risk domain present on any linked source finding"
+      result: blocked
+    - id: source_fidelity_protected_domains_preserved
+      condition: "a source_fidelity record does not contain every protected risk domain present on its linked source finding"
+      result: blocked
+    - id: source_residual_context_preserved
+      condition: "a residual failure_scenario, affected_invariants, or affected_acceptance_criteria omits or weakens linked source content without an explicit source_fidelity equal_or_explicit_superset record and evidence"
+      result: blocked
+    - id: source_fidelity_context_preserved
+      condition: "a source_fidelity relation is not equal_or_explicit_superset, or explicit_superset has no residual target context and evidence for failure scenario, invariants, and acceptance criteria"
+      result: blocked
+    - id: source_gap_requires_material_verification
+      condition: "a code/security/verification finding or gap has non-empty test_gap but verification.material_test_gaps has no item with the exact test_gap_id and test_gap"
+      result: verification_blocked
+    - id: material_gap_source_fields_must_match
+      condition: "a verification.material_test_gaps item has test_gap_id not equal to id, or its test_gap/test_gap_id does not exactly match the source finding"
+      result: blocked
+    - id: test_gap_id_required
+      condition: "any code/security/verification/reconciliation record has non-empty test_gap and empty test_gap_id"
+      result: blocked
+    - id: test_gap_id_requires_test_gap
+      condition: "any code/security/verification/reconciliation record has non-empty test_gap_id and empty test_gap"
+      result: blocked
+    - id: unresolved_residual_blocks_delivery
+      condition: "any residual risk has disposition pending or unresolved_items is non-empty"
+      result: blocked
+    - id: fix_now_blocks_delivery
+      condition: "any residual risk has disposition fix_now"
+      result: implementation_required
+    - id: human_gate_blocks_delivery
+      condition: "accept_with_human_gate lacks recorded approval"
+      result: human_gate_required
+    - id: test_gap_cannot_use_human_gate
+      condition: "a residual risk has a non-empty test_gap and disposition accept_with_human_gate"
+      result: fix_now_or_requirements_reassessment
+    - id: test_gap_requires_fix_or_reassessment
+      condition: "a residual risk has a non-empty test_gap and disposition is not fix_now"
+      result: fix_now_or_requirements_reassessment
+    - id: incomplete_residual_record_blocks_delivery
+      condition: "a residual risk record lacks a required field, has empty risk_domains, or lacks disposition evidence"
+      result: blocked
+    - id: test_gap_blocks_verification
+      condition: "any residual risk has a non-empty test_gap"
+      result: verification_blocked
+    - id: material_test_gap_blocks_verification
+      condition: "verification.material_test_gaps is non-empty"
+      result: verification_blocked
+    - id: material_test_gap_requires_fix_or_reassessment
+      condition: "verification.material_test_gaps is non-empty and matching residual risk disposition is not fix_now"
+      result: fix_now_or_requirements_reassessment
+    - id: material_test_gap_requires_stable_id
+      condition: "any verification.material_test_gaps item lacks a non-empty stable id"
+      result: blocked
+    - id: material_test_gap_ids_must_be_unique
+      condition: "verification.material_test_gaps contains duplicate stable ids"
+      result: blocked
+    - id: material_test_gap_requires_residual_record
+      condition: "any material_test_gaps id has no residual risk record with matching test_gap_id"
+      result: blocked
+    - id: residual_test_gap_reference_must_match
+      condition: "any non-empty residual test_gap_id has no matching material_test_gaps id"
+      result: blocked
+    - id: residual_test_gap_ids_must_be_unique
+      condition: "non-empty residual test_gap_id is duplicated"
+      result: blocked
+    - id: residual_risk_ids_must_be_unique
+      condition: "a residual risk record id is empty or duplicated"
+      result: blocked
+    - id: defer_requires_structured_evidence
+      condition: "defer_with_evidence record lacks non-empty mitigation, safe_failure_or_unreachable, follow_up_issue, or current_head_evidence"
+      result: blocked
+    - id: not_applicable_requires_current_head_evidence
+      condition: "not_applicable record lacks rationale, not_applicable_proof, evidence, or current-head evidence bound to current_head_sha"
+      result: blocked
+    - id: human_approval_requires_structured_evidence
+      condition: "eligible accept_with_human_gate record lacks required=true, status=approved, approver, approved_at, scope, or approval evidence"
+      result: blocked
+    - id: human_approval_for_test_gap_forbidden
+      condition: "any accept_with_human_gate record has non-empty test_gap or test_gap_id"
+      result: fix_now_or_requirements_reassessment
+    - id: protected_domain_defer_forbidden
+      condition: "a residual risk has disposition defer_with_evidence and risk_domains intersects protected_risk_domains"
+      result: fix_now_or_human_gate
+    - id: unknown_risk_domain_blocks
+      condition: "risk_domains contains a value outside risk_domain_enum, or contains other without an explanation in rationale"
+      result: blocked
+    - id: other_domain_is_protected
+      condition: "risk_domains contains other and disposition defer_with_evidence"
+      result: fix_now_or_human_gate
+    - id: other_domain_requires_classification
+      condition: "risk_domains contains other without classification_required evidence"
+      result: blocked
+    - id: known_protected_domain_must_be_listed
+      condition: "affected invariants, acceptance criteria, or failure scenario matches known_protected_domain_indicators but that enum is missing from risk_domains"
+      result: blocked
+  blocker_precedence:
+    - order: 1
+      condition: material_test_gap
+      result: verification_blocked_and_fix_now_or_requirements_reassessment
+    - order: 2
+      condition: incomplete_transfer_or_head_evidence
+      result: reconciliation_blocked
+    - order: 3
+      condition: pending_or_fix_now_residual
+      result: implementation_required_and_delivery_blocked
+    - order: 4
+      condition: unapproved_eligible_human_gate
+      result: human_gate_required_and_delivery_blocked
+    - order: 5
+      condition: all_required_evidence_and_head_bindings_clear
+      result: pass
+  protected_risk_domains:
+    - invariant
+    - auth
+    - authentication
+    - authorization
+    - rls
+    - data_integrity
+    - state_rollback
+    - idempotency
+    - atomicity
+    - immutability
+    - privileged_boundary
+    - current_scope
+    - test_gap
+    - other
+  risk_domain_enum:
+    - invariant
+    - auth
+    - authentication
+    - authorization
+    - rls
+    - data_integrity
+    - state_rollback
+    - idempotency
+    - atomicity
+    - immutability
+    - privileged_boundary
+    - current_scope
+    - test_gap
+    - availability
+    - performance
+    - maintainability
+    - ux
+    - compatibility
+    - operations
+    - documentation
+    - reliability
+    - observability
+    - other
+  known_protected_domain_indicators:
+    invariant: [invariant]
+    auth: [auth, authentication, authorization]
+    rls: [rls]
+    data_integrity: [data_integrity, "data integrity"]
+    state_rollback: [state_rollback, rollback]
+    idempotency: [idempotency]
+    atomicity: [atomicity]
+    immutability: [immutability]
+    privileged_boundary: [privileged_boundary, "privileged boundary"]
+    current_scope: [current_scope, "current scope"]
+    test_gap: [test_gap, "test gap"]
+  human_gate_ineligible_domains:
+    - test_gap
+  test_gap_resolution:
+    allowed_dispositions:
+      - fix_now
+    requirements_change_requires_reassessment: true
+  disposition_enum:
+    - pending
+    - fix_now
+    - defer_with_evidence
+    - accept_with_human_gate
+    - not_applicable
+  evidence_invalidation:
+    head_change_invalidates:
+      - verification
+      - code_review
+      - security_review
+      - risk_reconciliation
+      - delivery
+      - pr_aftercare
 
 states:
   workspace_preflight: { skill: skills/workspace-preflight/SKILL.md }
@@ -150,6 +447,7 @@ states:
   verification: { skill: skills/verification/SKILL.md }
   code_review: { skill: skills/code-review/SKILL.md }
   security_review: { skill: skills/security-review/SKILL.md }
+  risk_reconciliation: { skill: skills/risk-reconciliation/SKILL.md }
   delivery: { skill: skills/delivery/SKILL.md }
   pr_aftercare: { skill: skills/pr-aftercare/SKILL.md }
   process_learning: { skill: skills/process-learning/SKILL.md }
@@ -158,9 +456,23 @@ states:
   human_gate: { terminal: false }
   done: { terminal: true }
 
+state_order:
+  review_to_delivery:
+    - code_review
+    - security_review
+    - risk_reconciliation
+    - delivery
+
 delivery_contract:
   default_target: merge_ready
   explicit_stop_after_publish_requires_user_instruction: true
+  pre_publish_required:
+    - risk_reconciliation_pass
+    - no_pending_or_fix_now_residual_risks
+    - defer_or_accept_evidence_complete
+  post_publish_required:
+    - published_head_sha_full_and_evidenced
+    - published_head_matches_current_and_reconciled
 
 completion:
   done_requires:
@@ -168,6 +480,7 @@ completion:
     - risk_level_recorded
     - selected_profile_recorded
     - profile_required_gates_pass_or_not_required_with_reason
+    - risk_reconciliation_pass
     - delivery_target_reached
     - required_pr_aftercare_terminal
     - learning_event_classified
