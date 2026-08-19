@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(44);
+select plan(64);
 
 insert into auth.users (id, email)
 values
@@ -399,6 +399,21 @@ select is(
 
 reset role;
 
+insert into private.notification_jobs (letter_id, user_id)
+values
+  ('aaaaaaaa-0000-4000-8000-000000000002', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+  ('aaaaaaaa-0000-4000-8000-000000000005', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+
+update private.notification_jobs
+set created_at = now() - interval '3 minutes'
+where letter_id = 'aaaaaaaa-0000-4000-8000-000000000006';
+update private.notification_jobs
+set created_at = now() - interval '2 minutes'
+where letter_id = 'aaaaaaaa-0000-4000-8000-000000000002';
+update private.notification_jobs
+set created_at = now() - interval '1 minute'
+where letter_id = 'aaaaaaaa-0000-4000-8000-000000000005';
+
 select is(
   (select status::text from public.letters where id = 'aaaaaaaa-0000-4000-8000-000000000006'),
   'delivered',
@@ -417,11 +432,188 @@ select is(
 select is(
   has_function_privilege(
     'authenticated',
-    'public.complete_notification_job(uuid,boolean,text)',
+    'public.complete_notification_job(uuid,uuid,boolean,text)',
     'execute'
   ),
   false,
   'Authenticated clients cannot complete notification jobs'
+);
+select is(
+  to_regprocedure('public.complete_notification_job(uuid,boolean,text)') is null,
+  true,
+  'The old completion function signature is removed'
+);
+select is(
+  has_function_privilege(
+    'anon',
+    'public.complete_notification_job(uuid,uuid,boolean,text)',
+    'execute'
+  ),
+  false,
+  'Anonymous clients cannot complete notification jobs'
+);
+
+set local role service_role;
+
+select lives_ok(
+  $$create temporary table notification_claim_one on commit drop as
+    select * from public.claim_notification_jobs(1)$$,
+  'The service role can claim one notification job'
+);
+select is(
+  (select count(*) from notification_claim_one),
+  1::bigint,
+  'A claim returns one notification job'
+);
+select is(
+  (select claim_token is not null from notification_claim_one),
+  true,
+  'A claim returns a claim token'
+);
+select lives_ok(
+  $$select public.complete_notification_job(
+    (select job_id from notification_claim_one),
+    (select claim_token from notification_claim_one),
+    true,
+    null
+  )$$,
+  'The current claim can complete successfully'
+);
+
+reset role;
+
+select is(
+  (select status::text from private.notification_jobs where letter_id = 'aaaaaaaa-0000-4000-8000-000000000006'),
+  'sent',
+  'A successful completion marks the job sent'
+);
+select is(
+  (
+    select claim_token is null and locked_at is null
+    from private.notification_jobs
+    where letter_id = 'aaaaaaaa-0000-4000-8000-000000000006'
+  ),
+  true,
+  'A successful completion clears the claim token and lock'
+);
+
+set local role service_role;
+
+select lives_ok(
+  $$create temporary table notification_claim_stale on commit drop as
+    select * from public.claim_notification_jobs(1)$$,
+  'The service role can claim a second notification job'
+);
+
+reset role;
+
+update private.notification_jobs
+set locked_at = now() - interval '16 minutes',
+    created_at = now() - interval '1 hour'
+where id = (select job_id from notification_claim_stale);
+
+set local role service_role;
+
+select lives_ok(
+  $$create temporary table notification_claim_reclaimed on commit drop as
+    select * from public.claim_notification_jobs(1)$$,
+  'A stale notification claim can be reclaimed'
+);
+select is(
+  (
+    select job_id = (select job_id from notification_claim_stale)
+    from notification_claim_reclaimed
+  ),
+  true,
+  'Reclaiming returns the same notification job'
+);
+select is(
+  (
+    select claim_token <> (select claim_token from notification_claim_stale)
+    from notification_claim_reclaimed
+  ),
+  true,
+  'Reclaiming a job issues a new claim token'
+);
+select throws_ok(
+  $$select public.complete_notification_job(
+    (select job_id from notification_claim_stale),
+    (select claim_token from notification_claim_stale),
+    true,
+    null
+  )$$,
+  'P0001',
+  'notification job claim is stale or invalid',
+  'The old claim token cannot complete a reclaimed job'
+);
+
+reset role;
+
+select is(
+  (select status::text from private.notification_jobs where id = (select job_id from notification_claim_stale)),
+  'processing',
+  'A stale-token completion leaves the reclaimed job processing'
+);
+
+set local role service_role;
+
+select lives_ok(
+  $$select public.complete_notification_job(
+    (select job_id from notification_claim_reclaimed),
+    (select claim_token from notification_claim_reclaimed),
+    true,
+    null
+  )$$,
+  'The new claim token can complete the reclaimed job'
+);
+
+select throws_ok(
+  $$select public.complete_notification_job(
+    (select job_id from notification_claim_reclaimed),
+    (select claim_token from notification_claim_reclaimed),
+    true,
+    null
+  )$$,
+  'P0001',
+  'notification job claim is stale or invalid',
+  'A completed job cannot be completed again'
+);
+
+reset role;
+
+select is(
+  (select status::text from private.notification_jobs where id = (select job_id from notification_claim_reclaimed)),
+  'sent',
+  'The new claim token completion marks the reclaimed job sent'
+);
+
+set local role service_role;
+
+select lives_ok(
+  $$create temporary table notification_claim_failure on commit drop as
+    select * from public.claim_notification_jobs(1)$$,
+  'The service role can claim a job for failure handling'
+);
+select lives_ok(
+  $$select public.complete_notification_job(
+    (select job_id from notification_claim_failure),
+    (select claim_token from notification_claim_failure),
+    false,
+    'push failed'
+  )$$,
+  'The current claim can complete with a failure'
+);
+
+reset role;
+
+select is(
+  (
+    select status = 'failed' and claim_token is null and locked_at is null
+    from private.notification_jobs
+    where id = (select job_id from notification_claim_failure)
+  ),
+  true,
+  'A failed completion clears the claim token and lock'
 );
 select is(
   (

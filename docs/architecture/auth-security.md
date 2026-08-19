@@ -80,6 +80,8 @@ Service Role only:
 
 Service Role RPC は anon / authenticated から EXECUTE できないよう revoke する。
 
+Notification outbox の完了 RPC は job id だけでなく現在の `claim_token` も検証する。reclaim 後に遅れて到着した旧 Worker の結果や、完了済み job の再完了は拒否し、別世代の通知状態を上書きできないようにする。
+
 ## Sent letter immutability
 
 送信後編集不可は UI ルールだけではなく、本文の後付け INSERT を含む DB trigger でも守る。

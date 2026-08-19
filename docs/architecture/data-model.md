@@ -122,6 +122,7 @@ Delivery と Notification を分離する outbox。
 - `user_id`
 - `status`
 - `attempt_count`
+- `claim_token`（現在の Worker claim の世代。完了時に clear）
 - `available_at`
 - `locked_at`
 - `sent_at`
@@ -197,3 +198,5 @@ Browser から自由な table UPDATE を許可せず、重要な状態遷移は 
 - `deliver_due_letters`（service role only）
 - `claim_notification_jobs`（service role only）
 - `complete_notification_job`（service role only）
+
+`claim_notification_jobs` は job ごとに推測困難な `claim_token` を発行する。`complete_notification_job` は job id と現在の token が一致する `processing` claim だけを完了させ、reclaim 前の古い Worker の結果は拒否する。
