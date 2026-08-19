@@ -82,7 +82,7 @@ Service Role RPC は anon / authenticated から EXECUTE できないよう revo
 
 ## Sent letter immutability
 
-送信後編集不可は UI ルールだけではなく DB trigger でも守る。
+送信後編集不可は UI ルールだけではなく、本文の後付け INSERT を含む DB trigger でも守る。
 
 変更不可:
 
