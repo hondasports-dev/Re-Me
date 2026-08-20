@@ -60,17 +60,18 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 
 - **Runtime**: Node.js 24 LTS
 - **Package manager**: pnpm
-- **Frontend**: Vue 3 + TypeScript + Vite
-- **Routing**: Vue Router
-- **UI**: PrimeVue + Re:Me custom design tokens / components
-- **Toolchain**: Oxlint + Oxfmt + `vue-tsc`
+- **Frontend**: React + TypeScript + Vite
+- **Routing**: React Router
+- **Server state**: TanStack Query
+- **UI**: Mantine + Re:Me custom design tokens / components
+- **Toolchain**: Oxlint + Oxfmt + TypeScript (`tsc`)
 - **Hosting / Backend**: Cloudflare Worker + `@cloudflare/vite-plugin` + Hono
 - **Auth**: Supabase Auth / Google OAuth first
 - **Database**: Supabase PostgreSQL + RLS
 - **Image Storage**: Cloudflare R2
 - **Delivery**: Cloudflare Cron Trigger + trusted Supabase RPC
 - **Notification**: Web Push + DB outbox
-- **Test**: Vitest + Vue Test Utils + Playwright
+- **Test**: Vitest + React Testing Library + Playwright
 
 詳細は [技術スタック](docs/architecture/tech-stack.md) を参照してください。
 
@@ -86,6 +87,16 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 初期 DB migration は [`supabase/migrations/20260818120000_initial_schema.sql`](supabase/migrations/20260818120000_initial_schema.sql) に定義しています。
 
 > 無料枠は MVP / 初期検証のために活用する。本番運用では、可用性・休止条件・容量・料金を再評価する。
+
+## Environment 方針
+
+MVP はクラウド上に DEV 用 Supabase project を持たず、以下を基準にする。
+
+- **Local / DEV**: Vite + local Cloudflare Worker + Supabase CLI の local PostgreSQL / Auth
+- **Production**: Cloudflare Worker + Supabase Cloud
+- **Google OAuth**: local 開発用 OAuth client と production 用 OAuth client を分離する
+
+通常の自動 E2E は Google のログイン画面へ依存せず、local Supabase Auth のテストユーザー / セッションを使う。Google OAuth の実連携は少数の smoke test として確認する。
 
 ## ドキュメント
 
@@ -107,8 +118,8 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 - [ADR: Cloudflare + Supabase](docs/architecture/decisions/0001-cloudflare-supabase.md)
 - [ADR: 送信後編集不可](docs/architecture/decisions/0002-immutable-letter.md)
 - [ADR: ざっくり配送](docs/architecture/decisions/0003-delivery-window.md)
-- [ADR: Vue / Vite / pnpm / Oxc](docs/architecture/decisions/0004-frontend-toolchain.md)
-- [ADR: PrimeVue design system](docs/architecture/decisions/0005-primevue-design-system.md)
+- [ADR: React / Vite / React Router / TanStack Query](docs/architecture/decisions/0007-react-frontend-toolchain.md)
+- [ADR: Mantine design system](docs/architecture/decisions/0008-mantine-design-system.md)
 - [ADR: exact delivery time を private にする](docs/architecture/decisions/0006-private-exact-delivery-time.md)
 
 ### Implementation
@@ -119,4 +130,4 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 
 ## ステータス
 
-プロダクト要件・UX・初期アーキテクチャ・DB/RLS のベースラインを確定済み。GitHub Issues に沿って実装へ着手する段階です。
+プロダクト要件・UX・DB/RLS のベースラインは確定済み。フロントエンド基盤は Vue / PrimeVue から React / Mantine へ変更する方針を確定し、既存 scaffold を移行してから機能実装を進めます。
