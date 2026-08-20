@@ -71,10 +71,11 @@ Risk routing / Gate の詳細は `.loop/process.yaml` を正本とする。
 
 - Node.js 24 LTS
 - pnpm
-- Vue 3 + TypeScript
+- React + TypeScript
 - Vite
-- Vue Router
-- PrimeVue + `@primeuix/themes`
+- React Router
+- TanStack Query
+- Mantine
 - Cloudflare Worker + `@cloudflare/vite-plugin`
 - Hono for Worker routes
 - Supabase Auth
@@ -82,8 +83,8 @@ Risk routing / Gate の詳細は `.loop/process.yaml` を正本とする。
 - Cloudflare R2
 - Oxlint
 - Oxfmt
-- `vue-tsc`
-- Vitest + Vue Test Utils
+- TypeScript (`tsc --noEmit`)
+- Vitest + React Testing Library
 - Playwright for critical E2E
 
 同じ責務の tool を重複導入しない。
@@ -91,7 +92,8 @@ Risk routing / Gate の詳細は `.loop/process.yaml` を正本とする。
 - ESLint を追加しない。必要なら先に ADR / Issue で判断する。
 - Prettier を追加しない。formatter は Oxfmt を正とする。
 - npm / yarn lockfile を作らない。`pnpm-lock.yaml` のみコミットする。
-- PrimeVue の default 見た目を完成デザインとして扱わない。`docs/design/re-me-mobile-flow.jpg` と design token を優先する。
+- Redux / Zustand などの global state library を先回りして追加しない。server state は TanStack Query、認証は Supabase session、local UI state は React state / context を基本とする。
+- Mantine の default 見た目を完成デザインとして扱わない。`docs/design/re-me-mobile-flow.jpg` と Re:Me theme / design token を優先する。
 
 ## Project structure rules
 
@@ -99,13 +101,14 @@ feature-first を基本とする。
 
 - Frontend feature: `src/features/<feature>/`
 - Cross-feature code: `src/shared/`
-- App bootstrap: `src/app/`
+- App bootstrap / providers: `src/app/`
 - Router: `src/router/`
 - Cloudflare-only code: `worker/`
 - DB migration: `supabase/migrations/`
 
 feature 内だけで使う code を安易に `shared/` へ移動しない。
-Vue component に Supabase query / Worker request / complex domain logic を直接大量に書かず、repository / composable / pure function へ分離する。
+React component に Supabase query / Worker request / complex domain logic を直接大量に書かず、repository / query hook / mutation hook / pure function へ分離する。
+TanStack Query の query key は feature 内で一貫して管理し、同じ server state を別の global store に複製しない。
 
 ## Architecture rules
 
@@ -122,6 +125,15 @@ Vue component に Supabase query / Worker request / complex domain logic を直�
 - 配送処理は冪等にする。同じ job が複数回実行されても二重到着・二重通知を起こさない。
 - Letter delivery と notification success を同じ状態として扱わない。outbox で分離する。
 
+## Environment / auth rules
+
+- MVP の cloud Supabase project は Production を基準にし、日常開発では Supabase CLI の local PostgreSQL / Auth を使う。
+- local Supabase 起動時に Auth (GoTrue) を除外しない。
+- Google OAuth の local 開発用 client と production 用 client を分離する。
+- 通常の automated E2E は Google の UI に依存させず、local Supabase Auth のテストユーザー / セッションを使う。
+- Google OAuth の実連携は少数の smoke test で検証する。
+- router guard は UX 上の入口制御であり、認可の source of truth にしない。RLS / Worker 側でも強制する。
+
 ## DB change rules
 
 - `supabase/migrations/` が schema / RLS の source of truth。
@@ -134,8 +146,9 @@ Vue component に Supabase query / Worker request / complex domain logic を直�
 
 - mobile viewport を最初に設計・検証する。
 - 画面リファレンス: `docs/design/re-me-mobile-flow.jpg`
-- PrimeVue は操作 component の基盤として使い、便箋・封筒・開封・時間軸は custom component とする。
-- 色・shadow・radius・motion を component へ散在させず `src/styles/tokens.css` に寄せる。
+- Mantine は操作 component / accessibility の基盤として使い、便箋・封筒・開封・時間軸は custom component とする。
+- Re:Me の色・typography・radius・shadow・spacing は Mantine theme と `src/styles/tokens.css` に寄せ、feature component へ値を散在させない。
+- Mantine component の見た目を mockup に合わせて theme / styles API で調整し、framework の default appearance を優先しない。
 - 通知や inbox preview に letter content を表示しない。
 - accessibility を animation より優先し、`prefers-reduced-motion` を考慮する。
 
@@ -156,10 +169,11 @@ DB / RLS を変更する場合は migration / access-control test を必須に�
 
 最低限の critical E2E:
 
-1. Login → draft → send
+1. authenticated local session → draft → send
 2. sealed letter 到着 → open
 3. open → reply → send to future
 
+Google OAuth 自体は automated critical E2E へ毎回含めず、callback / session 作成までの smoke test を別に持つ。
 テストは実装詳細より user-observable behavior を優先する。
 
 ## Documentation rules
