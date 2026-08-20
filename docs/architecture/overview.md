@@ -2,7 +2,7 @@
 
 ## 方針
 
-Re:Me は、モバイルファースト Vue SPA と Cloudflare Worker を一つの Vite 開発体験にまとめ、Auth / DB は Supabase へ委譲する。
+Re:Me は、モバイルファースト React SPA と Cloudflare Worker を一つの Vite 開発体験にまとめ、Auth / DB は Supabase へ委譲する。
 
 ```mermaid
 flowchart TB
@@ -30,12 +30,22 @@ flowchart TB
 
 ## Frontend
 
-- Vue 3
+- React
 - TypeScript
 - Vite
-- Vue Router
-- PrimeVue + custom Re:Me design tokens
+- React Router
+- TanStack Query
+- Mantine + custom Re:Me design tokens / components
 - Supabase JS client
+
+責務の分離:
+
+- React Router: route / navigation / auth-required route の UX 制御
+- TanStack Query: Supabase / Worker から取得する server state と mutation 後の invalidation
+- Supabase Auth session: application provider で復元・購読
+- React local state / context: form state と小さな UI state
+- Mantine: accessibility を含む操作 UI の基盤
+- Re:Me custom components: 手紙・封筒・開封・時間軸などのブランド体験
 
 詳細: [技術スタック](tech-stack.md) / [プロジェクト構成](project-structure.md)
 
@@ -77,6 +87,8 @@ Browser から Supabase を直接利用する場合も RLS を前提とする。
 - user settings
 - push subscription
 
+TanStack Query はこの認可境界を置き換えない。query / mutation が発行する Supabase request も通常 client credential と RLS の制約下で動かす。
+
 ### Trusted RPC
 
 - draft / thread 作成
@@ -108,18 +120,36 @@ private.letter_delivery
 
 ## Environments
 
-初期:
+MVP 初期:
 
-- Local
+- Local / DEV
 - Production
 
-利用者・変更リスクが増えたら Preview / Staging を追加する。
+### Local / DEV
 
-Supabase migration は environment ごとに同じ履歴を適用し、Dashboard の手変更を source of truth にしない。
+- React / Vite local dev server
+- Cloudflare Worker local runtime
+- Supabase CLI local PostgreSQL
+- Supabase CLI local Auth (GoTrue)
+- local Google OAuth client は必要な smoke test のみで利用
+
+通常の automated E2E は Google の UI へ依存せず、local Supabase Auth のテストユーザー / session を使用する。
+
+### Production
+
+- Cloudflare Worker + static assets
+- Supabase Cloud project
+- production Google OAuth client
+
+Supabase migration は local / production に同じ履歴を適用し、Dashboard の手変更を source of truth にしない。
+
+利用者・変更リスクが増え、クラウド上の Preview / Staging が必要になった時点で追加環境と費用を再評価する。
 
 ## Free tier policy
 
 無料枠は MVP 検証に利用するが、無料枠の制約をプロダクト仕様にしない。
+
+クラウド Supabase project を DEV / PROD のためだけに二重化せず、日常開発は local stack を基準にする。
 
 Re:Me は長期間アクセスされないことが正常なので、公開前に以下を再確認する。
 
