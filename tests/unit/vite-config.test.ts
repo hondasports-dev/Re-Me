@@ -5,6 +5,10 @@ import { describe, expect, it } from 'vitest'
 import { createViteConfig } from '../../vite.config'
 
 describe('Vite browser credential boundary', () => {
+  it('binds local development to the exact Supabase redirect allow-list origin', () => {
+    expect(createViteConfig({}).server?.host).toBe('127.0.0.1')
+  })
+
   it.each([
     'sb_secret_build_must_stop',
     `header.${btoa(JSON.stringify({ role: 'service_role' }))}.signature`,

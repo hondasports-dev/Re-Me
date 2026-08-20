@@ -12,6 +12,9 @@ export function createViteConfig(env: BrowserBuildEnv): UserConfig {
 
   return {
     plugins: [vue(), cloudflare()],
+    server: {
+      host: '127.0.0.1',
+    },
   }
 }
 
