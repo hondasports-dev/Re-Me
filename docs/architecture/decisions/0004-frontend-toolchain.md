@@ -1,13 +1,14 @@
 # ADR-0004: Vue + Vite + pnpm + Oxc をフロントエンド基盤にする
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-08-18
+- Superseded by: [ADR-0007: React + Vite + React Router + TanStack Query をフロントエンド基盤にする](0007-react-frontend-toolchain.md)
 
 ## Context
 
-Re:Me はモバイルファースト Web App / PWA として開始する。
+Re:Me はモバイルファースト Web App / PWA として開始するにあたり、当初は Vue 3 を中心としたフロントエンド基盤を採用した。
 
-要件:
+当初の要件:
 
 - Vue を使う
 - Vite を使う
@@ -16,9 +17,9 @@ Re:Me はモバイルファースト Web App / PWA として開始する。
 - Cloudflare Worker と開発体験を統合したい
 - TypeScript の型安全性は維持したい
 
-## Decision
+## Original Decision
 
-以下を標準とする。
+以下を標準としていた。
 
 - Vue 3 + TypeScript
 - Vite
@@ -30,30 +31,29 @@ Re:Me はモバイルファースト Web App / PWA として開始する。
 - Vue Router
 - Hono on Cloudflare Worker
 
-## Why
+## Why it was superseded
 
-### Vite
+本格的な feature 実装へ入る前にフロントエンド基盤を再評価し、React ecosystem を採用する方針へ変更した。
 
-SPA 開発と Cloudflare Worker runtime integration を同じ toolchain に寄せられる。
+主な理由:
 
-### Oxc
+- React Router / TanStack Query を明示的な routing / server-state 基盤として採用したい
+- Mantine を UI / accessibility 基盤として利用したい
+- React ecosystem の UI / PWA / animation / testing 周辺の選択肢を活かしたい
+- 既存 Vue 実装がまだ薄く、移行コストが低い段階で切り替えられる
+- Cloudflare Worker / Hono / Supabase / R2 の backend architecture は変更せず、frontend layer だけを置き換えられる
 
-lint / format を高速な Oxc toolchain へ一本化し、ESLint / Prettier の二重管理を避ける。
+## Historical Consequences
 
-ただし Oxc を TypeScript type checker の代替にはしない。Vue SFC を含む型検査は `vue-tsc` を独立した CI gate とする。
+この ADR の Vue 固有の決定は新規実装へ適用しない。
 
-### pnpm
+引き続き有効な方針:
 
-workspace 拡張の余地を残しつつ、依存関係と lockfile を一つに固定する。
+- Vite
+- pnpm
+- Cloudflare Vite plugin
+- Oxlint / Oxfmt
+- Hono on Cloudflare Worker
+- `pnpm-lock.yaml` を唯一の lockfile とする
 
-### Hono
-
-Worker の HTTP route と scheduled handler を小さく整理しやすい。Frontend framework と Worker framework を混ぜず、Vue は UI、Hono は server boundary とする。
-
-## Consequences
-
-- ESLint / Prettier を原則追加しない
-- `pnpm-lock.yaml` 以外の lockfile を許可しない
-- `lint` が通っても type-safe とは限らないため `typecheck` を別に必須化する
-- Cloudflare 固有処理は `worker/` に隔離する
-- package major は実装開始時 stable を lockfile で固定する
+現在の frontend decision は ADR-0007 を正とする。
