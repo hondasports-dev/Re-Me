@@ -1,24 +1,30 @@
 # 開発セットアップ
 
-この文書は実装開始時の基準。Foundation scaffold 完了後は、リポジトリ直下の `package.json` / `wrangler.jsonc` / env example と `pnpm-lock.yaml` を正とする。
+この文書は React / Mantine へ移行後の実装開始基準。Foundation scaffold 完了後は、リポジトリ直下の `package.json` / `wrangler.jsonc` / env example と `pnpm-lock.yaml` を正とする。
 
 ## Prerequisites
 
 - Node.js 24 LTS
 - pnpm
+- Docker-compatible runtime
 - Cloudflare account
-- Supabase project
+- Supabase account / Production project
+- Google Cloud project
+
+日常開発では cloud Supabase DEV project を必須にせず、Supabase CLI の local stack を利用する。
 
 ## Package baseline
 
 ### Runtime dependencies
 
 ```text
-vue
-vue-router
-primevue
-@primeuix/themes
-primeicons
+react
+react-dom
+react-router
+@tanstack/react-query
+@mantine/core
+@mantine/hooks
+@mantine/notifications
 @supabase/supabase-js
 hono
 ```
@@ -28,14 +34,16 @@ hono
 ```text
 typescript
 vite
-@vitejs/plugin-vue
+@vitejs/plugin-react
 @cloudflare/vite-plugin
 wrangler
-vue-tsc
 oxlint
 oxfmt
 vitest
-@vue/test-utils
+@testing-library/react
+@testing-library/jest-dom
+@testing-library/user-event
+jsdom
 @cloudflare/vitest-pool-workers
 @playwright/test
 supabase
@@ -56,16 +64,41 @@ package version は scaffold 時点の stable を採用し、`pnpm-lock.yaml` �
     "lint:fix": "oxlint . --fix",
     "format": "oxfmt .",
     "format:check": "oxfmt . --check",
-    "typecheck": "vue-tsc --noEmit",
-    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm test:unit && pnpm test:worker",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "supabase": "supabase",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset --local --no-seed --yes",
+    "db:lint": "supabase db lint --local --level warning",
+    "db:advisors": "supabase db advisors --local --type all --level warn --fail-on warn",
+    "db:test": "supabase test db --local",
+    "db:types": "supabase gen types --local --schema public > src/shared/types/database.generated.ts",
     "cf:typegen": "wrangler types"
   }
 }
 ```
 
-Supabase CLI scripts は local project 初期化後に追加する。
+> 現行 Vue scaffold の `db:start` は GoTrue を除外しているため、React migration の implementation task で Auth を含む local stack 起動へ変更する。local 認証テストを行う以上、GoTrue を除外したままにしない。
+
+## Frontend bootstrap
+
+`src/app/providers.tsx` で application-wide provider を集約する。
+
+```text
+MantineProvider
+  └─ QueryClientProvider
+      └─ Supabase Auth Provider
+          └─ React Router
+```
+
+実際の nest 順は実装上の制約に応じて調整してよいが、feature 内へ provider を重複配置しない。
+
+Mantine theme は `src/styles/theme.ts`、Re:Me 固有 token は `src/styles/tokens.css` を基準にする。
 
 ## Environment boundary
 
@@ -107,9 +140,9 @@ LETTER_PHOTOS
 
 写真 object は public bucket にしない。
 
-## Local DB
+## Local Supabase
 
-Supabase CLI は dev dependency として `pnpm-lock.yaml` に固定している。Docker-compatible runtime を起動後、migration HEAD を local DB に適用する。
+Supabase CLI は dev dependency として `pnpm-lock.yaml` に固定する。Docker-compatible runtime を起動後、PostgreSQL と Auth を含む local stack を起動する。
 
 ```text
 pnpm db:start
@@ -127,11 +160,47 @@ remote Supabase project や Dashboard の手作業は、この local workflow �
 supabase/migrations/20260818120000_initial_schema.sql
 ```
 
+## Google OAuth local smoke test
+
+Google OAuth は local でも実連携確認できるが、通常の automated E2E では毎回通さない。
+
+local 開発用 Google OAuth client を用意し、Supabase local Auth の callback と React app の `/auth/callback` を local 用 redirect として設定する。
+
+smoke test の確認範囲:
+
+```text
+Google login
+  ↓
+Supabase local Auth callback
+  ↓
+React /auth/callback
+  ↓
+Supabase session restore
+  ↓
+認証必須 route 表示
+```
+
+production 用 OAuth client と credential を共用しない。
+
+## Automated auth E2E
+
+通常の Playwright test は Google UI を経由せず、local Supabase Auth の test user / session を fixture として利用する。
+
+目的は Google の UI をテストすることではなく、Re:Me の以下を安定して検証すること。
+
+- auth-required route
+- user A / user B の分離
+- RLS
+- sealed letter visibility
+- draft / send / open / reply の user flow
+
+Google OAuth integration は smoke test、アプリの認証済み挙動は local Auth E2E と分離する。
+
 ## Generated DB types
 
 Supabase schema から TypeScript type を生成し、手書きで DB row type を複製しない。
 
-配置候補:
+配置:
 
 ```text
 src/shared/types/database.generated.ts
@@ -157,7 +226,7 @@ pnpm cf:typegen
 
 ## First local success criteria
 
-Foundation scaffold の完了条件として以下が通ること。
+React migration / Foundation scaffold の完了条件として以下が通ること。
 
 ```text
 pnpm install
@@ -169,6 +238,13 @@ pnpm test
 pnpm build
 ```
 
-Playwright の基本 E2E はブラウザをインストールした環境で `pnpm test:e2e` を実行する。
+加えて、以下を確認する。
 
-ブラウザで mobile viewport の空 AppShell が表示され、Worker health endpoint が local workerd で応答するところまでを foundation とする。
+- mobile viewport で MantineProvider 適用済みの空 AppShell が表示される
+- React Router が client navigation できる
+- TanStack Query provider が利用可能
+- Worker health endpoint が local workerd で応答する
+- local Supabase PostgreSQL / Auth が起動する
+- test session で auth-required route を開ける
+
+Playwright の基本 E2E はブラウザをインストールした環境で `pnpm test:e2e` を実行する。
