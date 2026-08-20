@@ -5,7 +5,7 @@ import App from '../../src/app/App.vue'
 import router from '../../src/router'
 
 describe('AppShell', () => {
-  it('renders the mobile-first welcome shell', async () => {
+  it('redirects an anonymous visitor to the mobile-first login shell', async () => {
     await router.push('/')
     await router.isReady()
 
@@ -16,6 +16,8 @@ describe('AppShell', () => {
     })
 
     expect(wrapper.get('[aria-label="Re:Me 未来のあなたへ"]').text()).toContain('Re:Me')
+    expect(router.currentRoute.value.name).toBe('login')
     expect(wrapper.get('h1').text()).toBe('未来のあなたへ')
+    expect(wrapper.get('button').text()).toContain('Googleで続ける')
   })
 })

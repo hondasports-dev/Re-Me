@@ -2,6 +2,10 @@
   .welcome-panel {
     animation: welcome-panel-enter 500ms var(--re-me-motion-standard) both;
   }
+
+  .auth-panel__spinner {
+    animation: re-me-spin 900ms linear infinite;
+  }
 }
 
 @keyframes welcome-panel-enter {
@@ -13,5 +17,11 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes re-me-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

@@ -64,6 +64,18 @@ select:focus-visible {
   padding: 1.25rem var(--re-me-spacing-page);
 }
 
+.app-shell__logout {
+  margin-left: auto;
+}
+
+.app-shell__alert {
+  width: min(calc(100% - 2 * var(--re-me-spacing-page)), 36rem);
+  margin: 0 auto;
+  color: #8a3f39;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 .brand-mark {
   display: inline-flex;
   flex-direction: column;
@@ -146,6 +158,65 @@ select:focus-visible {
 
 .welcome-panel__note-mark {
   color: var(--re-me-color-accent);
+}
+
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 30rem);
+  padding: clamp(2.75rem, 13vw, 5rem) clamp(1.5rem, 9vw, 3.75rem);
+  border: 1px solid var(--re-me-color-border);
+  border-radius: var(--re-me-radius-panel);
+  background: color-mix(in srgb, var(--re-me-color-paper) 88%, transparent);
+  box-shadow: var(--re-me-shadow-soft);
+  text-align: center;
+  backdrop-filter: blur(1rem);
+}
+
+.auth-panel__brand {
+  margin: 0 0 1.4rem;
+  color: var(--re-me-color-ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.5rem, 15vw, 4rem);
+  letter-spacing: 0.05em;
+}
+
+.auth-panel h1 {
+  margin: 0;
+  color: var(--re-me-color-ink);
+  font-family: Georgia, 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  font-size: clamp(1.35rem, 7vw, 2rem);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.auth-panel__copy {
+  margin: 1.25rem 0 0;
+  color: var(--re-me-color-ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.9;
+}
+
+.auth-panel__error {
+  margin: 1.5rem 0 0;
+  color: #8a3f39;
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+
+.auth-panel__action {
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.auth-panel__spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: 2rem;
+  border: 2px solid var(--re-me-color-sky);
+  border-top-color: var(--re-me-color-sky-deep);
+  border-radius: 50%;
 }
 
 @media (min-width: 640px) {
