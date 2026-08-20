@@ -1,58 +1,34 @@
 # ADR-0005: PrimeVue を UI 基盤にし、ブランド UI は専用実装する
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-08-18
+- Superseded by: [ADR-0008: Mantine を UI 基盤にし、ブランド UI は専用実装する](0008-mantine-design-system.md)
 
 ## Context
 
-デザインリファレンスは、淡い青・大きな余白・ガラス感・封筒 / 手紙・静かな通知を中心とする。
+当初のデザインリファレンスは、淡い青・大きな余白・ガラス感・封筒 / 手紙・静かな通知を中心としており、操作 UI の accessibility と実装速度を担保するため PrimeVue を採用していた。
 
-Material Design のような強い既定表現をそのまま使うと Re:Me の世界観から外れやすい。一方、フォーム・Dialog・Select・Toast などを全て自作すると accessibility と実装速度で不利になる。
+## Original Decision
 
-## Decision
-
-UI framework は PrimeVue を採用する。
-
-- PrimeVue components は操作 UI の基盤として利用
+- PrimeVue components を操作 UI の基盤として利用
 - `@primeuix/themes` の Aura を土台に custom preset / design tokens を作成
 - ブランド表現の強い画面は PrimeVue component の組み合わせだけで作らず専用 component と CSS を使う
 
-## PrimeVue に任せるもの
+## Why it was superseded
 
-- Button
-- Input / Textarea
-- Dialog / Drawer
-- Select
-- Toggle / Checkbox
-- Toast
-- Tabs
-- Skeleton / loading
+フロントエンド基盤を Vue から React へ変更したため、Vue 向けの PrimeVue を継続採用しない。
 
-## Custom にするもの
+React 側では Mantine を採用し、当初 PrimeVue に期待していた以下の責務を引き継ぐ。
 
-- 便箋
-- 封筒 / 封印
-- 未来を旅する手紙
-- 到着 / 開封演出
-- 時間をまたぐ thread
-- Landing visual
+- 操作 component
+- accessibility
+- theme / design token integration
+- modal / drawer / form / notification / layout primitives
 
-## Design tokens
+「framework の default appearance を完成デザインとみなさず、Re:Me のブランド UI は custom component と theme で表現する」という原則は維持する。
 
-最低限以下を token 化する。
+## Historical Consequences
 
-- color: navy / sky / surface / paper / muted
-- radius
-- shadow
-- spacing
-- typography
-- motion duration / easing
+PrimeVue / `@primeuix/themes` / Aura preset は新規実装へ適用しない。
 
-実装 component 内で hex color や shadow 値を大量に直書きしない。
-
-## Consequences
-
-- PrimeVue の default appearance は完成デザインとみなさない
-- mockup と異なる場合は framework に合わせず theme / custom component 側を調整する
-- Tailwind は必須依存にしない
-- framework を使わないブランド component でも keyboard / focus / reduced-motion を考慮する
+現在の UI decision は ADR-0008 を正とする。
