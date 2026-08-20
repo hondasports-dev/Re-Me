@@ -8,39 +8,87 @@ Re:Me の MVP は、モバイルファースト Web App / PWA として以下の
 |---|---|---|
 | Runtime / CI | Node.js 24 LTS | 開発・CI の基準ランタイム |
 | Package manager | pnpm | lockfile を必ずコミットする |
-| Frontend | Vue 3 + TypeScript | Composition API + `<script setup lang="ts">` を標準とする |
+| Frontend | React + TypeScript | function component / hooks を標準とする |
 | Build | Vite | SPA と Worker を同一 Vite 開発体験へ寄せる |
 | Cloudflare integration | `@cloudflare/vite-plugin` + Wrangler | Workers runtime と本番環境の差を減らす |
-| Routing | Vue Router | 認証ガードを含むクライアントルーティング |
-| UI framework | PrimeVue + `@primeuix/themes` | Aura を土台に Re:Me 専用 design tokens を定義する |
+| Routing | React Router | route / navigation / auth-required route の UX 制御 |
+| Server state | TanStack Query | Supabase / Worker の query・mutation・cache invalidation を管理 |
+| UI framework | Mantine | 操作 UI と accessibility の基盤。Re:Me theme を適用する |
 | Worker API | Hono | `/api/*` と scheduled handler を整理する |
 | Auth | Supabase Auth | MVP は Google OAuth を第一候補とする |
 | Database | Supabase PostgreSQL | RLS を必須とする |
 | File storage | Cloudflare R2 | 写真本体を保存する |
 | Lint | Oxlint | ESLint は原則導入しない |
 | Format | Oxfmt | Prettier は原則導入しない |
-| Type check | `vue-tsc --noEmit` | Vite/Oxc とは役割を分離する |
-| Unit / component test | Vitest + Vue Test Utils | Vue コンポーネントと純粋ロジック |
+| Type check | `tsc --noEmit` | Vite/Oxc とは役割を分離する |
+| Unit / component test | Vitest + React Testing Library | React component と純粋ロジック |
 | Worker test | Vitest + Cloudflare Workers pool | workerd 上の Worker 挙動を検証する |
 | E2E | Playwright | 重要なユーザーフローのみ |
 
-## UI framework: PrimeVue を選ぶ理由
+## Frontend architecture
+
+```text
+React
+├─ React Router        route / navigation
+├─ TanStack Query      server state
+├─ Supabase client     auth / RLS-protected DB access
+├─ Mantine             operation UI / accessibility
+└─ Re:Me custom UI     letter / envelope / time experience
+```
+
+### React
+
+React component は表示と user interaction に集中させる。
+
+- Supabase query を component 内へ大量に直書きしない
+- Worker request を component 内へ散在させない
+- domain logic は pure function / use case へ分離する
+- reusable server-state access は TanStack Query hook と repository に寄せる
+
+### React Router
+
+React Router は URL と画面遷移を管理する。
+
+- auth-required route の UX 上の redirect を担当する
+- authorization の source of truth にはしない
+- RLS / trusted RPC / Worker authorization を必ず併用する
+
+### TanStack Query
+
+TanStack Query は **server state 専用**とする。
+
+対象:
+
+- Supabase から取得する letter / thread / settings 等
+- Worker API から取得する upload state 等
+- mutation 成功後の query invalidation / refetch
+- loading / error / retry state
+
+対象外:
+
+- Supabase Auth session の source of truth
+- component 内で完結する form state
+- modal open/close などの ephemeral UI state
+
+同じ server state を Redux / Zustand 等へ二重保持しない。必要になるまで global state library は導入しない。
+
+## UI framework: Mantine を選ぶ理由
 
 画面リファレンスは Material Design のような強い既定スタイルではなく、淡い青、余白、ガラス感、封筒・手紙の演出を中心にしている。
 
-PrimeVue はコンポーネントを個別 import でき、design token ベースのテーマ調整がしやすいため、以下の使い分けとする。
+Mantine は React 向けの操作 component、hooks、theme API、accessibility の基盤をまとめて提供しつつ、ブランド表現は theme / styles / custom component 側へ寄せやすい。
 
-### PrimeVue に任せる
+### Mantine に任せる
 
 - Button
-- Dialog / Drawer
-- Input / Textarea
-- Toast
-- Tabs
+- Modal / Drawer
+- TextInput / Textarea
 - Select
-- Toggle / Checkbox
-- Skeleton
-- Progress / loading UI
+- Switch / Checkbox
+- Tabs
+- Notification
+- Skeleton / loading UI
+- AppShell の基本 layout primitives
 
 ### Re:Me 専用コンポーネントとして作る
 
@@ -51,20 +99,20 @@ PrimeVue はコンポーネントを個別 import でき、design token ベー�
 - 時間をまたぐスレッド
 - ランディング背景・演出
 
-PrimeVue の見た目をそのまま採用するのではなく、`src/styles/tokens.css` と専用 preset で画面リファレンスへ合わせる。
+Mantine の default appearance をそのまま完成デザインとして採用しない。`src/styles/tokens.css` と `src/styles/theme.ts` を中心に Re:Me theme を定義する。
 
 ## State management
 
-MVP では Pinia を最初から導入しない。
+MVP では Redux / Zustand を最初から導入しない。
 
-- Auth session: Supabase client
-- Server state: feature ごとの repository / composable
-- Form state: component / composable local state
-- Global UI state: 最小限の provide/inject または composable
+- Auth session: Supabase Auth + application provider
+- Server state: TanStack Query
+- Form state: component local state / hooks
+- Global UI state: 必要最小限の React context
 
-複数画面で複雑なクライアント状態が発生した時点で Pinia を追加する。依存を先回りして増やさない。
+複数機能にまたがる client-only state が複雑化した時点で、専用 state library の導入を ADR / Issue で判断する。
 
-## Oxc toolchain
+## Oxc / TypeScript toolchain
 
 標準 scripts の想定:
 
@@ -77,14 +125,14 @@ MVP では Pinia を最初から導入しない。
     "lint:fix": "oxlint . --fix",
     "format": "oxfmt .",
     "format:check": "oxfmt . --check",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test"
   }
 }
 ```
 
-Oxc は lint / format を担当する。Vue SFC を含む TypeScript の型検査は `vue-tsc` を別ゲートとして実行する。
+Oxc は lint / format を担当する。TypeScript の型検査は `tsc` を別ゲートとして実行する。
 
 ## Cloudflare application shape
 
@@ -94,8 +142,8 @@ Worker は Hono の `fetch` と Cloudflare の `scheduled` handler を一つの 
 
 ```text
 Browser
-  ├─ static app ──────────────> Cloudflare Worker / Assets
-  ├─ user CRUD ───────────────> Supabase (RLS)
+  ├─ static React app ────────> Cloudflare Worker / Assets
+  ├─ RLS-protected CRUD ──────> Supabase
   └─ privileged API ──────────> Hono on Worker
                                   ├─ R2
                                   └─ Supabase service role
@@ -105,10 +153,31 @@ Cloudflare Cron
                                   └─ delivery / notification jobs
 ```
 
+TanStack Query は Browser 側の server-state 管理層であり、Cloudflare / Supabase の trust boundary は変更しない。
+
+## Local / Production environments
+
+### Local / DEV
+
+- Vite React dev server
+- local Cloudflare Worker / workerd
+- Supabase CLI local PostgreSQL
+- Supabase CLI local Auth (GoTrue)
+- local Google OAuth client は OAuth smoke test 時のみ利用
+
+### Production
+
+- Cloudflare Worker + static assets
+- Supabase Cloud
+- production Google OAuth client
+
+クラウド上の Supabase DEV project は MVP の必須要件にしない。schema / RLS は migrations と local tests を source of truth とする。
+
 ## Dependency policy
 
 - UI ライブラリで Re:Me のブランド表現を妥協しない。
 - 同じ責務のライブラリを二重導入しない。
 - formatter は Oxfmt、linter は Oxlint に一本化する。
+- server state は TanStack Query に寄せ、別 store に複製しない。
 - npm / yarn lockfile を作らない。`pnpm-lock.yaml` のみを正とする。
 - major version は実装開始時の stable を lockfile で固定し、ドキュメントには不要に細かいバージョンを埋め込まない。
