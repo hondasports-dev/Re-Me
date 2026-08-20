@@ -60,6 +60,16 @@ Browser で使う publishable / anon key と、Worker だけが使う service ro
 
 Service Role は Cloudflare Worker Secret に置き、Browser bundle や repository に含めない。
 
+### Environment policy
+
+- Local / DEV: Supabase CLI の local Auth (GoTrue) + local PostgreSQL
+- Production: Supabase Cloud Auth + PostgreSQL
+- Google OAuth: local 開発用 OAuth client と production 用 OAuth client を分離
+
+cloud Supabase DEV project は MVP の必須要件にしない。
+
+通常の automated E2E は Google UI を経由せず、local Auth の test user / session を使う。Google OAuth の実連携は少数の smoke test として分離する。
+
 ## Local workflow
 
 Supabase CLI は project の dev dependency として固定している。Docker Desktop などの Docker-compatible runtime を起動してから実行する。
@@ -74,11 +84,26 @@ pnpm db:types
 pnpm db:stop
 ```
 
-すべて local database を対象とする。remote project への migration 適用はこの workflow に含めない。
+local development では database だけでなく Auth (GoTrue) も起動する。React migration 完了時に `db:start` は Auth を除外しない構成へ変更する。
 
-`db:start` は migration / RLS test に必要な database service だけを起動する。初回は Docker image の取得に時間がかかる。`db:advisors` は security / performance の warning 以上を CI failure にする。
+remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。初回は Docker image の取得に時間がかかる。`db:advisors` は security / performance の warning 以上を CI failure にする。
 
 生成した public schema の TypeScript types は `src/shared/types/database.generated.ts` に commit する。schema 変更後は `pnpm db:types` で再生成し、手編集しない。
+
+## Local auth testing
+
+通常の E2E では local Supabase Auth に test user を用意し、認証済み session を fixture として利用する。
+
+これにより以下を Google UI から独立して検証する。
+
+- auth-required route
+- user A / user B の access boundary
+- RLS
+- sealed letter visibility
+- trusted RPC
+- draft / send / open / reply flow
+
+Google OAuth smoke test は別に実施し、provider login → Supabase callback → React `/auth/callback` → session restore までを確認する。
 
 ## RLS test requirement
 
