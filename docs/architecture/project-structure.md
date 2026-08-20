@@ -2,7 +2,7 @@
 
 ## Goal
 
-Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何でも集める構成は避け、画面・use case・API を feature ごとにまとめる。
+Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何でも集める構成は避け、画面・server state・use case・API を feature ごとにまとめる。
 
 ## Target structure
 
@@ -18,12 +18,12 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 ├── public/
 ├── src/
 │   ├── app/
-│   │   ├── App.vue
-│   │   ├── main.ts
-│   │   └── providers.ts
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── providers.tsx
 │   ├── router/
-│   │   ├── index.ts
-│   │   └── guards.ts
+│   │   ├── index.tsx
+│   │   └── RequireAuth.tsx
 │   ├── features/
 │   │   ├── auth/
 │   │   ├── compose/
@@ -36,15 +36,17 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 │   │   ├── api/
 │   │   │   ├── supabase.ts
 │   │   │   └── worker.ts
+│   │   ├── query/
+│   │   │   └── client.ts
 │   │   ├── components/
-│   │   ├── composables/
+│   │   ├── hooks/
 │   │   ├── types/
 │   │   └── utils/
 │   └── styles/
 │       ├── tokens.css
+│       ├── theme.ts
 │       ├── base.css
-│       ├── motion.css
-│       └── primevue.ts
+│       └── motion.css
 ├── worker/
 │   ├── index.ts
 │   ├── app.ts
@@ -74,6 +76,19 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 └── pnpm-lock.yaml
 ```
 
+## App providers
+
+`src/app/providers.tsx` では application-wide provider を集約する。
+
+想定:
+
+- MantineProvider
+- QueryClientProvider
+- Supabase Auth session provider
+- 必要最小限の application context
+
+provider の nest を feature component へ散らさない。
+
 ## Frontend feature layout
 
 各 feature は必要なものだけを持つ。
@@ -81,19 +96,20 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 ```text
 src/features/compose/
 ├── components/
-│   ├── LetterEditor.vue
-│   ├── DeliveryWindowPicker.vue
-│   └── SealChoice.vue
-├── composables/
-│   └── useDraftLetter.ts
+│   ├── LetterEditor.tsx
+│   ├── DeliveryWindowPicker.tsx
+│   └── SealChoice.tsx
+├── hooks/
+│   ├── useDraftLetterQuery.ts
+│   └── useSaveDraftMutation.ts
 ├── api/
 │   └── compose.repository.ts
 ├── model/
 │   ├── compose.schema.ts
 │   └── compose.types.ts
-└── views/
-    ├── ComposeView.vue
-    └── SendConfirmView.vue
+└── pages/
+    ├── ComposePage.tsx
+    └── SendConfirmPage.tsx
 ```
 
 ルール:
@@ -101,7 +117,10 @@ src/features/compose/
 - feature 内だけで使うものは feature 外へ出さない。
 - 2 つ以上の feature から使うものだけ `shared/` へ昇格する。
 - `shared/components` を巨大な UI 部品置き場にしない。
-- Supabase query を Vue component へ直接大量に書かない。repository / composable に隔離する。
+- Supabase query / Worker request を React component へ直接大量に書かない。
+- server state は repository + TanStack Query hook に隔離する。
+- query key は feature 単位で一貫して定義し、mutation 後の invalidation 対象を明示する。
+- form state や temporary UI state を TanStack Query cache に入れない。
 
 ## Route design
 
@@ -122,6 +141,31 @@ MVP の想定 route:
 ```
 
 `/`, `/write*`, `/traveling`, `/letters*`, `/threads*`, `/settings` は認証必須。
+
+React Router の auth-required route は未認証 user を `/login` へ誘導する。ただし router guard は UX のための境界であり、データ認可は Supabase RLS / trusted RPC / Worker 側でも必ず強制する。
+
+## Server-state boundary
+
+TanStack Query を server state の標準アクセス層とする。
+
+```text
+React component
+      ↓
+feature query / mutation hook
+      ↓
+repository
+      ├─ Supabase client
+      └─ Worker API
+```
+
+責務:
+
+- loading / error / retry
+- cache
+- mutation 後の invalidate / refetch
+- server response の共有
+
+TanStack Query cache を永続的な domain source of truth とみなさない。authorization は常に server / DB 側で判定する。
 
 ## Worker boundary
 
@@ -147,9 +191,9 @@ Worker / RPC に寄せる処理:
 
 ## Styling boundary
 
-### PrimeVue
+### Mantine
 
-入力・選択・モーダルなど、操作部品の品質と accessibility を担う。
+入力・選択・モーダル・通知・基本 layout など、操作部品の品質と accessibility を担う。
 
 ### Re:Me custom UI
 
@@ -157,23 +201,30 @@ Worker / RPC に寄せる処理:
 
 ```text
 src/styles/tokens.css
+  +
+src/styles/theme.ts
   ↓
-PrimeVue custom preset
+MantineProvider
   +
 Re:Me custom components
 ```
 
-色・radius・shadow・spacing・motion duration を feature component に直接ばら撒かず token 化する。
+色・radius・shadow・spacing・typography・motion duration を feature component に直接ばら撒かず token / theme 化する。
+
+Mantine の default appearance を完成デザインとはみなさず、`docs/design/re-me-mobile-flow.jpg` の意図を優先する。
 
 ## Testing placement
 
 - pure function: 対象ファイルの近くに `*.test.ts` でもよい
+- React component: 対象 feature 近傍または `tests/unit/` に React Testing Library test
 - shared integration: `tests/unit/`
 - Worker / scheduled: `tests/worker/`
 - user journey: `e2e/`
 
 E2E は全機能を網羅せず、以下の critical path を優先する。
 
-1. Login → 手紙を書く → 送信
+1. authenticated local session → 手紙を書く → 送信
 2. sealed letter 到着 → 開封
 3. 開封 → 返信 → 再送信
+
+通常の E2E は Google のログイン UI を経由しない。Google OAuth の callback / session integration は別の smoke test として扱う。
