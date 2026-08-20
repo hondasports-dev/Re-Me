@@ -16,11 +16,69 @@ Browser は Supabase の publishable / anon credential を使う。Service Role 
 
 ## Session
 
-SPA 起動時に Supabase session を復元し、Vue Router guard で認証必須 route を制御する。
+SPA 起動時に Supabase session を application provider で復元・購読し、React Router の auth-required route で未認証 user を `/login` へ誘導する。
 
 OAuth callback は `/auth/callback` へ集約する。
 
-認証済みでも、認可は UI や router guard だけに依存せず DB RLS / Worker 側で強制する。
+React Router の route protection は UX 上の入口制御にすぎない。認証済みでも、認可は UI や route guard だけに依存せず DB RLS / trusted RPC / Worker 側で強制する。
+
+TanStack Query の cache に auth session を source of truth として保存しない。session は Supabase Auth を正とし、server-state query は現在の認証状態に応じて enable / invalidate する。
+
+## Local / Production auth environments
+
+MVP は cloud Supabase project を DEV / PROD のためだけに二重化しない。
+
+### Local / DEV
+
+- Supabase CLI の local PostgreSQL を使う
+- Supabase CLI の local Auth (GoTrue) を起動する
+- local Supabase 起動時に GoTrue を除外しない
+- Google OAuth を実際に確認する場合だけ local 開発用 OAuth client を利用する
+
+### Production
+
+- Supabase Cloud project
+- production 用 Google OAuth client
+
+Google OAuth client は local / production で分離し、redirect URI の取り違えを避ける。
+
+## Auth testing strategy
+
+認証テストは責務を分ける。
+
+### Unit / component
+
+- auth provider の状態遷移
+- 未認証時の route redirect
+- session loading / logout 後の UI
+
+外部 Google UI は呼ばない。
+
+### Automated E2E
+
+通常の Playwright E2E は local Supabase Auth にテストユーザーを用意し、session を取得・再利用して認証済み状態を作る。
+
+Google のログイン画面を critical E2E の前提にしない。外部 UI、CAPTCHA、MFA、bot detection、Google 側変更による不安定性をプロダクト E2E から切り離す。
+
+### Google OAuth smoke test
+
+少数の smoke test で以下だけを確認する。
+
+```text
+React app
+  ↓
+Supabase Auth
+  ↓
+Google OAuth
+  ↓
+/auth/callback
+  ↓
+Supabase session 作成
+  ↓
+認証済み画面へ遷移
+```
+
+この smoke test は OAuth provider と Supabase Auth の integration 確認が目的であり、全機能 E2E の入口にはしない。
 
 ## RLS
 
@@ -99,6 +157,8 @@ Notification outbox の完了 RPC は job id だけでなく現在の `claim_tok
 
 - delivered / opened / replied lifecycle timestamp
 - soft delete
+
+React component / TanStack Query mutation の client-side validation は補助であり、immutability の source of truth にしない。
 
 ## Exact schedule secrecy
 
@@ -184,3 +244,5 @@ Re:Me は数か月〜数年後に戻ることが正常系。
 - sent body update が失敗する
 - authenticated user が service-role-only delivery RPC を実行できない
 - exact scheduled time を authenticated client が取得できない
+- unauthenticated route access が login へ誘導される
+- Google OAuth smoke test で callback 後に Supabase session が生成される
