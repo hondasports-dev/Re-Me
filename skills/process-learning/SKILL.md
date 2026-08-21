@@ -1,44 +1,50 @@
 ---
 name: process-learning
-description: Aftercare 後、Learning Event がある task または R3/R4 task を振り返り、再利用可能な process 改善へ変換する。
+description: learning event が発生した時だけ、task 固有の失敗を再利用可能な loop 改善へ変換する。
 ---
 
 # Process Learning
 
-R0-R2 で Event がなければ fast path:
+Risk が R3/R4 という理由だけでは Full Learning を起動せえへん。予定通り完了した高 risk task に毎回 retrospective を課すと、コストだけが増える。
 
-```text
-Events: none
-Candidates: none
-```
+## Learning event
 
-Full analysis trigger:
+次のような event がある場合だけ使う。
 
-- R3 / R4
 - human correction
-- Gate / CI / E2E failure
-- actionable review finding
-- residual-risk disposition / head-evidence reconciliation miss
+- unexpected Gate / CI / E2E failure
+- actionable review finding that should have been caught earlier
 - retry / incident
 - scope / impact miss
-- delivery / aftercare / transition miss
+- delivery / aftercare miss
+- repeated ambiguity or manual workaround
 
-分析:
+Event がなければ task-state は次だけで閉じる。
+
+```text
+learning.event: none
+learning.status: not_required
+```
+
+## Analysis
+
+必要な場合だけ短く分析する。
 
 ```text
 Observed problem:
-Immediate cause:
 Process cause:
-Why existing enforcement did not catch it:
+Why existing control missed it:
 Earlier detection / prevention condition:
 ```
 
-Issue 固有名を外して generalize し、改善 target は次の優先度で選ぶ。
+改善 target の優先度:
 
 1. Script / Code
-2. CI / Gate
+2. CI / deterministic check
 3. Skill
-4. AGENTS.md の短い Policy
+4. AGENTS.md / process.yaml の短い Policy
 5. Runbook / Docs
 
-scope 外の process 改善を現在 PR へ勝手に混ぜない。
+単に説明を増やすより、自動化・削除・条件付き起動を優先する。
+
+Issue 固有名を外して generalize し、scope 外の process 改善を現在 PR へ勝手に混ぜへん。
