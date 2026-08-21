@@ -40,7 +40,9 @@ prepare:
   acceptance_criteria: []
   preserve: []
   risk:
+    initial_level: pending
     level: pending # r0_trivial | r1_low | r2_medium | r3_high | r4_critical
+    max_observed_level: pending
     axes:
       blast_radius: { score: 0, reason: "" }
       data_security: { score: 0, reason: "" }
