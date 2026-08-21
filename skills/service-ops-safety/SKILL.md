@@ -1,11 +1,15 @@
 ---
 name: service-ops-safety
-description: Cloudflare、Supabase、GitHub、OAuth、R2、環境変数、secret、deploy 等の外部サービス操作を安全に扱う。全 task で常時適用する。
+description: Cloudflare、Supabase、GitHub、OAuth、R2、env、secret、deploy など外部サービス操作がある task で読む詳細 Safety Skill。基本 invariant は AGENTS.md に常時保持する。
 ---
 
 # Service Operations Safety
 
-## 基本原則
+基本原則「secret を出さない」「production / irreversible write は明示承認なしに行わない」「必須 Verification を環境不足で省略しない」は `AGENTS.md` に常時保持する。
+
+この Skill 全文は、Cloudflare / Supabase / OAuth / R2 / GitHub write / env / secret / deploy など service operation が実際にある時だけ読む。
+
+## Operation check
 
 1. 対象環境を明示する: local / preview / production
 2. read と write を分ける
@@ -14,7 +18,7 @@ description: Cloudflare、Supabase、GitHub、OAuth、R2、環境変数、secret
 5. 不可逆・高影響操作は Human Gate を通す
 6. 環境不足を理由に必須 Verification を省略しない
 
-外部サービス操作前に確認する。
+外部サービス write 前に必要な分だけ確認する。
 
 ```text
 Service:
@@ -26,6 +30,8 @@ Rollback / recovery:
 Secret involved: yes | no
 Human Gate required: yes | no
 ```
+
+Read-only の軽微な問い合わせで上記 packet を毎回フル生成する必要はない。
 
 ## Re:Me の対象
 
