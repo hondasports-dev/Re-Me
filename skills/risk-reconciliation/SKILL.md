@@ -64,8 +64,10 @@ Finding が成立しない proof と rationale が必要。reviewer の `nice_to
 ```text
 invariant, auth, authentication, authorization, rls, data_integrity,
 state_rollback, idempotency, atomicity, immutability,
-privileged_boundary, current_scope, test_gap
+privileged_boundary, current_scope, test_gap, other
 ```
+
+`other` は未分類 domain として protected 扱いにし、分類できるまで agent 単独 defer に落とさへん。
 
 `test_gap` は `fix_now` または Requirements / AC 正式変更後の再評価だけを許可する。
 
