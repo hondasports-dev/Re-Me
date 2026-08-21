@@ -119,17 +119,17 @@ describe('Supabase Auth SDK integration', () => {
     const firstManager = new AuthSessionManager(() => firstClient)
     await firstManager.completeOAuthCallback('one-time-code')
     expect(exchangedVerifier).toMatch(/^.{43,128}$/)
-    expect(firstManager.status.value).toBe('authenticated')
+    expect(firstManager.status).toBe('authenticated')
     firstManager.destroy()
 
     const restoredClient = createAuthClient()
     const restoredManager = new AuthSessionManager(() => restoredClient)
     await restoredManager.initialize()
-    expect(restoredManager.session.value?.user.id).toBe('user-id')
+    expect(restoredManager.session?.user.id).toBe('user-id')
 
     await restoredManager.signOut()
     expect(logoutScope).toBe('local')
-    expect(restoredManager.session.value).toBeNull()
+    expect(restoredManager.session).toBeNull()
     await expect(restoredClient.auth.getSession()).resolves.toMatchObject({
       data: { session: null },
       error: null,

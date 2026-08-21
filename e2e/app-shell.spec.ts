@@ -7,7 +7,6 @@ test('redirects an anonymous visitor to the login screen', async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: '未来のあなたへ' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Googleで続ける' })).toBeVisible()
-  await expect(page.getByText('Invalid PrimeUI License')).toHaveCount(0)
 })
 
 test('shows a finite callback error without redirecting back to Google', async ({ page }) => {

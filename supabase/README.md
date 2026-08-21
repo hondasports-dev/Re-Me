@@ -84,7 +84,7 @@ pnpm db:types
 pnpm db:stop
 ```
 
-local development では database だけでなく Auth (GoTrue) も起動する。React migration 完了時に `db:start` は Auth を除外しない構成へ変更する。
+local development では database だけでなく Auth (GoTrue) も起動する。`pnpm db:start` は `supabase start` 相当で、Auth を除外しない。
 
 remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。初回は Docker image の取得に時間がかかる。`db:advisors` は security / performance の warning 以上を CI failure にする。
 

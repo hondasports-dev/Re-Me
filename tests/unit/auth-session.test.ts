@@ -56,10 +56,10 @@ describe('AuthSessionManager', () => {
 
     expect(fake.auth.getSession).toHaveBeenCalledTimes(1)
     expect(fake.auth.onAuthStateChange).toHaveBeenCalledTimes(1)
-    expect(manager.status.value).toBe('authenticated')
+    expect(manager.status).toBe('authenticated')
 
     fake.emit('TOKEN_REFRESHED', session('refreshed-token'))
-    expect(manager.session.value?.access_token).toBe('refreshed-token')
+    expect(manager.session?.access_token).toBe('refreshed-token')
 
     manager.destroy()
     expect(fake.unsubscribe).toHaveBeenCalledOnce()
@@ -71,8 +71,8 @@ describe('AuthSessionManager', () => {
     const manager = new AuthSessionManager(() => fake.client)
 
     await expect(manager.initialize()).rejects.toMatchObject({ code: 'session_restore_failed' })
-    expect(manager.status.value).toBe('error')
-    expect(manager.session.value).toBeNull()
+    expect(manager.status).toBe('error')
+    expect(manager.session).toBeNull()
   })
 
   it('can restore again after a transient initialization failure', async () => {
@@ -87,10 +87,10 @@ describe('AuthSessionManager', () => {
 
     expect(fake.auth.getSession).toHaveBeenCalledTimes(2)
     expect(fake.auth.onAuthStateChange).toHaveBeenCalledTimes(1)
-    expect(manager.status.value).toBe('authenticated')
+    expect(manager.status).toBe('authenticated')
   })
 
-  it('starts Google PKCE with an exact trusted callback and exchanges a code once', async () => {
+  it('starts Google PKCE with an exact trusted callback and reuses one in-flight exchange', async () => {
     const fake = authClient()
     const manager = new AuthSessionManager(() => fake.client)
 
@@ -100,10 +100,13 @@ describe('AuthSessionManager', () => {
       options: { redirectTo: 'http://localhost:3000/auth/callback' },
     })
 
-    await manager.completeOAuthCallback('one-time-code')
-    await expect(manager.completeOAuthCallback('one-time-code')).rejects.toMatchObject({
-      code: 'oauth_code_already_used',
-    })
+    await Promise.all([
+      manager.completeOAuthCallback('one-time-code'),
+      manager.completeOAuthCallback('one-time-code'),
+    ])
+
+    expect(fake.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1)
+    expect(manager.status).toBe('authenticated')
   })
 
   it('clears protected state before local logout completes', async () => {
@@ -115,7 +118,7 @@ describe('AuthSessionManager', () => {
 
     await manager.signOut()
 
-    expect(manager.session.value).toBeNull()
+    expect(manager.session).toBeNull()
     expect(reset).toHaveBeenCalledOnce()
     expect(fake.auth.signOut).toHaveBeenCalledWith({ scope: 'local' })
   })

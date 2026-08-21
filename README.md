@@ -130,4 +130,4 @@ MVP はクラウド上に DEV 用 Supabase project を持たず、以下を基�
 
 ## ステータス
 
-プロダクト要件・UX・DB/RLS のベースラインは確定済み。フロントエンド基盤は Vue / PrimeVue から React / Mantine へ変更する方針を確定し、既存 scaffold を移行してから機能実装を進めます。
+プロダクト要件・UX・DB/RLS のベースラインは確定済み。フロントエンド基盤は React / Mantine へ移行済みで、次は手紙の機能実装を進めます。

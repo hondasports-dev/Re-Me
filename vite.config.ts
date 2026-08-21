@@ -1,5 +1,5 @@
 import { cloudflare } from '@cloudflare/vite-plugin'
-import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type UserConfig } from 'vite'
 
 import { assertBrowserSafeViteEnv } from './src/shared/config/supabase-key.ts'
@@ -11,7 +11,7 @@ export function createViteConfig(env: BrowserBuildEnv): UserConfig {
   assertBrowserSafeViteEnv(env)
 
   return {
-    plugins: [vue(), cloudflare()],
+    plugins: [react(), cloudflare()],
     server: {
       host: '127.0.0.1',
     },
