@@ -1,5 +1,4 @@
 import type { AuthChangeEvent, Session, SupabaseClient, Subscription } from '@supabase/supabase-js'
-import { readonly, shallowRef, type DeepReadonly, type Ref } from 'vue'
 
 import { getSupabaseClient } from '../../shared/api/supabase'
 import type { Database } from '../../shared/types/database.generated'
@@ -7,6 +6,7 @@ import type { Database } from '../../shared/types/database.generated'
 export type AuthStatus = 'anonymous' | 'authenticated' | 'error' | 'idle' | 'initializing'
 export type AuthSessionListener = (session: Session | null, event: AuthChangeEvent) => void
 export type ProtectedStateReset = () => void
+export type AuthStoreListener = () => void
 
 export interface AuthSessionReader {
   readonly epoch: number
@@ -24,17 +24,15 @@ export class AuthSessionError extends Error {
 
 export class AuthSessionManager implements AuthSessionReader {
   private client: SupabaseClient<Database> | undefined
-  private exchangeInProgress = new Set<string>()
+  private exchangePromises = new Map<string, Promise<void>>()
   private initPromise: Promise<void> | undefined
   private listeners = new Set<AuthSessionListener>()
   private protectedStateResets = new Set<ProtectedStateReset>()
   private revision = 0
+  private storeListeners = new Set<AuthStoreListener>()
   private subscription: Subscription | undefined
-  private readonly mutableSession = shallowRef<Session | null>(null)
-  private readonly mutableStatus = shallowRef<AuthStatus>('idle')
-
-  readonly session: DeepReadonly<Ref<Session | null>> = readonly(this.mutableSession)
-  readonly status: DeepReadonly<Ref<AuthStatus>> = readonly(this.mutableStatus)
+  private currentSession: Session | null = null
+  private currentStatus: AuthStatus = 'idle'
 
   constructor(private readonly clientFactory: () => SupabaseClient<Database> = getSupabaseClient) {}
 
@@ -42,12 +40,28 @@ export class AuthSessionManager implements AuthSessionReader {
     return this.revision
   }
 
+  get session(): Session | null {
+    return this.currentSession
+  }
+
+  get status(): AuthStatus {
+    return this.currentStatus
+  }
+
+  subscribe(listener: AuthStoreListener): () => void {
+    this.storeListeners.add(listener)
+    return () => {
+      this.storeListeners.delete(listener)
+    }
+  }
+
   async initialize(): Promise<void> {
     if (this.initPromise) {
       return this.initPromise
     }
 
-    this.mutableStatus.value = 'initializing'
+    this.currentStatus = 'initializing'
+    this.notifyStore()
     this.initPromise = this.initializeOnce().catch((error: unknown) => {
       // A transient restore failure must not poison every later navigation in this page lifetime.
       this.initPromise = undefined
@@ -71,12 +85,22 @@ export class AuthSessionManager implements AuthSessionReader {
   async completeOAuthCallback(code: string): Promise<void> {
     const normalizedCode = code.trim()
 
-    if (!normalizedCode || this.exchangeInProgress.has(normalizedCode)) {
-      throw new AuthSessionError(normalizedCode ? 'oauth_code_already_used' : 'oauth_code_missing')
+    if (!normalizedCode) {
+      throw new AuthSessionError('oauth_code_missing')
     }
 
-    this.exchangeInProgress.add(normalizedCode)
+    const existing = this.exchangePromises.get(normalizedCode)
+    if (existing) {
+      // StrictMode remounts must await the same in-flight / completed exchange.
+      return existing
+    }
 
+    const exchangePromise = this.exchangeCodeOnce(normalizedCode)
+    this.exchangePromises.set(normalizedCode, exchangePromise)
+    await exchangePromise
+  }
+
+  private async exchangeCodeOnce(normalizedCode: string): Promise<void> {
     // Keep the code marked for this page lifetime so a remount cannot exchange it twice.
     const startRevision = this.revision
     const { data, error } = await this.getClient().auth.exchangeCodeForSession(normalizedCode)
@@ -106,14 +130,14 @@ export class AuthSessionManager implements AuthSessionReader {
   async getAccessToken(): Promise<string> {
     await this.initialize()
 
-    if (this.mutableStatus.value === 'error') {
+    if (this.currentStatus === 'error') {
       throw new AuthSessionError('session_unavailable')
     }
 
     const requestRevision = this.revision
     const { data, error } = await this.getClient().auth.getSession()
 
-    const currentToken = this.mutableSession.value?.access_token
+    const currentToken = this.currentSession?.access_token
     const authChangedToAnotherSession =
       requestRevision !== this.revision && currentToken !== data.session?.access_token
 
@@ -121,7 +145,7 @@ export class AuthSessionManager implements AuthSessionReader {
       throw new AuthSessionError('authentication_required')
     }
 
-    if (this.mutableSession.value?.access_token !== data.session.access_token) {
+    if (this.currentSession?.access_token !== data.session.access_token) {
       this.applySession(data.session, 'TOKEN_REFRESHED')
     }
 
@@ -129,7 +153,7 @@ export class AuthSessionManager implements AuthSessionReader {
   }
 
   handleUnauthorized(): void {
-    if (!this.mutableSession.value) {
+    if (!this.currentSession) {
       return
     }
 
@@ -141,12 +165,16 @@ export class AuthSessionManager implements AuthSessionReader {
 
   onSessionChange(listener: AuthSessionListener): () => void {
     this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
   }
 
   registerProtectedStateReset(reset: ProtectedStateReset): () => void {
     this.protectedStateResets.add(reset)
-    return () => this.protectedStateResets.delete(reset)
+    return () => {
+      this.protectedStateResets.delete(reset)
+    }
   }
 
   destroy(): void {
@@ -154,6 +182,7 @@ export class AuthSessionManager implements AuthSessionReader {
     this.subscription = undefined
     this.listeners.clear()
     this.protectedStateResets.clear()
+    this.storeListeners.clear()
   }
 
   private async initializeOnce(): Promise<void> {
@@ -172,7 +201,8 @@ export class AuthSessionManager implements AuthSessionReader {
       }
     } catch {
       this.applySession(null, 'SIGNED_OUT')
-      this.mutableStatus.value = 'error'
+      this.currentStatus = 'error'
+      this.notifyStore()
       throw new AuthSessionError('session_restore_failed')
     }
   }
@@ -191,10 +221,11 @@ export class AuthSessionManager implements AuthSessionReader {
   }
 
   private applySession(session: Session | null, event: AuthChangeEvent): void {
-    const hadSession = Boolean(this.mutableSession.value)
+    const hadSession = Boolean(this.currentSession)
     this.revision += 1
-    this.mutableSession.value = session
-    this.mutableStatus.value = session ? 'authenticated' : 'anonymous'
+    this.currentSession = session
+    this.currentStatus = session ? 'authenticated' : 'anonymous'
+    this.notifyStore()
 
     if (hadSession && !session) {
       for (const reset of this.protectedStateResets) {
@@ -204,6 +235,12 @@ export class AuthSessionManager implements AuthSessionReader {
 
     for (const listener of this.listeners) {
       listener(session, event)
+    }
+  }
+
+  private notifyStore(): void {
+    for (const listener of this.storeListeners) {
+      listener()
     }
   }
 

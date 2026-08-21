@@ -20,13 +20,21 @@ pnpm test:e2e
 
 通常の automated E2E は Google のログイン画面を経由せず、local Supabase Auth の test user / session を使う。
 
+### Current scaffold
+
+1. anonymous visitor → `/login`
+2. OAuth callback error を provider detail なしで表示する
+3. local Auth session fixture → protected `/`（`E2E_AUTH_ENABLED=1`）
+
+### After letter feature implementation
+
 1. authenticated local session → draft 作成 → 手紙送信
 2. sealed letter 到着 → 開封 → 本文表示
 3. 開封済み letter → 返信 → 返信を未来へ送信
 
 ## Google OAuth smoke test
 
-Google OAuth 自体は critical E2E と分離し、少数の smoke test で以下を確認する。
+Google OAuth 自体は critical E2E と分離し、少数の smoke test（`e2e/google-oauth.smoke.spec.ts`）で以下を確認する。CI では credential がないため skip する。
 
 1. Google OAuth 開始
 2. Supabase local / production Auth callback 成功
@@ -49,7 +57,7 @@ React component を変更する場合、必要に応じて React Testing Library
 
 `.github/workflows/ci.yml` は pull request と `main` への push で、Node.js 24 / pnpm lockfile を使って標準 quality gate と Playwright の基本 E2E を実行する。pnpm の依存ストアと Playwright Chromium はキャッシュし、lockfile が変わらない限り再ダウンロードを省略する。
 
-React migration 完了時に CI の typecheck / component test が `tsc` / React Testing Library 前提になっていることを確認する。
+React migration 完了後、CI の typecheck / component test は `tsc` / React Testing Library 前提である。
 
 ## DB / RLS
 

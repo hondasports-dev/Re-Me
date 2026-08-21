@@ -83,8 +83,6 @@ package version は scaffold 時点の stable を採用し、`pnpm-lock.yaml` �
 }
 ```
 
-> 現行 Vue scaffold の `db:start` は GoTrue を除外しているため、React migration の implementation task で Auth を含む local stack 起動へ変更する。local 認証テストを行う以上、GoTrue を除外したままにしない。
-
 ## Frontend bootstrap
 
 `src/app/providers.tsx` で application-wide provider を集約する。
@@ -164,7 +162,10 @@ supabase/migrations/20260818120000_initial_schema.sql
 
 Google OAuth は local でも実連携確認できるが、通常の automated E2E では毎回通さない。
 
-local 開発用 Google OAuth client を用意し、Supabase local Auth の callback と React app の `/auth/callback` を local 用 redirect として設定する。
+1. `.env` に DEV 用 `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` を設定する（`VITE_` は付けない）
+2. `supabase/config.toml` の `[auth.external.google].enabled` を一時的に `true` にする
+3. `pnpm db:start` で GoTrue を含む local stack を起動する
+4. `E2E_GOOGLE_SMOKE=1 pnpm test:e2e e2e/google-oauth.smoke.spec.ts` で smoke を実行する
 
 smoke test の確認範囲:
 
@@ -186,7 +187,13 @@ production 用 OAuth client と credential を共用しない。
 
 通常の Playwright test は Google UI を経由せず、local Supabase Auth の test user / session を fixture として利用する。
 
-目的は Google の UI をテストすることではなく、Re:Me の以下を安定して検証すること。
+現行 scaffold の通常 E2E:
+
+- anonymous visitor → `/login`
+- OAuth callback error の有限表示
+- `E2E_AUTH_ENABLED=1` 時のみ、local session restore → protected `/`
+
+letter feature 実装後に追加する通常 E2E:
 
 - auth-required route
 - user A / user B の分離
