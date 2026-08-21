@@ -1,11 +1,20 @@
 ---
 name: code-review
-description: Verification 後、差分の正しさ・回帰・保守性・テスト妥当性を review し、R1/R2 では Security quick scan も行う。
+description: REVIEW stage。Risk Profile / Required Controls に応じて独立 review を最大1回行い、finding は単一 Ledger に記録する。
 ---
 
-# Code Review
+# REVIEW
 
-共通観点:
+REVIEW は default で複数エージェントを議論させへん。
+
+- R0: 原則 NOT_REQUIRED
+- R1: control が要求した時だけ
+- R2/R3/R4: independent reviewer ×1
+- R4 または明確に異なる専門領域が必要な場合だけ specialist を並列追加可能
+
+Reviewer 同士は debate せず、各 reviewer が独立に Finding Ledger へ所見を出し、root が1回だけ disposition を統合する。
+
+## Common review rubric
 
 - Goal / AC / scope との一致
 - null / empty / boundary / error
@@ -15,29 +24,54 @@ description: Verification 後、差分の正しさ・回帰・保守性・テス
 - unnecessary abstraction / dependency
 - changed tests が仕様を assert しているか
 - mobile loading / empty / error / a11y / navigation
+- rollback / idempotency when stateful
 
-## Security quick scan for R1/R2
+## Security rubric
 
-- auth / authorization / RLS 条件を変更していないか
-- user data boundary に影響しないか
-- user-controlled HTML / URL / redirect / file を扱わないか
-- secret / privileged env に触れないか
-- external service write を増やさないか
-- destructive / production behavior を変えないか
+`security_review` control がある場合は同じ REVIEW stage に Security 観点を追加する。深い専門確認が必要な場合だけ `skills/security-review/SKILL.md` を読む。
 
-R3 floor trigger を見つけたら quick scan だけで PASS せず Risk を昇格し、Security Review を要求する。
+最低限:
 
-Review は対象 head SHA を固定し、実装時の自己確認をそのまま Evidence として流用しない。
+- authentication / authorization / RLS / user boundary
+- user-controlled HTML / URL / redirect / file / MIME
+- secret / privileged env
+- external write boundary
+- destructive / production behavior
 
-## Finding handoff
+## Finding Ledger
 
-Finding があれば、`PASS` や `nice_to_have` / `non-must-fix` のラベルだけで消さず、`risk_reconciliation` へ構造化して渡す。各 finding に少なくとも次を記録する。
+Finding があれば `task-state.findings` に直接追加する。
 
 ```text
-id / finding / failure_scenario / affected_invariants /
-affected_acceptance_criteria / risk_domains / test_gap / test_gap_id /
-source / evidence / recommended_disposition
+id
+source
+category
+finding
+failure_scenario
+affected_acceptance_criteria
+affected_invariants
+risk_domains
+evidence
+recommended_action
+disposition
 ```
 
-`recommended_disposition` は reviewer の推薦に留め、最終 `disposition`（fix / defer / human gate / not applicable）は root の Risk Reconciliation が決める。`findings` の id は stable / unique にし、全て一件以上の reconciliation record の `source_finding_ids` へ移送する。summary の `must_fix` / `nice_to_have` だけで移送済みとみなさへん。non-empty `test_gap` には必ず `test_gap_id` を付ける。current scope、auth、RLS、data integrity、state rollback、idempotency、atomicity、immutability、privileged boundary、test gap に触れる所見は、non-must-fix として省略せず明示する。
-Reconciliation への移送では、source の `test_gap` / `test_gap_id` を完全一致で保持し、protected `risk_domains` を全て含め、failure scenario / affected invariants / affected acceptance criteria を欠落・弱化させへん。source より広げる場合は `source_fidelity` の explicit-superset evidence を添える。source に gap があれば、同じ id / text を Verification の `material_test_gaps` にも記録する。
+別の residual-risk record や source-fidelity record へ転記せえへん。
+
+Reviewer は原則 `recommended_action` を出す。明白な must-fix は `disposition: fix_now` としてよいが、defer / human acceptance / not-applicable の最終判断は root が同じ Ledger record を更新する。
+
+Rules:
+
+- `open` / `fix_now` は Delivery BLOCKED
+- protected domain は agent 単独 defer 不可
+- `test_gap` は fix または Requirements / AC 再評価のみ
+- `not_applicable` は proof 必須
+- Human acceptance は approval evidence 必須
+
+## Revision / delta review
+
+Review は `revision.reviewed` に対象 commit/tree を記録する。
+
+後続で head が変わった場合、tree が同じなら review evidence を再利用する。content が変わったら差分だけ review し、protected behavior / AC coverage / Risk / Controls が変わった時だけ full affected review に戻す。
+
+実装時の自己確認を独立 review の代わりにせえへん。
