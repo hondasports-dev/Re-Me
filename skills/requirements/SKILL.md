@@ -65,6 +65,8 @@ R4 は production DB migration、不可逆 data mutation、account deletion sema
 
 Risk は変更種類のラベルではなく影響度で決める。Auth / RLS / schema に触れただけで自動的に R3 にせず、必要な品質確認は Controls で追加する。
 
+新しい evidence で Risk は即時昇格できる。Implementation 開始後は `max_observed_level` を completion の最低 profile とし、後から Risk を下げて Verification / REVIEW を軽くする用途には使わへん。
+
 ## 4. Required Controls
 
 変更に応じて必要な control だけ選ぶ。
