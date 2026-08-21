@@ -1,171 +1,238 @@
-# Re:Me Agent Loop
+# Re:Me Agent Loop v2
 
-`hondasports/kakeibo` の risk-based Agent Loop を Re:Me 向けに移植・簡素化したもの。
+Re:Me の Agent Loop は、品質を Gate 数で担保せず、**Acceptance Criteria・必要な Control・検証 Evidence** で担保する。
 
 正本:
 
-- `AGENTS.md` — 実行契約の入口
-- `.loop/process.yaml` — state / risk profile / gate の正本
-- `skills/*/SKILL.md` — 各工程の手順
-- `.loop/templates/task-state.yaml` — Evidence 記録テンプレート
+- `AGENTS.md` — project invariant / safety invariant
+- `.loop/process.yaml` — loop / risk / control / state の正本
+- `skills/*/SKILL.md` — 現在工程または条件に該当したときだけ読む手順
+- `.loop/templates/task-state.yaml` — 最小 task state / Finding Ledger
 
-## Design principle
+## Design principles
 
 ```text
-Cheap deterministic checks
-        → always / broadly applied
+Keep:
+  C0 blocks implementation
+  one writer by default
+  AC-based verification
+  independent review when risk/control requires it
+  open finding blocks delivery
+  PR aftercare until merge-ready
 
-Expensive reasoning / multi-agent checks
-        → risk or learning event driven
+Remove:
+  gate for gate's sake
+  duplicated finding records
+  risk-driven multi-agent requirements debate
+  unconditional specialist reviews
+  unconditional process learning
+  full re-validation for commit-only head changes
 ```
 
-Gate 数を増やすことを品質と同一視しない。
-
-## Intake
+## Default loop
 
 ```text
 TASK
  ↓
-SPEC CONFIDENCE
- ├ C2 confirmed ─────┐
- ├ C1 reconstructed ─┤
- ├ C0 unclear ─→ Requirements Discovery / Human Gate
- └ C0 conflicted → Source Reconciliation / Human Gate
-                      ↓
-                 C1 / C2 only
-                      ↓
-                 RISK CLASSIFICATION
+PREPARE
+ ↓
+IMPLEMENT
+ ↓
+VERIFY
+ ↓
+REVIEW? ── only when profile/control requires
+ ↓
+DELIVER
+ ↓
+PR AFTERCARE
+ ↓
+DONE
 ```
+
+`Human Gate`、`Incident`、`Process Learning` は常設の直列 Gate ではなく、必要時だけ割り込む side path や。
+
+## PREPARE
+
+PREPARE で次だけを固定する。
+
+- Goal
+- In scope / Out of scope
+- Acceptance Criteria
+- Spec Confidence
+- Risk
+- Required Controls
+- Verification plan
 
 ### Spec Confidence
 
-- `C2`: 目的・期待結果・ACが明確で material conflict なし
-- `C1`: 不足を docs / tests / existing pattern からほぼ一意に復元可能
-- `C0 unclear`: 複数の妥当な成果物がある
-- `C0 conflicted`: desired state について authoritative source が矛盾
+- `C2`: 目的・期待結果・主要 AC が明確
+- `C1`: docs / tests / existing pattern からほぼ一意に復元可能
+- `C0 unclear`: 複数の妥当な成果物が残る
+- `C0 conflicted`: authoritative source が desired state で矛盾する
 
-`C0` のまま実装へ進まない。
+`C0` のまま実装へ進まへん。
 
-## Risk model
+独立 Requirements Review は Risk の高さだけでは増やさない。`C1` の復元に material choice が残る場合や、復元した仕様が protected behavior を変える場合だけ最大1 reviewerを使う。
 
-4軸を `0..2` で評価する。
+## Risk と Control を分ける
 
-1. Blast Radius
-2. Data / Security
-3. Reversibility
-4. Uncertainty
+Risk は変更そのものの影響度を表し、Control は変更種類に必要な品質確認を表す。
 
-- `0..2` → R1
-- `3..4` → R2
-- `5..8` → R3
-- R0 / R4 は明示条件
-
-Re:Me では特に auth / RLS / schema / migration / secret / external write は原則 R3 floor。
-production DB migration、不可逆 data mutation、account deletion、production secret rotation、DNS cutover は R4。
-
-## Profiles
-
-### R0 TRIVIAL
+例:
 
 ```text
-PREFLIGHT → MINIMAL PLAN → CHANGE → TARGETED CHECK
-           → RISK RECONCILIATION (fast path)
-           → DELIVERY → AFTERCARE
+small RLS fix
+  risk: R2
+  controls: security_review + db_access_control
+
+production DB migration
+  risk: R4
+  controls: db_access_control + destructive_or_stateful + human_gate
 ```
 
-### R1 FAST
+Auth / RLS / schema に触れたという理由だけで、Requirements reviewer 数・Process Learning・全 specialist review をまとめて増やさへん。
+
+## Review policy
+
+通常の独立 reviewer は最大1体。
 
 ```text
-PREFLIGHT
-→ PLAN (Requirements + Impact)
-→ IMPLEMENT
-→ TARGETED VERIFY
-→ REVIEW (Code + Security quick scan)
-→ RISK RECONCILIATION (fast path when no finding / residual / test gap)
-→ DELIVERY / AFTERCARE
+Reviewer ─→ Finding Ledger ─→ Root disposition
 ```
 
-### R2 STANDARD
+Reviewer 同士は議論させへん。R4 や明確に異なる専門領域が必要な場合だけ specialist を並列追加し、root が1回だけ統合する。
 
-```text
-PREFLIGHT
-→ REQUIREMENTS
-→ IMPACT
-→ IMPLEMENT
-→ VERIFY
-→ CODE REVIEW + Security quick scan
-→ RISK RECONCILIATION
-→ DELIVERY / AFTERCARE
+Security は独立した直列 Gate ではなく Review の control や。Security control が必要なときだけ `skills/security-review/SKILL.md` を読む。
+
+## Finding Ledger
+
+Finding は `.loop/templates/task-state.yaml` の `findings` が唯一の source of truth や。
+
+Review finding、Verification gap、Residual risk を別レコードへ転記せえへん。同じ finding を同じ ID のまま更新する。
+
+```yaml
+findings:
+  - id: F001
+    source: review
+    category: security
+    finding: cross-user access may be possible
+    risk_domains: [authorization]
+    disposition: fix_now
+    resolution: ""
+    verified_revision: ""
 ```
 
-### R3 HIGH
+修正・再検証後は同じ record を `resolved` にする。
+
+これにより `source_finding_ids`、`source_fidelity`、同じ `test_gap` の多重コピーと、それらの転記整合性を保証する大量の Gate は廃止する。
+
+### Blocking rules
+
+- `open` / `fix_now` は Delivery BLOCKED
+- `test_gap` は fix または Requirements / AC 再評価のみ
+- protected domain は agent 単独 defer 不可
+- Human acceptance は approval evidence 必須
+- `not_applicable` は proof 必須
+
+## Revision / Evidence
+
+Evidence は対象 revision を示すが、同じ SHA を工程ごとに何度も構造化コピーせえへん。
+
+Task state は基本的に次を持つ。
 
 ```text
-PREFLIGHT
-→ REQUIREMENTS + independent review x2
-→ IMPACT
-→ IMPLEMENT
-→ FULL VERIFY
-→ CODE REVIEW
-→ SECURITY REVIEW
-→ RISK RECONCILIATION
-→ DELIVERY / AFTERCARE
-→ PROCESS LEARNING
+current
+verified
+reviewed
+published
+observed
 ```
 
-### R4 CRITICAL
+commit SHA に加えて tree SHA を取れる場合は tree を使う。
 
-R3 + independent review x3 + post-synthesis review + Human Gate + rollback / recovery evidence + Risk Reconciliation。
-
-## Risk Reconciliation
-
-Review と Verification の後、Delivery の前に root が全 finding / residual risk を current head 上で統合する。Reviewer の `PASS`、`nice_to_have`、`non-must-fix` は推薦ラベルであって、最終 disposition ではない。
-
-- `pending` / unresolved は一件でも Delivery BLOCKED。
-- `fix_now` は Implementation → Verification → Reviews → Reconciliation をやり直す。
-- `defer_with_evidence` は current invariant / AC 非破壊、到達不能または safe failure、mitigation、follow-up issue、current-head evidence が揃う場合だけ許可する。
-- `accept_with_human_gate` は protected domain の finding であっても material `test_gap` がない場合だけ候補で、承認 evidence が揃うまで BLOCKED。test gap は Human Gate で迂回できず、`fix_now` または Requirements / AC 正式変更後の再評価に戻す。
-- R3/R4、review finding、residual risk、material test gap のいずれかがあれば `risk_reconciliation.required: true` が必須。false / 未記録なら BLOCKED。
-- `material_test_gaps` と residual record の id は stable / unique で、matching `test_gap_id` の residual record が必要。孤立 gap / reference は BLOCKED。
-- `not_applicable` は成立しない rationale・evidence・current-head binding が揃わなければ BLOCKED。risk domain は enum 外を `other` と説明なしに置けない。
-- Security Review は structured `findings` が唯一の入力経路で、`security_review.residual_risks` の summary-only 経路は廃止。Review / Verification の全 finding・gap id は reconciliation record の `source_finding_ids` へ移送し、逆向きの未知 source id も BLOCKED。
-- source の `test_gap` / `test_gap_id` は residual へ完全一致で移送し、source の protected `risk_domains` を全て保持する。`failure_scenario` / affected invariants / AC は同値または明示的 superset evidence が必須で、source gap は同じ id / text の `verification.material_test_gaps` にも必要や。
-- `other` は未分類 protected domain。`availability`、`performance`、`maintainability`、`ux`、`compatibility`、`operations`、`documentation`、`reliability`、`observability` は非保護分類で、条件を満たす `defer_with_evidence` の対象になり得る。known protected domain は enum を併記する。
-- defer は mitigation / safe-failure-or-unreachable / follow-up issue / current-head evidence、Human Gate は approver / approved_at / scope / evidence を構造化して揃える。
-- `test_gap` が一つでもあれば Verification PASS にせず BLOCKED とする。
-- R0-R2 の review finding / residual がない task は、残存ゼロ・test gap なし・head 一致を明示する安価な fast path を使える。R3/R4 または finding / residual がある task は Gate を省略しない。
-- `current_head_sha`、`verification.verified_head_sha`、各 Review の `reviewed_head_sha`、`reconciled_head_sha`、`published_head_sha`、`observed_head_sha` は該当 Gate で full git object id と kind / source / ref_or_command / result / head_sha / observed_at evidence を持ち、空文字同士を含め一致必須。PR Aftercare 中に latest PR head が変わったら Delivery / Aftercare evidence も無効化し、Verification → Reviews → Reconciliation → Delivery → Aftercare を再実行する。
-- Local head は `git rev-parse HEAD`、remote PR head は GitHub `headRefOid` を source evidence にする。
-
-## Delivery
-
-PR 作成で task を完了扱いにしない。
+### Head changed
 
 ```text
-DELIVERY
+new commit
   ↓
-PR_AFTERCARE latest head
-  ├ required CI
-  ├ actionable review
-  ├ requested changes
-  ├ approval
-  └ mergeability
-  ↓
-merge_ready
+same tree?
+  ├ yes → evidence reuse
+  └ no  → changed delta を verify / review
+             ↓
+          protected behavior / AC coverage / risk が変化?
+             ├ yes → required scope を再実行
+             └ no  → delta evidence を追加
 ```
 
-ユーザーが明示的に「PR作成まで」と指定した場合だけ Aftercare を省略可能。
+rebase や commit metadata だけで tree が同じなら、Verification / Review を全量やり直さへん。
+
+## Verification
+
+「全部ローカルで回せば安全」ではなく、AC と Control に対応する最小十分な検証をする。
+
+- R0/R1: targeted
+- R2: affected scope
+- R3: full affected scope
+- R4: R3 + recovery evidence
+
+CI が repository-wide required checks を同じ content に対して実行するなら、ローカルで理由なく同じ full suite を二重実行しない。
+
+## Delivery / Aftercare
+
+PR 作成は checkpoint であって completion ではない。
+
+Default target は `merge_ready`。
+
+Aftercare は latest PR content について次を確認する。
+
+- required CI success
+- actionable blocking finding なし
+- requested changes なし
+- conflict なし
+- mergeable
+
+PR head が変わったら tree / diff を確認し、変更された範囲だけ evidence を更新する。内容が同じなら既存 evidence を再利用する。
+
+ユーザーが明示的に「PR作成まで」と指定した場合だけ Aftercare を省略できる。
+
+## Conditional skill loading
+
+毎taskで全 Skill をコンテキストへ入れへん。
+
+通常は:
+
+```text
+AGENTS.md
+.loop/process.yaml
+current state の Skill
+```
+
+だけ読む。
+
+以下は該当 trigger がある時だけ読む。
+
+- prompt injection guard
+- service operations safety
+- impact analysis
+- security review
+- finding disposition helper
+- incident
+- process learning
+- session cleanup
+
+基本安全則は `AGENTS.md` / `process.yaml` に短く保持し、詳細 Skill の常時ロードを避ける。
 
 ## Process Learning
 
-R0-R2 は event-driven。Event がなければ `none` で閉じる。
+Risk が高いだけでは Full Learning を起動せえへん。
 
-Full analysis trigger:
+次のような **learning event** がある場合だけ実施する。
 
 - human correction
-- Gate / CI / E2E failure
-- actionable review finding
+- unexpected CI / E2E / Gate failure
+- actionable review finding that should have been caught earlier
 - retry / incident
 - scope / impact miss
-- delivery / task transition miss
-- R3 / R4
+- delivery / aftercare miss
+
+イベントがなければ `none` で閉じる。
