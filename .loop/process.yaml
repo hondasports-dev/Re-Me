@@ -15,6 +15,7 @@ principles:
   - independent_reviewers_do_not_debate_each_other
   - duplicate_full_checks_require_a_reason
   - content_change_invalidates_only_affected_evidence
+  - max_observed_risk_remains_the_completion_floor_after_implementation_starts
   - pr_creation_is_checkpoint_not_completion
   - latest_pr_content_is_the_merge_ready_target
   - learning_is_event_driven
@@ -75,6 +76,7 @@ risk_model:
     initial: provisional
     escalate_immediately_on_new_evidence: true
     downgrade_requires_evidence: true
+    max_observed_after_implementation_is_completion_floor: true
 
 controls:
   security_review:
@@ -232,6 +234,7 @@ finding_ledger:
     - open_or_fix_now_blocks_delivery
     - test_gap_allows_only_fix_now_or_requirements_reassessment
     - protected_domain_cannot_be_agent_deferred
+    - unclassified_other_is_protected_until_classified
     - defer_requires_non_protected_domain_mitigation_follow_up_and_evidence
     - accept_with_human_gate_requires_recorded_approval
     - not_applicable_requires_proof
@@ -249,6 +252,7 @@ finding_ledger:
     - privileged_boundary
     - current_scope
     - test_gap
+    - other
 
 revision_policy:
   canonical_identity:
@@ -326,6 +330,7 @@ completion:
   done_requires:
     - spec_confidence_c1_or_c2
     - risk_level_recorded
+    - max_observed_risk_floor_respected
     - required_controls_recorded
     - acceptance_criteria_verified
     - required_review_complete
