@@ -1,33 +1,30 @@
 ---
 name: task-transition
-description: Aftercare と Process Learning 後、current task を閉じ、次 task へ必要な情報だけを明示的に再束縛する。
+description: task 完了後、次 task へ不要な context を持ち込まないための軽量 session cleanup helper。Completion Gate ではない。
 ---
 
-# Task Transition
+# Session Cleanup helper
 
-前 task を未完了のまま次 task へ持ち込まない。
+Task Transition は default loop の必須 Gate ではない。目的は、完了済み task の Issue / review / CI / branch context を次 task へ暗黙継承しないことだけや。
 
-Current task closure:
-
-```text
-Task ID / source:
-Objective:
-Branch / worktree:
-Delivery PR:
-Delivery target / result:
-Final head SHA:
-PR Aftercare result:
-Process Learning result:
-```
-
-次 task がある場合は新しい packet を作る。
+必要なら次を短く残す。
 
 ```text
-Next task ID / source:
-Objective:
-Relevant carried context:
-Explicitly excluded prior context:
+Closed task:
+Delivery PR / result:
+Final revision:
+Reusable decisions:
+Explicitly discarded task-local context:
 ```
 
-前 task の Issue / review / CI / branch / PR を暗黙に引き継がない。
-Aftercare 未完了や required blocker があれば task を閉じない。
+次 task が続く場合:
+
+```text
+Next task:
+Objective:
+Only relevant carried context:
+```
+
+前 task の詳細な evidence packet を再掲せえへん。
+
+Aftercare や required blocker が未完了なら「cleanupで閉じる」のではなく current task のまま維持する。
