@@ -1,35 +1,37 @@
 # 開発セットアップ
 
-この文書は React / Mantine へ移行後の実装開始基準。Foundation scaffold 完了後は、リポジトリ直下の `package.json` / `wrangler.jsonc` / env example と `pnpm-lock.yaml` を正とする。
+この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。現行 repository の dependency / scripts は移行前であり、実装 Issue で段階的に置き換える。
 
 ## Prerequisites
 
 - Node.js 24 LTS
 - pnpm
-- Docker-compatible runtime
+- Auth0 account（DEV tenant/application）
+- Convex account / project
 - Cloudflare account
-- Supabase account / Production project
-- Google Cloud project
+- Google Cloud project（DEV OAuth client）
 
-日常開発では cloud Supabase DEV project を必須にせず、Supabase CLI の local stack を利用する。
+Docker / local PostgreSQL は target architecture の必須条件ではない。
 
-## Package baseline
+## Target packages
 
-### Runtime dependencies
+### Runtime
 
 ```text
 react
 react-dom
 react-router
-@tanstack/react-query
 @mantine/core
 @mantine/hooks
 @mantine/notifications
-@supabase/supabase-js
-hono
+@auth0/auth0-react
+convex
+@convex-dev/r2
 ```
 
-### Development dependencies
+TanStack Query、Supabase client、Hono は migration 完了後に削除する。Convex data へ別の query cache を重ねない。
+
+### Development
 
 ```text
 typescript
@@ -46,212 +48,120 @@ vitest
 jsdom
 @cloudflare/vitest-pool-workers
 @playwright/test
-supabase
+convex-test
 ```
 
-package version は scaffold 時点の stable を採用し、`pnpm-lock.yaml` で固定する。
+package version は導入時の stable を公式 docs と compatibility で確認し、`pnpm-lock.yaml` に固定する。
 
-## Expected scripts
+## Target scripts
 
 ```json
 {
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "deploy": "pnpm build && wrangler deploy",
+    "deploy:backend": "convex deploy",
+    "deploy:frontend": "pnpm build && wrangler deploy",
     "lint": "oxlint .",
-    "lint:fix": "oxlint . --fix",
     "format": "oxfmt .",
     "format:check": "oxfmt . --check",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm test:unit && pnpm test:worker",
-    "test:unit": "vitest run --config vitest.config.ts",
-    "test:worker": "vitest run --config vitest.worker.config.ts",
-    "test:watch": "vitest",
+    "test": "pnpm test:unit && pnpm test:convex && pnpm test:worker",
     "test:e2e": "playwright test",
-    "supabase": "supabase",
-    "db:start": "supabase start",
-    "db:stop": "supabase stop",
-    "db:reset": "supabase db reset --local --no-seed --yes",
-    "db:lint": "supabase db lint --local --level warning",
-    "db:advisors": "supabase db advisors --local --type all --level warn --fail-on warn",
-    "db:test": "supabase test db --local",
-    "db:types": "supabase gen types --local --schema public > src/shared/types/database.generated.ts",
+    "convex:dev": "convex dev",
+    "convex:check": "convex dev --once",
     "cf:typegen": "wrangler types"
   }
 }
 ```
 
-## Frontend bootstrap
+実際の Convex / Cloudflare deploy command は導入時の公式 docs と CI provider の制約で確定する。Production deploy はこのセットアップ作業の自動実行対象にしない。
 
-`src/app/providers.tsx` で application-wide provider を集約する。
+## Provider bootstrap
 
 ```text
 MantineProvider
-  └─ QueryClientProvider
-      └─ Supabase Auth Provider
+  └─ Auth0Provider
+      └─ ConvexProviderWithAuth0
           └─ React Router
 ```
 
-実際の nest 順は実装上の制約に応じて調整してよいが、feature 内へ provider を重複配置しない。
-
-Mantine theme は `src/styles/theme.ts`、Re:Me 固有 token は `src/styles/tokens.css` を基準にする。
+`convex/auth.config.ts` に Auth0 issuer domain / application id を environment variables から設定する。config を変更したら developer deployment へ push し、`useConvexAuth()` が authenticated になるところまで確認する。
 
 ## Environment boundary
 
 ### Browser-visible
 
 ```text
-VITE_SUPABASE_URL
-VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_AUTH0_DOMAIN
+VITE_AUTH0_CLIENT_ID
+VITE_CONVEX_URL
+VITE_WEB_PUSH_VAPID_PUBLIC_KEY
 ```
 
-publishable / anon credential は RLS 前提で Browser から利用する。
-
-### Worker secret
+### Convex environment secrets
 
 ```text
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
+AUTH0_DOMAIN
+AUTH0_CLIENT_ID
 WEB_PUSH_VAPID_PRIVATE_KEY
-```
-
-### Worker non-secret / config
-
-```text
-WEB_PUSH_VAPID_PUBLIC_KEY
 WEB_PUSH_SUBJECT
+R2 integration credentials / component config
 ```
 
-実際の名称は implementation issue で統一する。
+Auth0 domain / client id は secret ではないが、DEV / PROD の組み合わせを混ぜない。Management API credential、Google OAuth client secret、Convex deploy key、R2 secret、VAPID private key は `VITE_*` にしない。
 
-Service Role / VAPID private key を `VITE_*` にしない。
+### Cloudflare
 
-## R2 binding
+Workers Static Assets を SPA mode で配信する。application backend secret は Worker に複製しない。R2 credential は Convex integration が必要とする environment に限定する。
 
-想定 binding:
+## Auth0 DEV setup
+
+1. DEV tenant に Single Page Application を作成
+2. Google Cloud に DEV 用 OAuth 2.0 Web client と consent screen を作成
+3. Google の Authorized redirect URI に `https://<auth0-dev-domain>/login/callback` を登録
+4. Auth0 に Google OAuth DEV connection を作成し、DEV SPA application のみ enable
+5. Auth0 の Allowed Callback URLs に `http://localhost:5173/auth/callback` と必要な preview callback を登録
+6. Allowed Logout URLs / Allowed Web Origins に localhost と preview origin を登録
+7. Universal Login から Google OAuth login を確認
+8. Auth0 issuer / client id を Convex developer deployment と Vite env に設定
+9. `ConvexProviderWithAuth0` 経由の authenticated query を確認
+
+Production tenant / Google OAuth client / callback は共有しない。Custom domain はこの手順の必須条件ではない。
+
+Google OAuth client secret は Auth0 connection にだけ設定し、Vite / Convex application code / Cloudflare Worker へ複製しない。Production で Auth0 custom domain を導入する場合は、Google 側の Authorized redirect URI も `https://<custom-domain>/login/callback` へ切り替える。
+
+## Convex DEV setup
+
+- developer deployment を作成
+- `convex/schema.ts` / indexes / `auth.config.ts` を push
+- secrets は deployment env に設定
+- schema push / type generation / function spec を確認
+- test data は developer deployment または isolated test harness に限定
+
+Production data を DEV へコピーする場合は個人情報 inventory と承認を別途必要とする。
+
+## Auth testing
+
+通常 E2E は Google OAuth UI を毎回通さない。Auth0 test identity / session fixture または isolated backend harness で認証済み状態を作り、Re:Me の authorization と user flow を検証する。
+
+Google OAuth smoke は少数だけ実行する。
 
 ```text
-LETTER_PHOTOS
+Google OAuth login
+  → Auth0 callback
+  → token issuance
+  → Convex token validation
+  → authenticated query
 ```
 
-写真 object は public bucket にしない。
+## First migration success criteria
 
-## Local Supabase
-
-Supabase CLI は dev dependency として `pnpm-lock.yaml` に固定する。Docker-compatible runtime を起動後、PostgreSQL と Auth を含む local stack を起動する。
-
-```text
-pnpm db:start
-pnpm db:reset
-pnpm db:lint
-pnpm db:advisors
-pnpm db:test
-```
-
-remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。
-
-初期 migration:
-
-```text
-supabase/migrations/20260818120000_initial_schema.sql
-```
-
-## Google OAuth local smoke test
-
-Google OAuth は local でも実連携確認できるが、通常の automated E2E では毎回通さない。
-
-1. `.env` に DEV 用 `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` を設定する（`VITE_` は付けない）
-2. `supabase/config.toml` の `[auth.external.google].enabled` を一時的に `true` にする
-3. `pnpm db:start` で GoTrue を含む local stack を起動する
-4. `E2E_GOOGLE_SMOKE=1 pnpm test:e2e e2e/google-oauth.smoke.spec.ts` で smoke を実行する
-
-smoke test の確認範囲:
-
-```text
-Google login
-  ↓
-Supabase local Auth callback
-  ↓
-React /auth/callback
-  ↓
-Supabase session restore
-  ↓
-認証必須 route 表示
-```
-
-production 用 OAuth client と credential を共用しない。
-
-## Automated auth E2E
-
-通常の Playwright test は Google UI を経由せず、local Supabase Auth の test user / session を fixture として利用する。
-
-現行 scaffold の通常 E2E:
-
-- anonymous visitor → `/login`
-- OAuth callback error の有限表示
-- `E2E_AUTH_ENABLED=1` 時のみ、local session restore → protected `/`
-
-letter feature 実装後に追加する通常 E2E:
-
-- auth-required route
-- user A / user B の分離
-- RLS
-- sealed letter visibility
-- draft / send / open / reply の user flow
-
-Google OAuth integration は smoke test、アプリの認証済み挙動は local Auth E2E と分離する。
-
-## Generated DB types
-
-Supabase schema から TypeScript type を生成し、手書きで DB row type を複製しない。
-
-配置:
-
-```text
-src/shared/types/database.generated.ts
-```
-
-public schema の生成コマンド:
-
-```text
-pnpm db:types
-```
-
-生成ファイルは format 対象にはするが、手編集しない。CI は再生成後の差分を検知する。
-
-## Generated Worker types
-
-Wrangler の Worker runtime type は以下で生成する。
-
-```text
-pnpm cf:typegen
-```
-
-生成先は `worker-configuration.d.ts`。Wrangler の設定や binding を変更した場合は再生成し、生成ファイルは手編集しない。
-
-## First local success criteria
-
-React migration / Foundation scaffold の完了条件として以下が通ること。
-
-```text
-pnpm install
-pnpm dev
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-加えて、以下を確認する。
-
-- mobile viewport で MantineProvider 適用済みの空 AppShell が表示される
-- React Router が client navigation できる
-- TanStack Query provider が利用可能
-- Worker health endpoint が local workerd で応答する
-- local Supabase PostgreSQL / Auth が起動する
-- test session で auth-required route を開ける
-
-Playwright の基本 E2E はブラウザをインストールした環境で `pnpm test:e2e` を実行する。
+- Auth0 login / logout / callback が DEV で動く
+- Convex auth が issuer / audience を検証する
+- authenticated query / mutation が動く
+- User A / User B の data boundary test が通る
+- Convex schema / indexes / scheduled function が push できる
+- React SPA が Cloudflare Worker local runtime で表示される
+- standard quality gates が通る
+- Supabase / TanStack Query / Hono の runtime import、scripts、env が撤去される

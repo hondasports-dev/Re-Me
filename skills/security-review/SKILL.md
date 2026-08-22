@@ -8,7 +8,7 @@ description: security_review control が発火した REVIEW stage でだけ読�
 この Skill は次のような security control が必要な場合だけ使う。
 
 - authentication / authorization
-- RLS / cross-user data boundary
+- Convex authorization / legacy RLS / cross-user data boundary
 - secret / privileged env
 - user-controlled HTML / URL / redirect / file / MIME
 - external write boundary
@@ -18,9 +18,9 @@ description: security_review control が発火した REVIEW stage でだけ読�
 
 ## Authentication / Authorization
 
-- Supabase session / JWT validation
+- Auth0 issuer / audience / JWT validationと Convex auth readiness
 - request body の user_id 等を信頼していないか
-- ownership / RLS / RPC server-side enforcement
+- ownership / public-internal function / legacy RLS-RPC の server-side enforcement
 - cross-user access
 
 ## Data / Privacy
@@ -39,12 +39,12 @@ description: security_review control が発火した REVIEW stage でだけ読�
 
 ## Secrets
 
-- Service Role / VAPID private key / OAuth secret が browser / log / commit に出ないか
+- Auth0 Management credential / Convex deploy key / R2 secret / VAPID private key / OAuth secret が browser / log / commit に出ないか
 - local / production env 混同がないか
 
 ## External / Destructive
 
-- R2 / Worker / OAuth / Push write boundary
+- R2 / Convex / Worker / Auth0 / OAuth / Push write boundary
 - retry / idempotency
 - rollback / recovery
 - production / irreversible operation の Human Gate

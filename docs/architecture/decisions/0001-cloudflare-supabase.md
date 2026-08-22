@@ -1,6 +1,6 @@
 # ADR-0001: Cloudflare + Supabase を MVP 基盤にする
 
-- Status: Accepted
+- Status: Superseded by [ADR-0009](0009-auth0-convex-cloudflare.md)
 - Date: 2026-08-18
 
 ## Context

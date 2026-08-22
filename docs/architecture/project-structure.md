@@ -2,7 +2,7 @@
 
 ## Goal
 
-Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何でも集める構成は避け、画面・server state・use case・API を feature ごとにまとめる。
+Frontend は feature-first、backend は Convex function boundary で整理する。Cloudflare Worker を第二の application backend にしない。
 
 ## Target structure
 
@@ -10,11 +10,21 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 .
 ├── AGENTS.md
 ├── README.md
+├── convex/
+│   ├── _generated/
+│   ├── auth.config.ts
+│   ├── schema.ts
+│   ├── crons.ts
+│   ├── users.ts
+│   ├── letters.ts
+│   ├── attachments.ts
+│   ├── delivery.ts
+│   ├── notifications.ts
+│   └── lib/
+│       ├── auth.ts
+│       ├── authorization.ts
+│       └── errors.ts
 ├── docs/
-│   ├── architecture/
-│   ├── design/
-│   ├── development/
-│   └── product/
 ├── public/
 ├── src/
 │   ├── app/
@@ -22,8 +32,6 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 │   │   ├── main.tsx
 │   │   └── providers.tsx
 │   ├── router/
-│   │   ├── index.tsx
-│   │   └── RequireAuth.tsx
 │   ├── features/
 │   │   ├── auth/
 │   │   ├── compose/
@@ -33,98 +41,66 @@ Re:Me は機能単位で変更範囲を閉じ込める。`components/` に何で
 │   │   ├── thread/
 │   │   └── settings/
 │   ├── shared/
-│   │   ├── api/
-│   │   │   ├── supabase.ts
-│   │   │   └── worker.ts
-│   │   ├── query/
+│   │   ├── convex/
 │   │   │   └── client.ts
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   ├── types/
 │   │   └── utils/
 │   └── styles/
-│       ├── tokens.css
-│       ├── theme.ts
-│       ├── base.css
-│       └── motion.css
-├── worker/
-│   ├── index.ts
-│   ├── app.ts
-│   ├── routes/
-│   │   ├── attachments.ts
-│   │   └── health.ts
-│   ├── jobs/
-│   │   ├── deliver-letters.ts
-│   │   └── send-notifications.ts
-│   └── lib/
-│       ├── auth.ts
-│       ├── supabase-admin.ts
-│       └── errors.ts
-├── supabase/
-│   ├── migrations/
-│   └── README.md
 ├── tests/
 │   ├── unit/
-│   └── worker/
+│   └── convex/
 ├── e2e/
 ├── vite.config.ts
 ├── wrangler.jsonc
-├── tsconfig.json
-├── oxlint.json
-├── .oxfmtrc.json
+├── convex.json
 ├── package.json
 └── pnpm-lock.yaml
 ```
 
 ## App providers
 
-`src/app/providers.tsx` では application-wide provider を集約する。
-
-想定:
+`src/app/providers.tsx` に application-wide provider を集約する。
 
 - MantineProvider
-- QueryClientProvider
-- Supabase Auth session provider
-- 必要最小限の application context
+- Auth0Provider
+- ConvexProviderWithAuth0
+- React Router
 
-provider の nest を feature component へ散らさない。
+Auth0 は login / logout / profile、Convex auth は backend request readiness を担当する。
 
 ## Frontend feature layout
-
-各 feature は必要なものだけを持つ。
 
 ```text
 src/features/compose/
 ├── components/
-│   ├── LetterEditor.tsx
-│   ├── DeliveryWindowPicker.tsx
-│   └── SealChoice.tsx
 ├── hooks/
-│   ├── useDraftLetterQuery.ts
-│   └── useSaveDraftMutation.ts
-├── api/
-│   └── compose.repository.ts
+│   ├── useDraftLetter.ts
+│   └── useSaveDraft.ts
 ├── model/
-│   ├── compose.schema.ts
-│   └── compose.types.ts
 └── pages/
-    ├── ComposePage.tsx
-    └── SendConfirmPage.tsx
 ```
 
-ルール:
+- feature 内だけの code は feature 内に置く
+- Convex generated API を component に大量に直書きせず、意味のある feature hook で包む
+- Convex data を TanStack Query や global store に複製しない
+- form / modal / animation state は React state / context に置く
+- authorization logic を frontend hook に置かない
 
-- feature 内だけで使うものは feature 外へ出さない。
-- 2 つ以上の feature から使うものだけ `shared/` へ昇格する。
-- `shared/components` を巨大な UI 部品置き場にしない。
-- Supabase query / Worker request を React component へ直接大量に書かない。
-- server state は repository + TanStack Query hook に隔離する。
-- query key は feature 単位で一貫して定義し、mutation 後の invalidation 対象を明示する。
-- form state や temporary UI state を TanStack Query cache に入れない。
+## Convex backend layout
+
+- `schema.ts`: tables、validators、indexes の正本
+- `auth.config.ts`: Auth0 issuer / application id
+- `letters.ts`: browser-facing query / mutation
+- `delivery.ts`: exact schedule と internal delivery transition
+- `notifications.ts`: outbox、action、retry
+- `attachments.ts`: private R2 upload / download authorization
+- `lib/authorization.ts`: current user と ownership を注入する shared wrapper
+
+public function は React が直接必要なものだけにする。Cron / scheduler callback、delivery、notification completion は internal function にする。
 
 ## Route design
-
-MVP の想定 route:
 
 ```text
 /                       -> 届いた手紙
@@ -140,91 +116,23 @@ MVP の想定 route:
 /auth/callback           -> OAuth callback
 ```
 
-`/`, `/write*`, `/traveling`, `/letters*`, `/threads*`, `/settings` は認証必須。
+auth-required route は `useConvexAuth()` の loading / authenticated state を扱う。ただし router guard は UX 用で、データアクセスは Convex function の authorization が正本である。
 
-React Router の auth-required route は未認証 user を `/login` へ誘導する。ただし router guard は UX のための境界であり、データ認可は Supabase RLS / trusted RPC / Worker 側でも必ず強制する。
+## Cloudflare boundary
 
-## Server-state boundary
+`worker/` は SPA hosting に必要な最小 entry point のみとする。business API、R2 authorization、delivery cron、notification state machine を Worker に置かない。
 
-TanStack Query を server state の標準アクセス層とする。
+edge 固有 route を将来追加する場合は、Convex と責務が重複しないこと、Auth0 token validation、retry / rollback を ADR で先に定義する。
 
-```text
-React component
-      ↓
-feature query / mutation hook
-      ↓
-repository
-      ├─ Supabase client
-      └─ Worker API
-```
+## Legacy migration boundary
 
-責務:
-
-- loading / error / retry
-- cache
-- mutation 後の invalidate / refetch
-- server response の共有
-
-TanStack Query cache を永続的な domain source of truth とみなさない。authorization は常に server / DB 側で判定する。
-
-## Worker boundary
-
-Browser から Supabase へ直接アクセスしてよい処理:
-
-- 自分の metadata の SELECT
-- RLS で許可された本文 SELECT
-- draft 本文 autosave
-- user settings
-- push subscription の登録 / 削除
-
-Worker / RPC に寄せる処理:
-
-- draft 作成
-- 未来へ送る
-- 封印後の開封
-- 送信済み手紙の削除
-- 写真の R2 upload / delete
-- delivery cron
-- notification outbox
-
-特に「送信」「開封」「配送」は UI の状態変更だけで成立させず、DB の trusted operation として実装する。
-
-## Styling boundary
-
-### Mantine
-
-入力・選択・モーダル・通知・基本 layout など、操作部品の品質と accessibility を担う。
-
-### Re:Me custom UI
-
-手紙・封筒・到着演出・時間軸など、ブランド体験を担う。
-
-```text
-src/styles/tokens.css
-  +
-src/styles/theme.ts
-  ↓
-MantineProvider
-  +
-Re:Me custom components
-```
-
-色・radius・shadow・spacing・typography・motion duration を feature component に直接ばら撒かず token / theme 化する。
-
-Mantine の default appearance を完成デザインとはみなさず、`docs/design/re-me-mobile-flow.jpg` の意図を優先する。
+現行の `supabase/`、Supabase client、Hono route、TanStack Query client は移行期間だけ残る legacy artifact である。Convex critical flow が検証される前に削除せず、検証後は同じ migration task で dependency / env / CI とまとめて撤去する。
 
 ## Testing placement
 
-- pure function: 対象ファイルの近くに `*.test.ts` でもよい
-- React component: 対象 feature 近傍または `tests/unit/` に React Testing Library test
-- shared integration: `tests/unit/`
-- Worker / scheduled: `tests/worker/`
-- user journey: `e2e/`
+- pure / React: feature 近傍または `tests/unit/`
+- Convex schema / functions / authorization: `tests/convex/`
+- Cloudflare asset / Worker behavior: `tests/worker/`
+- critical user journeys: `e2e/`
 
-E2E は全機能を網羅せず、以下の critical path を優先する。
-
-1. authenticated local session → 手紙を書く → 送信
-2. sealed letter 到着 → 開封
-3. 開封 → 返信 → 再送信
-
-通常の E2E は Google のログイン UI を経由しない。Google OAuth の callback / session integration は別の smoke test として扱う。
+Google OAuth UI を通常 E2E に含めず、Auth0 test identity / session と少数の Google OAuth connection smoke を分離する。

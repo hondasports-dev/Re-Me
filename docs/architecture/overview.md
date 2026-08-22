@@ -2,159 +2,143 @@
 
 ## 方針
 
-Re:Me は、モバイルファースト React SPA と Cloudflare Worker を一つの Vite 開発体験にまとめ、Auth / DB は Supabase へ委譲する。
+Re:Me は Auth0 を identity provider、Convex を application backend、Cloudflare を frontend / edge platform とする。
 
 ```mermaid
 flowchart TB
     U[Mobile Web / PWA]
-    CF[Cloudflare Worker + Static Assets]
-    API[Hono /api]
-    SA[Supabase Auth]
-    DB[Supabase PostgreSQL + RLS]
-    R2[Cloudflare R2]
-    CRON[Cloudflare Cron Trigger]
+    CF[Cloudflare Workers Static Assets]
+    A0[Auth0 Universal Login]
+    G[Google OAuth 2.0]
+    CX[Convex React Client]
+    FN[Convex Functions]
+    DB[Convex Database]
+    CRON[Convex Cron / Scheduler]
     OUTBOX[Notification Outbox]
-    PUSH[Web Push]
+    R2[Private Cloudflare R2]
+    PUSH[Web Push Provider]
 
     U --> CF
-    U --> SA
-    U --> DB
-    U --> API
-    CF --> API
-    API --> R2
-    API --> DB
-    CRON --> API
-    API --> OUTBOX
+    U --> A0
+    A0 <--> G
+    A0 -->|OIDC token| CX
+    U --> CX
+    CX --> FN
+    FN --> DB
+    CRON --> FN
+    FN --> OUTBOX
+    FN --> R2
     OUTBOX --> PUSH
 ```
 
+## Responsibility map
+
+| Platform | Owns | Does not own |
+|---|---|---|
+| Auth0 | Google OAuth、Universal Login、token / session、account security | letter authorization、domain data |
+| Convex | schema、authorization、queries / mutations / actions、realtime、scheduler、outbox | frontend hosting、identity credential storage |
+| Cloudflare | React SPA / PWA 配信、CDN、custom domain、edge protection、private R2 | application database、delivery state machine |
+
 ## Frontend
 
-- React
-- TypeScript
-- Vite
+- React + TypeScript + Vite
 - React Router
-- TanStack Query
-- Mantine + custom Re:Me design tokens / components
-- Supabase JS client
+- Mantine + Re:Me custom design tokens / components
+- `@auth0/auth0-react`
+- `convex/react` + `convex/react-auth0`
 
-責務の分離:
+React Router の guard は未認証 user を login へ案内する UX 境界に限る。ログイン済みかつ backend token が利用可能かは `useConvexAuth()` を基準にし、domain authorization は必ず Convex function 内で行う。
 
-- React Router: route / navigation / auth-required route の UX 制御
-- TanStack Query: Supabase / Worker から取得する server state と mutation 後の invalidation
-- Supabase Auth session: application provider で復元・購読
-- React local state / context: form state と小さな UI state
-- Mantine: accessibility を含む操作 UI の基盤
-- Re:Me custom components: 手紙・封筒・開封・時間軸などのブランド体験
+Convex query は reactive cache を持つため、Convex data に TanStack Query を重ねない。非 Convex API が必要になった場合だけ、その API の責務を限定して再検討する。
 
-詳細: [技術スタック](tech-stack.md) / [プロジェクト構成](project-structure.md)
+## Auth0
+
+- Google OAuth connection を MVP の login method とする
+- Universal Login を使い、password / Google OAuth credential を Re:Me が保持しない
+- SPA callback / logout / web origin を environment ごとに allowlist する
+- Auth0 が発行する token を Convex が issuer / audience / signature まで検証する
+- custom domain は DEV の必須条件にしない
+
+## Convex
+
+Convex は Re:Me の唯一の application backend とする。
+
+- document schema と indexes
+- public / internal query、mutation、action
+- user ownership と sealed content の authorization
+- realtime subscriptions
+- exact delivery time と delivery state
+- cron / scheduled functions
+- notification outbox と retry state
+- R2 object metadata / access intent
+
+汎用 application API を Cloudflare Worker / Hono に複製しない。
 
 ## Cloudflare
 
-新規アプリは Worker をデプロイ単位とする。
+Cloudflare Workers Static Assets で React SPA / PWA を配信する。SPA fallback、hashed asset cache、custom domain、CDN / WAF 等の edge 機能を担当する。
 
-Worker の責務:
-
-- SPA static assets
-- Hono `/api/*`
-- R2 photo upload / delete
-- Supabase service role が必要な privileged operation
-- scheduled handler
-- delivery / notification jobs
-
-`fetch` と `scheduled` を同じ Worker entry point から提供する。
-
-## Supabase
-
-責務:
-
-- Social Login
-- PostgreSQL
-- RLS
-- thread / letter / content / notification metadata
-- trusted RPC
-
-Browser から Supabase を直接利用する場合も RLS を前提とする。
+写真本体は private R2 に置く。`@convex-dev/r2` を認可境界として使い、bucket を public にしない。Worker に独自 upload API を追加するのは target architecture に含めない。
 
 ## Trust boundary
 
-### Browser から直接許可
+### Browser
 
-- 自分の letter metadata SELECT
-- RLS 上閲覧可能な本文 SELECT
-- draft 本文 autosave
-- draft attachment metadata の限定操作
-- user settings
-- push subscription
+- Auth0 login / logout
+- Convex public functions の呼び出し
+- 認可後に発行された短命な R2 upload / download capability の利用
 
-TanStack Query はこの認可境界を置き換えない。query / mutation が発行する Supabase request も通常 client credential と RLS の制約下で動かす。
+Browser は以下を決定できない。
 
-### Trusted RPC
+- owner user id
+- exact `scheduledAt`
+- delivery / opened state
+- notification job state
+- sealed content の可視性
 
-- draft / thread 作成
-- 送信
-- 開封
-- 削除
+### Convex public functions
 
-### Worker + Service Role
+すべての public function は args / return validator を持つ。ログイン必須 function は Auth0 identity を internal user id に解決し、対象 document の ownership と現在 state を検証する。
 
-- exact schedule
-- `traveling -> delivered`
-- notification outbox
-- R2 private object
-- 管理・保守処理
+### Convex internal functions
 
-## Exact delivery time
+- due letter delivery
+- notification claim / completion / retry
+- cleanup / reconciliation
+- external side effect 前後の state transition
 
-`scheduled_at` は public `letters` に保存しない。
+scheduled function には browser の auth context が伝播しないため、internal id と expected state を引数にし、実行時に再検証する。
+
+## Data privacy boundary
 
 ```text
-public.letters
-  delivery_window_start/end  <- ユーザーが見てよい
-
-private.letter_delivery
-  scheduled_at               <- Worker / service role のみ
+letters              metadata / window / lifecycle
+letterContents       body
+letterAttachments    R2 storage id / safe metadata
+letterDeliveries     exact scheduledAt（client return から除外）
+notificationJobs     push outbox / retry
 ```
 
-「数か月後くらい」という体験を API contract 自体で守る。
+sealed letter の本文と添付は、到着後に本人が明示的に開封するまで public query から返さない。これは E2EE ではなく application-level access control である。
 
-## Environments
+## Environment model
 
-MVP 初期:
+| Environment | Auth0 | Convex | Cloudflare |
+|---|---|---|---|
+| Local / developer | DEV tenant / SPA / Google OAuth client | developer deployment | Vite + local Worker runtime |
+| Preview | DEV tenant の preview callback | preview deployment | preview URL |
+| Production | PROD tenant / SPA / Google OAuth client | production deployment | production Worker / domain |
 
-- Local / DEV
-- Production
+環境間で secret、deployment URL、OAuth client を共有しない。Production 操作や data migration は別 task と Human Gate を必要とする。
 
-### Local / DEV
+## Migration status
 
-- React / Vite local dev server
-- Cloudflare Worker local runtime
-- Supabase CLI local PostgreSQL
-- Supabase CLI local Auth (GoTrue)
-- local Google OAuth client は必要な smoke test のみで利用
+この文書は target architecture の正本である。現行 repository には Supabase / Hono / TanStack Query ベースの migration code と dependency が残っており、まだ runtime は移行完了していない。移行順序は [Implementation order](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
 
-通常の automated E2E は Google の UI へ依存せず、local Supabase Auth のテストユーザー / session を使用する。
+## References
 
-### Production
-
-- Cloudflare Worker + static assets
-- Supabase Cloud project
-- production Google OAuth client
-
-Supabase migration は local / production に同じ履歴を適用し、Dashboard の手変更を source of truth にしない。
-
-利用者・変更リスクが増え、クラウド上の Preview / Staging が必要になった時点で追加環境と費用を再評価する。
-
-## Free tier policy
-
-無料枠は MVP 検証に利用するが、無料枠の制約をプロダクト仕様にしない。
-
-クラウド Supabase project を DEV / PROD のためだけに二重化せず、日常開発は local stack を基準にする。
-
-Re:Me は長期間アクセスされないことが正常なので、公開前に以下を再確認する。
-
-- DB / Auth の休止条件
-- Cron / Worker limit
-- R2 storage / operation limit
-- 通知到達性
-- バックアップ / 復旧
+- [ADR-0009](decisions/0009-auth0-convex-cloudflare.md)
+- [Tech stack](tech-stack.md)
+- [Auth / security](auth-security.md)
+- [Data model](data-model.md)
+- [Delivery / notifications](delivery-notifications.md)

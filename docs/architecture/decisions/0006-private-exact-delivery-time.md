@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-18
+- Amended by: [ADR-0009](0009-auth0-convex-cloudflare.md)
 
 ## Context
 
@@ -12,9 +13,9 @@ Re:Me ではユーザーが「数日後くらい」「数か月後くらい」�
 ## Decision
 
 - public `letters` には `delivery_window_start/end` のみを保存する
-- exact `scheduled_at` は `private.letter_delivery` に保存する
-- `send_letter` RPC が exact time を決定する
-- Delivery Worker は Service Role 経由の RPC で due letter を処理する
+- exact `scheduledAt` は Convex の delivery document に保存する
+- `sendLetter` mutation が exact time を決定する
+- Convex cron / internal mutation が due letter を処理する
 - authenticated client へ exact time を返さない
 
 ## Why
@@ -26,5 +27,5 @@ UI 実装ミスや client query の都合で exact time が露出しにくくな
 ## Consequences
 
 - Browser だけで due 判定はできない
-- Delivery Worker / Service Role が必須になる
-- migration / test で authenticated client から exact time を取得できないことを検証する
+- trusted Convex function が必須になる
+- function return validator / authorization test で authenticated client から exact time を取得できないことを検証する

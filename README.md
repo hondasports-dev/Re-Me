@@ -62,15 +62,15 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 - **Package manager**: pnpm
 - **Frontend**: React + TypeScript + Vite
 - **Routing**: React Router
-- **Server state**: TanStack Query
+- **Server state**: Convex reactive query / mutation
 - **UI**: Mantine + Re:Me custom design tokens / components
 - **Toolchain**: Oxlint + Oxfmt + TypeScript (`tsc`)
-- **Hosting / Backend**: Cloudflare Worker + `@cloudflare/vite-plugin` + Hono
-- **Auth**: Supabase Auth / Google OAuth first
-- **Database**: Supabase PostgreSQL + RLS
-- **Image Storage**: Cloudflare R2
-- **Delivery**: Cloudflare Cron Trigger + trusted Supabase RPC
-- **Notification**: Web Push + DB outbox
+- **Hosting**: Cloudflare Workers Static Assets + `@cloudflare/vite-plugin`
+- **Auth**: Auth0 + Google OAuth
+- **Backend / Database**: Convex functions + database + realtime
+- **Image Storage**: private Cloudflare R2 via `@convex-dev/r2`
+- **Delivery**: Convex Cron / Scheduler + internal mutations
+- **Notification**: Web Push + Convex outbox
 - **Test**: Vitest + React Testing Library + Playwright
 
 詳細は [技術スタック](docs/architecture/tech-stack.md) を参照してください。
@@ -78,25 +78,26 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 ## セキュリティ上の主要設計
 
 - `letters` metadata と `letter_contents` 本文を分離
-- sealed letter は RLS により、開封前の本人 client からも本文を取得不可
-- exact `scheduled_at` は private schema に保存し、ユーザーには delivery window のみ公開
-- 送信後編集不可を DB trigger でも強制
+- sealed letter は Convex authorization により、開封前の本人 client からも本文を取得不可
+- exact `scheduledAt` は private delivery document に保存し、ユーザーには delivery window のみ公開
+- 送信後編集不可を専用 mutation / function surface で強制
 - Delivery と Notification を outbox で分離
-- Service Role は Cloudflare Worker Secret のみ
+- Auth0 / Convex / Cloudflare の secret は browser bundle へ公開しない
 
-初期 DB migration は [`supabase/migrations/20260818120000_initial_schema.sql`](supabase/migrations/20260818120000_initial_schema.sql) に定義しています。
+target backend の正本は `convex/schema.ts` と function validators に移行する。現行 `supabase/` は migration 実装が完了するまで残る legacy artifact です。
 
 > 無料枠は MVP / 初期検証のために活用する。本番運用では、可用性・休止条件・容量・料金を再評価する。
 
 ## Environment 方針
 
-MVP はクラウド上に DEV 用 Supabase project を持たず、以下を基準にする。
+環境ごとに provider resource を分離する。
 
-- **Local / DEV**: Vite + local Cloudflare Worker + Supabase CLI の local PostgreSQL / Auth
-- **Production**: Cloudflare Worker + Supabase Cloud
-- **Google OAuth**: local 開発用 OAuth client と production 用 OAuth client を分離する
+- **Local / DEV**: Auth0 DEV tenant/application + Convex developer deployment + Vite/local Worker
+- **Preview**: Auth0 DEV preview callback + Convex preview deployment + Cloudflare preview
+- **Production**: Auth0 PROD tenant/application + Convex production deployment + Cloudflare production Worker
+- **Google OAuth**: DEV client と production client を分離する
 
-通常の自動 E2E は Google のログイン画面へ依存せず、local Supabase Auth のテストユーザー / セッションを使う。Google OAuth の実連携は少数の smoke test として確認する。
+通常の自動 E2E は Google OAuth のログイン画面へ依存せず、Auth0 test identity / session または backend test harness を使う。Google OAuth の実連携は Auth0 callback から Convex authenticated query までを少数の smoke test で確認する。
 
 ## ドキュメント
 
@@ -115,19 +116,19 @@ MVP はクラウド上に DEV 用 Supabase project を持たず、以下を基�
 - [データモデル](docs/architecture/data-model.md)
 - [認証・セキュリティ](docs/architecture/auth-security.md)
 - [手紙の配送・通知](docs/architecture/delivery-notifications.md)
-- [ADR: Cloudflare + Supabase](docs/architecture/decisions/0001-cloudflare-supabase.md)
+- [ADR: Auth0 + Convex + Cloudflare](docs/architecture/decisions/0009-auth0-convex-cloudflare.md)
 - [ADR: 送信後編集不可](docs/architecture/decisions/0002-immutable-letter.md)
 - [ADR: ざっくり配送](docs/architecture/decisions/0003-delivery-window.md)
-- [ADR: React / Vite / React Router / TanStack Query](docs/architecture/decisions/0007-react-frontend-toolchain.md)
+- [ADR: React / Vite / React Router](docs/architecture/decisions/0007-react-frontend-toolchain.md)
 - [ADR: Mantine design system](docs/architecture/decisions/0008-mantine-design-system.md)
 - [ADR: exact delivery time を private にする](docs/architecture/decisions/0006-private-exact-delivery-time.md)
 
 ### Implementation
 
-- [Supabase](supabase/README.md)
+- [移行前 Supabase baseline](supabase/README.md)
 - [デザインリファレンス](docs/design/README.md)
 - [開発ルール](AGENTS.md)
 
 ## ステータス
 
-プロダクト要件・UX・DB/RLS のベースラインは確定済み。フロントエンド基盤は React / Mantine へ移行済みで、次は手紙の機能実装を進めます。
+プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine へ移行済みで、backend / auth runtime は Supabase から新構成への移行前です。

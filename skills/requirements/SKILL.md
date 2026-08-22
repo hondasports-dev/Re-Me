@@ -63,7 +63,7 @@ Current behavior / edge state などは AC や control 判定に必要な分だ�
 
 R4 は production DB migration、不可逆 data mutation、account deletion semantics、authorization model overhaul、production secret rotation、DNS cutover など明示的 critical operation に限定する。
 
-Risk は変更種類のラベルではなく影響度で決める。Auth / RLS / schema に触れただけで自動的に R3 にせず、必要な品質確認は Controls で追加する。
+Risk は変更種類のラベルではなく影響度で決める。Auth / authorization / schema に触れただけで自動的に R3 にせず、必要な品質確認は Controls で追加する。
 
 新しい evidence で Risk は即時昇格できる。Implementation 開始後は `max_observed_level` を completion の最低 profile とし、後から Risk を下げて Verification / REVIEW を軽くする用途には使わへん。
 
@@ -71,10 +71,10 @@ Risk は変更種類のラベルではなく影響度で決める。Auth / RLS /
 
 変更に応じて必要な control だけ選ぶ。
 
-- `security_review`: auth / authorization / RLS / secret / input / external write boundary
-- `db_access_control`: schema / migration / RLS / grant / RPC / trigger
+- `security_review`: auth / authorization / legacy RLS / secret / input / external write boundary
+- `db_access_control`: schema / migration / access policy / legacy RLS / privileged function
 - `destructive_or_stateful`: delete / retention / rollback / idempotency / critical state transition
-- `service_ops`: Cloudflare / Supabase / OAuth / R2 / GitHub write / env / secret operation
+- `service_ops`: Cloudflare / Auth0 / Convex / Supabase legacy / OAuth / R2 / GitHub write / env / secret operation
 - `human_gate`: R4、production、不可逆操作、protected finding acceptance
 
 Control は Risk Profile と独立して追加できる。

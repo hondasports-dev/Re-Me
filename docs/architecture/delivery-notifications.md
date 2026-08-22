@@ -6,21 +6,16 @@
 
 ```text
 delivery mode
-  ↓
-delivery window
-  ↓
-exact scheduled_at
-  ↓
-traveling
+  → delivery window
+  → exact scheduledAt
+  → traveling
 ```
 
-ユーザーへ見せるのは delivery window まで。
-
-exact `scheduled_at` は `private.letter_delivery` に保存し、authenticated client から直接取得できない。
+ユーザーへ返すのは delivery window まで。exact `scheduledAt` は `letterDeliveries` に置き、public function の return shape から除外する。
 
 ## Initial ranges
 
-| UI | `delivery_mode` | 初期 range |
+| UI | `deliveryMode` | 初期 range |
 |---|---|---|
 | 数日後くらい | `few_days` | 3〜7日 |
 | 数週間後くらい | `few_weeks` | 14〜30日 |
@@ -28,136 +23,92 @@ exact `scheduled_at` は `private.letter_delivery` に保存し、authenticated 
 | 1年後くらい | `about_year` | 300〜430日 |
 | 未来に任せる | `surprise` | 30〜365日 |
 
-`surprise` の 30〜365日は MVP 初期値であり、検証対象とする。
+## Send transaction
 
-「判断したい内容が遅すぎて意味を失う」問題は `few_days` / `few_weeks` で避け、「振り返り」は `surprise` でサプライズ性を残す。
+`sendLetter` mutation は同一 transaction で以下を行う。
 
-## Send
+1. current user と draft ownership を検証
+2. body / attachment state を検証
+3. delivery window と exact `scheduledAt` を決定
+4. letter を `traveling` に変更
+5. `letterDeliveries` を作成
+6. reply の場合は parent を transactionally claim する
 
-`send_letter` RPC が以下を atomic に行う。
+Client は exact time、owner、traveling state を指定できない。
 
-1. authenticated user と draft ownership を検証
-2. body が空でないことを検証
-3. delivery window を決定
-4. window 内から exact `scheduled_at` を一回だけ決定
-5. public letter を `traveling` にする
-6. private delivery row を作る
-7. reply の場合は parent `replied_at` を設定
+## Scheduling strategy
 
-Client から `scheduled_at` を渡さない。
+正本は `letterDeliveries.scheduledAt` である。Convex cron が due index を bounded batch で読み、internal mutation で配送する。
 
-## Cron
-
-Cloudflare Cron Trigger から Worker の `scheduled` handler を起動する。
-
-Worker は Service Role で `deliver_due_letters` RPC を呼ぶ。
-
-RPC 内部では概念的に以下を行う。
+個別 `scheduler.runAt` は近距離の wake-up 最適化として利用できるが、数年後までの唯一の正本にはしない。cancel / reschedule / migration / reconciliation を database state から行えるようにする。
 
 ```text
-private.letter_delivery.scheduled_at <= now
-+ public.letters.status = traveling
-+ deleted_at is null
-
-        ↓ FOR UPDATE SKIP LOCKED
-
-public.letters.status = delivered
-public.letters.delivered_at = now
-
-        ↓ same transaction
-
-private.notification_jobs INSERT
+Convex cron
+  → due delivery documents (indexed, bounded)
+  → deliverDueLetters internal mutation
+  → letter delivered + notification outbox
 ```
 
 ## Idempotency
 
-`deliver_due_letters` は:
+- `traveling` かつ due の letter だけを配送
+- delivery mutation が current state を再検証
+- letter ごとの notification job を一つに固定
+- 同じ cron / scheduled callback が重なっても delivered state と outbox を二重生成しない
+- batch を超えた分は次回 run へ残す
 
-- `traveling` のみを対象にする
-- row lock + `SKIP LOCKED` を使う
-- notification job に `unique(letter_id)` を持つ
-
-同じ cron が重なっても二重配送・二重 outbox を作らない設計にする。
-
-## State vs Notification
-
-到着と通知送信は分離する。
-
-```text
-Letter delivered
-      ↓
-Notification outbox pending
-      ↓
-Worker claim
-      ↓
-Push success / retry
-```
-
-Push が失敗しても Letter は `delivered` のまま。
-
-ユーザーがアプリを開けば手紙は必ず受信箱に存在する。
+Convex mutation は transactional だが、external Push action は transaction ではない。両者を分離する。
 
 ## Notification outbox
 
-`claim_notification_jobs` が pending / failed job を lock し `processing` にする。claim ごとに推測困難な `claim_token` を発行し、Worker は job id と一緒に保持する。
-
-処理中 Worker が落ちた場合、一定時間経過した `processing` job を reclaim できる。
-
-`complete_notification_job(job_id, claim_token, success, error)`:
-
-- success → `sent`
-- failure → `failed` + backoff 用 `available_at`
-- success / failure とも `claim_token` と lock を clear する
-- reclaim 後の古い token、または完了済み job の再完了は拒否し、job state を変更しない
-
-## Push
-
-通知内容は最小限にする。
-
-> **Re:Me**  
-> あなた宛ての手紙が届いています。
-
-以下は表示しない。
-
-- 本文
-- 写真
-- 場所
-- 過去のユーザー入力
-
-通知 tap 後にアプリで「184日前のあなたから」などの metadata を表示する。
-
-## Delivery Worker pseudo flow
-
 ```text
-scheduled()
-  ├─ rpc(deliver_due_letters)
-  ├─ rpc(claim_notification_jobs)
-  └─ each job
-       ├─ load user push subscriptions
-       ├─ send Web Push
-       └─ rpc(complete_notification_job(job_id, claim_token, success, error))
+Letter delivered
+  → notification pending
+  → claim generation
+  → Web Push action
+  → sent / failed
 ```
 
-1 cron で処理しきれない件数は batch limit を設け、次回実行へ回す。
+`claimNotificationJobs` は pending / retryable failed job を claim し、generation token を発行する。`completeNotificationJob` は現在の generation と processing state が一致する場合だけ結果を書き込む。
+
+Action は at-most-once failure を前提とし、transient error は mutation が backoff と次回 retry を明示的に schedule する。古い action result で新しい claim を上書きしない。
+
+## Push privacy
+
+通知には本文、写真、場所、ユーザー入力を含めない。
+
+> Re:Me — あなた宛ての手紙が届いています。
+
+notification tap 後に authenticated app が metadata / readable content を取得する。
 
 ## Timezone
 
-DB timestamps は UTC。
+Convex timestamp は UTC epoch milliseconds。UI は `userSettings.timezone` または browser timezone へ変換する。送信後に timezone が変わっても確定済み `scheduledAt` は変更しない。
 
-- exact delivery calculation: UTC absolute time
-- UI: `user_settings.timezone` / browser timezone へ変換
-- 「184日前」: `sent_at -> current time` の elapsed duration から計算
+## Failure / recovery
 
-送信後にユーザーが timezone を変更しても、確定済み exact delivery time は移動させない。
+- cron failure: due rows は traveling のまま残り、次回 sweep が再処理
+- delivery mutation success / push failure: letter は delivered、job は failed / retry
+- R2 / attachment failure: letter send 前に attachment readiness を検証
+- stale processing job: lock timeout 後に新しい generation で reclaim
+- vendor outage: oldest due / pending age を監視し、recovery sweep を実行
 
 ## Monitoring
 
-最低限追跡する。
-
-- due letter count
+- due traveling count / oldest due age
 - delivered count / cron run
-- notification pending / failed count
-- notification retry count
+- cron skipped / failed runs
+- notification pending / failed / retry count
 - oldest pending notification age
+- R2 authorization / upload / delete failure
 
-「届くはずの手紙が届かない」は Re:Me の体験を直接壊すため、通常の background job より強く監視する。
+## Required tests
+
+- overlapping cron で二重配送しない
+- due でない letter は配送しない
+- deleted letter は配送しない
+- delivery と outbox 作成が atomic
+- push failure で delivered state を戻さない
+- stale generation completion を拒否
+- exact schedule が client result に出ない
+- batch limit を超えた残件を次回処理できる
