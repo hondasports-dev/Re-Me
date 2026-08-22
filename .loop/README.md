@@ -9,24 +9,36 @@ Re:Me の Agent Loop は、品質を Gate 数で担保せず、**Acceptance Crit
 - `skills/*/SKILL.md` — 現在工程または条件に該当したときだけ読む手順
 - `.loop/templates/task-state.yaml` — 最小 task state / Finding Ledger
 
+## 表記ルール
+
+`.loop/process.yaml` は Agent が読む実行契約である一方、`task-state.yaml` や各 Skill から参照される安定した識別子も持つ。
+
+そのため、以下のルールで記述する。
+
+- YAML の key は英語のまま維持する。
+- `prepare` / `verification` / `r2_medium` / `c0_unclear` / `fix_now` / `merge_ready` などの state ID・Risk ID・Spec Confidence ID・enum・action ID は英語のまま維持する。
+- Skill path、file path、field name など機械的に参照される値は変更しない。
+- 原則、trigger、required condition、blocking rule、完了条件など Agent が意味として読む自然言語は日本語で記述する。
+- 既存の機械識別子を日本語へ置き換えて、`task-state.yaml` や Skill との対応関係を壊さない。
+
 ## Design principles
 
 ```text
-Keep:
-  C0 blocks implementation
-  one writer by default
-  AC-based verification
-  independent review when risk/control requires it
-  open finding blocks delivery
-  PR aftercare until merge-ready
+維持する:
+  C0 は Implementation を BLOCK する
+  writer は原則1体
+  Acceptance Criteria ベースで Verification する
+  Risk / Control が要求する場合だけ independent review する
+  open finding は Delivery を BLOCK する
+  PR Aftercare は merge-ready まで続ける
 
-Remove:
-  gate for gate's sake
-  duplicated finding records
-  risk-driven multi-agent requirements debate
-  unconditional specialist reviews
-  unconditional process learning
-  full re-validation for commit-only head changes
+削る:
+  Gate のための Gate
+  finding の重複記録
+  Risk の高さだけを理由にした複数 Agent の Requirements 討論
+  無条件の specialist review
+  無条件の Process Learning
+  commit だけが変わった場合の full re-validation
 ```
 
 ## Default loop
