@@ -33,7 +33,7 @@ PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DO
 - head SHA が変わっただけで全 evidence を破棄しない。同一 tree/content は再利用し、content change は delta を verify / review する。protected behavior / AC coverage / Risk / Controls が変化した場合だけ必要な affected scope を再実行する。
 - Requirements の独立 reviewer 数を Risk の高さだけで増やさない。Spec 復元に material choice が残る場合などに最大1 reviewer を使う。
 - Reviewer 同士を default で討論させない。必要な reviewer は独立して所見を出し、root が1回だけ統合する。
-- Risk と Required Controls を分ける。Auth / RLS / schema に触れたという理由だけで全工程を R3 ceremony にせず、必要な Security / DB / Recovery / Human control を追加する。
+- Risk と Required Controls を分ける。Auth / authorization / schema に触れたという理由だけで全工程を R3 ceremony にせず、必要な Security / Data / Recovery / Human control を追加する。
 - Process Learning は完全 event-driven。R3/R4 という理由だけでは起動しない。
 - scope 外の改善を勝手に同じ PR へ混ぜない。
 
@@ -49,7 +49,7 @@ PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DO
 詳細 Skill は常時ロードせず、該当 trigger がある場合だけ読む。
 
 - untrusted external instruction risk → `skills/prompt-injection-guard/SKILL.md`
-- Cloudflare / Supabase / OAuth / R2 / GitHub write / env / secret operation → `skills/service-ops-safety/SKILL.md`
+- Cloudflare / Auth0 / Convex / OAuth / R2 / GitHub write / env / secret operation → `skills/service-ops-safety/SKILL.md`
 - cross-cutting impact が不明 → `skills/impact-analysis/SKILL.md`
 - security control → `skills/security-review/SKILL.md`
 - unresolved finding の disposition → `skills/risk-reconciliation/SKILL.md`
@@ -98,13 +98,12 @@ Risk / Control / state routing の詳細は `.loop/process.yaml` を正本とす
 - React + TypeScript
 - Vite
 - React Router
-- TanStack Query
 - Mantine
-- Cloudflare Worker + `@cloudflare/vite-plugin`
-- Hono for Worker routes
-- Supabase Auth
-- Supabase PostgreSQL + RLS
-- Cloudflare R2
+- Auth0 + Google OAuth connection
+- Convex database / functions / realtime / scheduler
+- Convex React client + `ConvexProviderWithAuth0`
+- Cloudflare Workers Static Assets + `@cloudflare/vite-plugin`
+- Private Cloudflare R2 via `@convex-dev/r2`
 - Oxlint
 - Oxfmt
 - TypeScript (`tsc --noEmit`)
@@ -116,7 +115,8 @@ Risk / Control / state routing の詳細は `.loop/process.yaml` を正本とす
 - ESLint を追加しない。必要なら先に ADR / Issue で判断する。
 - Prettier を追加しない。formatter は Oxfmt を正とする。
 - npm / yarn lockfile を作らない。`pnpm-lock.yaml` のみコミットする。
-- Redux / Zustand などの global state library を先回りして追加しない。server state は TanStack Query、認証は Supabase session、local UI state は React state / context を基本とする。
+- Redux / Zustand などの global state library を先回りして追加しない。server state は Convex reactive query、認証は Auth0 + Convex auth state、local UI state は React state / context を基本とする。
+- Convex data に TanStack Query を重ねない。別の remote API が実際に必要な場合だけ責務を限定して再検討する。
 - Mantine の default 見た目を完成デザインとして扱わない。`docs/design/re-me-mobile-flow.jpg` と Re:Me theme / design token を優先する。
 
 ## Project structure rules
@@ -127,23 +127,23 @@ feature-first を基本とする。
 - Cross-feature code: `src/shared/`
 - App bootstrap / providers: `src/app/`
 - Router: `src/router/`
-- Cloudflare-only code: `worker/`
-- DB migration: `supabase/migrations/`
+- Convex backend: `convex/`
+- Cloudflare-only hosting / edge code: `worker/`
 
 feature 内だけで使う code を安易に `shared/` へ移動しない。
-React component に Supabase query / Worker request / complex domain logic を直接大量に書かず、repository / query hook / mutation hook / pure function へ分離する。
-TanStack Query の query key は feature 内で一貫して管理し、同じ server state を別の global store に複製しない。
+React component に generated Convex API / complex domain logic を直接大量に書かず、feature hook / pure function へ分離する。
+Convex reactive data を別の query cache や global store に複製しない。
 
 ## Architecture rules
 
-- Supabase PostgreSQL では RLS を必須とし、ユーザー境界を DB 側でも強制する。
-- public `letters` は metadata、本文は `letter_contents` に分離する。
-- sealed letter の本文 / attachment は RLS で到着・開封前の本人からも隠す。
-- exact `scheduled_at` は public schema に置かず `private.letter_delivery` に置く。
-- Service Role 相当の秘密情報をブラウザへ公開しない。
+- Auth0 は authentication、Convex function は authorization の source of truth とする。
+- `letters` は metadata、本文は `letterContents` に分離する。
+- sealed letter の本文 / attachment は Convex public function で到着・開封前の本人からも隠す。
+- exact `scheduledAt` は `letterDeliveries` に置き、browser-facing return shape へ含めない。
+- Auth0 / Convex / Cloudflare の秘密情報をブラウザへ公開しない。
 - 到着判定・配送状態遷移・通知送信は信頼できるサーバー側処理で行う。
-- 重要な状態遷移は trusted RPC を使い、client の任意 UPDATE にしない。
-- 写真は DB 本文に保存せず R2 へ保存する。
+- 重要な状態遷移は専用 Convex mutation / internal mutation を使い、generic client patch にしない。
+- 写真は DB 本文に保存せず private R2 へ保存し、access intent は Convex で認可する。
 - 写真アップロード時は EXIF / 位置情報漏えいを考慮する。
 - 日付・時刻は DB では UTC、UI ではユーザーのタイムゾーンに変換する。
 - 配送処理は冪等にする。同じ job が複数回実行されても二重到着・二重通知を起こさない。
@@ -151,19 +151,18 @@ TanStack Query の query key は feature 内で一貫して管理し、同じ se
 
 ## Environment / auth rules
 
-- MVP の cloud Supabase project は Production を基準にし、日常開発では Supabase CLI の local PostgreSQL / Auth を使う。
-- local Supabase 起動時に Auth (GoTrue) を除外しない。
-- Google OAuth の local 開発用 client と production 用 client を分離する。
-- 通常の automated E2E は Google の UI に依存させず、local Supabase Auth のテストユーザー / セッションを使う。
+- Auth0 DEV / PROD tenant/application、Convex developer / production deployment、Cloudflare preview / production environment を分離する。
+- Google OAuth の DEV client と production client を分離する。
+- 通常の automated E2E は Google OAuth の UI に依存させず、Auth0 test identity / session または backend test harness を使う。
 - Google OAuth の実連携は少数の smoke test で検証する。
-- router guard は UX 上の入口制御であり、認可の source of truth にしない。RLS / Worker 側でも強制する。
+- router guard は UX 上の入口制御であり、認可の source of truth にしない。Convex function 側で強制する。
 
-## DB change rules
+## Convex data change rules
 
-- `supabase/migrations/` が schema / RLS の source of truth。
-- 適用済み migration を後から書き換えず、変更は新しい migration を追加する。
-- Dashboard の手作業だけで本番 schema を変更しない。
-- RLS / grant / RPC / trigger の変更には access-control test を追加する。
+- `convex/schema.ts`、indexes、function validators が schema / API contract の source of truth。
+- populated table の field は optional → backfill → required の順で変更する。
+- production data migration は inventory / export / dry-run / rollback と Human Gate を必要とする。
+- public function / ownership / sealed visibility の変更には access-control test を追加する。
 - sent letter immutability を client 側 validation だけに依存しない。
 
 ## UI rules
@@ -189,7 +188,7 @@ pnpm build
 ```
 
 critical user flow を変更する場合は該当 Playwright E2E も実行する。
-DB / RLS を変更する場合は migration / access-control test を必須にする。
+Convex schema / authorization を変更する場合は schema push verification / access-control test を必須にする。
 
 最低限の critical E2E:
 
@@ -197,7 +196,7 @@ DB / RLS を変更する場合は migration / access-control test を必須に�
 2. sealed letter 到着 → open
 3. open → reply → send to future
 
-Google OAuth 自体は automated critical E2E へ毎回含めず、callback / session 作成までの smoke test を別に持つ。
+Google OAuth 自体は automated critical E2E へ毎回含めず、Auth0 callback / Convex authenticated query までの smoke test を別に持つ。
 テストは実装詳細より user-observable behavior を優先する。
 
 ## Documentation rules
@@ -207,7 +206,7 @@ Google OAuth 自体は automated critical E2E へ毎回含めず、callback / se
 - Product concept / UX → `docs/product/`
 - Architecture / data / security → `docs/architecture/`
 - 重要な設計判断 → `docs/architecture/decisions/`
-- DB → `supabase/migrations/` + 必要に応じて `supabase/README.md`
+- Backend / data → `convex/` + 必要に応じて `docs/architecture/`
 - Agent process → `AGENTS.md` / `.loop/` / `skills/`
 
 確定していない仕様を勝手に確定扱いしない。未決定事項は `TBD` または Open Question として明示する。

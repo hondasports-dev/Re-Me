@@ -32,7 +32,7 @@ Reviewer 同士は debate せず、各 reviewer が独立に Finding Ledger へ�
 
 最低限:
 
-- authentication / authorization / RLS / user boundary
+- authentication / authorization / legacy RLS / user boundary
 - user-controlled HTML / URL / redirect / file / MIME
 - secret / privileged env
 - external write boundary

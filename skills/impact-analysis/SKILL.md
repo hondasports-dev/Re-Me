@@ -9,7 +9,7 @@ description: PREPARE の inline impact summary では足りない cross-cutting 
 
 - cross-cutting change
 - shared state / multiple callers
-- auth / RLS / schema / migration の影響範囲が不明
+- auth / authorization / schema / migration の影響範囲が不明
 - external write / deployment boundary が変わる
 - rollback / recovery が非自明
 
@@ -18,12 +18,12 @@ description: PREPARE の inline impact summary では足りない cross-cutting 
 - direct change surfaces
 - callers / callees
 - shared repository / component / Worker utility
-- auth / RLS / user boundary
+- auth / authorization / legacy RLS / user boundary
 - schema / migration / RPC / trigger
 - R2 object lifecycle
 - affected browser / mobile flow
 - regression surface
-- Cloudflare / Supabase deployment impact
+- Cloudflare / Auth0 / Convex / legacy Supabase deployment impact
 - rollback / recovery
 
 出力は別の長大な packet にせず、PREPARE の `impact_summary`、Risk、Required Controls、Verification plan を更新する。

@@ -24,6 +24,6 @@ description: PREPARE で固定した AC / Scope / Risk / Controls に従い、1 
 
 振る舞い変更・bug fix では適切なら RED → GREEN を使う。
 
-実装中に material ambiguity、shared caller、auth/RLS/schema/external write、rollback difficulty など新しい影響を発見したら、scope を勝手に広げず PREPARE の Risk / Controls / AC を更新する。
+実装中に material ambiguity、shared caller、auth/authorization/schema/external write、rollback difficulty など新しい影響を発見したら、scope を勝手に広げず PREPARE の Risk / Controls / AC を更新する。
 
 終了時に tracked / untracked を含めて scope integrity を確認し、変更した content を Verification へ渡す。

@@ -71,7 +71,7 @@
 
 ### NFR-01 Privacy
 - ユーザー A はユーザー B の手紙を取得できない。
-- DB では RLS 等のサーバー側アクセス制御を必須とする。
+- Backend では Convex function によるサーバー側アクセス制御を必須とする。
 - 通知にプライベート内容を表示しない。
 
 ### NFR-02 Reliability

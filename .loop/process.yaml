@@ -82,7 +82,7 @@ controls:
   security_review:
     trigger_when:
       - authentication_or_authorization_change
-      - rls_or_user_data_boundary_change
+      - authorization_rls_or_user_data_boundary_change
       - secret_or_privileged_env_change
       - user_controlled_html_url_redirect_file_or_mime
       - external_write_boundary_change
@@ -90,7 +90,7 @@ controls:
   db_access_control:
     trigger_when:
       - schema_or_migration
-      - rls_grant_rpc_or_trigger
+      - access_policy_rls_grant_rpc_or_privileged_function
     requires:
       - migration_or_schema_verification
       - cross_user_or_access_control_test_when_applicable
@@ -104,7 +104,7 @@ controls:
       - rollback_or_recovery_reasoning
   service_ops:
     trigger_when:
-      - cloudflare_supabase_oauth_r2_or_github_write
+      - cloudflare_auth0_convex_supabase_oauth_r2_or_github_write
       - environment_or_secret_operation
     skill: skills/service-ops-safety/SKILL.md
   human_gate:

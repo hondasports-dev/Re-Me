@@ -1,143 +1,134 @@
 # データモデル
 
-実装上の正本は `supabase/migrations/`。この文書は設計意図を説明する。
+実装上の正本は `convex/schema.ts` と function validators とする。この文書は target model の設計意図を説明する。現行 `supabase/migrations/` は移行完了までの legacy source である。
 
 ## Model
 
 ```mermaid
 erDiagram
-    AUTH_USER ||--|| USER_SETTINGS : has
-    AUTH_USER ||--o{ THREAD : owns
+    USER ||--|| USER_SETTINGS : has
+    USER ||--o{ THREAD : owns
     THREAD ||--o{ LETTER : contains
     LETTER ||--|| LETTER_CONTENT : has
     LETTER ||--o{ LETTER_ATTACHMENT : has
     LETTER o|--o| LETTER : replies_to
-    AUTH_USER ||--o{ PUSH_SUBSCRIPTION : owns
-
-    LETTER ||--|| PRIVATE_DELIVERY : scheduled_by
+    USER ||--o{ PUSH_SUBSCRIPTION : owns
+    LETTER ||--|| LETTER_DELIVERY : scheduled_by
     LETTER ||--o| NOTIFICATION_JOB : creates
 ```
 
-## なぜ `letters` と `letter_contents` を分けるか
+## Core entities
 
-Re:Me では「未来を旅していること」は見せたいが、「封をした本文」は到着・開封まで本人にも見せたくない。
+### users
 
-1 table に metadata と body を置くと、RLS は row 単位なので metadata だけ取得しながら body だけ隠す設計が不自然になる。
+- `_id`
+- `tokenIdentifier`（unique external identity lookup）
+- safe profile fields
+- `createdAt` / `updatedAt`
 
-そのため:
+Domain ownership は `_id` を使い、Auth0 subject を各 table に直接保存しない。
 
-- `letters`: 一覧・状態表示に必要な metadata
-- `letter_contents`: 本文
+### userSettings
 
-に分離する。
-
-`letter_contents` の RLS は以下の場合だけ SELECT を許可する。
-
-- draft
-- 封をしていない
-- `open_letter` 済み
-
-これにより sealed + traveling / sealed + delivered + unopened の本文は authenticated client から取得できない。
-
-## Public entities
-
-### user_settings
-
-- `user_id`
+- `userId`
 - `timezone`
-- `push_enabled`
-- `email_notification_enabled`
+- `pushEnabled`
+- `emailNotificationEnabled`
 
 ### threads
 
-一連の時間差会話の単位。
-
-- `id`
-- `user_id`
-- `created_at`
-- `updated_at`
-- `deleted_at`
+- `ownerId`
+- `createdAt` / `updatedAt` / `deletedAt`
 
 ### letters
 
-本文を除く手紙 metadata。
+本文を除く metadata。
 
-- `id`
-- `thread_id`
-- `user_id`
-- `parent_letter_id`
+- `threadId`
+- `ownerId`
+- `parentLetterId`
+- `nextLetterId`
 - `status`: `draft | traveling | delivered`
 - `sealed`
-- `delivery_mode`
-- `delivery_window_start`
-- `delivery_window_end`
-- `sent_at`
-- `delivered_at`
-- `opened_at`
-- `replied_at`
-- `created_at`
-- `updated_at`
-- `deleted_at`
+- `deliveryMode`
+- `deliveryWindowStart` / `deliveryWindowEnd`
+- `sentAt` / `deliveredAt` / `openedAt` / `repliedAt`
+- `createdAt` / `updatedAt` / `deletedAt`
 
-`opened / replied` は独立 status にせず timestamp として保持する。配送状態とユーザー操作状態を混ぜないため。
+`opened` / `replied` は status に混ぜず timestamp とする。
 
-### letter_contents
+### letterContents
 
-- `letter_id`
-- `user_id`
+- `letterId`
+- `ownerId`
 - `body`
 
-送信後は DB trigger でも後付け INSERT / UPDATE / DELETE を拒否する。
+metadata と body を分け、一覧 query が sealed body を読み込まない return shape を作る。
 
-### letter_attachments
+### letterAttachments
 
-- `photo`
-  - R2 object key
-  - MIME / byte size / width / height
-- `location`
-  - display 用 location label
+- `letterId`
+- `ownerId`
+- `kind`: `photo | location`
+- `status`: `pending | ready | deleting`
+- private R2 object id
+- safe MIME / byte size / width / height
+- display-only location label
 
-位置情報は記憶補助が目的なので、MVP では正確な緯度経度を恒久保存することを前提にしない。
+正確な緯度経度と EXIF は恒久保存しない。
 
-### push_subscriptions
+### letterDeliveries
 
-Web Push endpoint と key をユーザー単位で保持する。
+- `letterId`
+- `ownerId`
+- `scheduledAt`
+- delivery attempt / reconciliation metadata
 
-## Private entities
+`scheduledAt` は due index に使うが browser-facing query から返さない。
 
-### private.letter_delivery
+### notificationJobs
 
-- `letter_id`
-- `scheduled_at`
+- `letterId`
+- `ownerId`
+- `status`: `pending | processing | sent | failed`
+- `attemptCount`
+- `generationToken`
+- `availableAt` / `lockedAt` / `sentAt`
+- sanitized `lastErrorCode`
 
-正確な到着日時は public schema に置かない。
+Delivery と external notification を分離する outbox。
 
-ユーザーが知るのは「数か月後くらい」という window までで、実際の `scheduled_at` は Worker / service role だけが扱う。
+### pushSubscriptions
 
-### private.notification_jobs
+- `ownerId`
+- endpoint / p256dh / auth
+- created / updated / disabled metadata
 
-Delivery と Notification を分離する outbox。
+## Required indexes
 
-- `letter_id`
-- `user_id`
-- `status`
-- `attempt_count`
-- `claim_token`（現在の Worker claim の世代。完了時に clear）
-- `available_at`
-- `locked_at`
-- `sent_at`
-- `last_error`
+少なくとも以下の read path を index で支える。
 
-Push 失敗で手紙自体が未到着へ戻らないようにする。
+- users by tokenIdentifier
+- threads by ownerId and updatedAt
+- letters by ownerId and status
+- letters by threadId and sentAt
+- letters by parentLetterId
+- letterContents by letterId
+- letterAttachments by letterId
+- letterDeliveries by delivery state and scheduledAt
+- notificationJobs by status and availableAt
+- pushSubscriptions by ownerId
 
-## State
+Growing table を unbounded `.collect()` や `.filter()` で走査しない。list query は paginate / bounded `take` を使う。
+
+## State transitions
 
 ```text
 draft
-  │ send_letter
+  │ sendLetter
   ▼
 traveling
-  │ scheduled_at 到達
+  │ deliverDueLetters
   ▼
 delivered
 ```
@@ -146,57 +137,47 @@ delivered
 
 ```text
 delivered
-  │ open_letter
+  │ openLetter
   ▼
-opened_at != null
+openedAt != null
   │ reply を未来へ送信
   ▼
-replied_at != null
+repliedAt != null
 ```
 
 ## Thread invariant
 
-返信は同じ `thread_id` に所属し、`parent_letter_id` で直前の手紙を指す。
+返信は同じ `threadId` に所属し、`parentLetterId` で直前の手紙を指す。MVP は一つの非削除 letter に次の非削除 letter を最大一通とする。
 
-MVP は partial unique index により、一つの非削除 Letter に対する次の Letter を最大 1 通に制限する。
-
-```text
-Me(2026) -> Me(2027) -> Me(2028)
-```
-
-枝分かれさせない。
+Convex に SQL partial unique index はないため、reply creation mutation 内で parent state を transactionally 検証し、parent に next letter id / `repliedAt` を記録して競合を OCC で拒否する。
 
 ## Immutable boundary
 
-送信後に変更できないもの:
+送信後は content / attachment / relationship / delivery setting を更新する public function を持たない。lifecycle metadata は専用 mutation / internal mutation だけが変更する。
 
-- 本文
-- 添付
-- thread / parent
-- sealed
-- delivery mode / window
-- sent_at
+## Public function surface
 
-変更できる lifecycle metadata:
+Authenticated client:
 
-- `status`
-- `delivered_at`
-- `opened_at`
-- `replied_at`
-- `deleted_at`
+- `createDraft`
+- `saveDraft`
+- `getLetterMetadata`
+- `getReadableContent`
+- `sendLetter`
+- `openLetter`
+- `deleteLetter`
+- `createAttachmentIntent`
+- `finalizeAttachment`
 
-この境界は UI だけでなく DB trigger / RPC で強制する。
+Internal only:
 
-## Trusted RPC
+- `deliverDueLetters`
+- `claimNotificationJobs`
+- `completeNotificationJob`
+- `reconcileAttachmentDeletion`
 
-Browser から自由な table UPDATE を許可せず、重要な状態遷移は RPC に寄せる。
+すべて args / return validator を持ち、private field を document ごと返さず明示的に map する。
 
-- `create_draft`
-- `send_letter`
-- `open_letter`
-- `delete_letter`
-- `deliver_due_letters`（service role only）
-- `claim_notification_jobs`（service role only）
-- `complete_notification_job`（service role only）
+## Schema evolution / migration
 
-`claim_notification_jobs` は job ごとに推測困難な `claim_token` を発行する。`complete_notification_job` は job id と現在の token が一致する `processing` claim だけを完了させ、reclaim 前の古い Worker の結果は拒否する。
+Convex schema change は populated deployment を前提に、optional field → backfill → required の順で行う。DEV → PROD の data copy を通常 workflow にせず、Production data migration は inventory、export、dry-run、rollback を別 task で設計する。

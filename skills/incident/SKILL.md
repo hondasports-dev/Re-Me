@@ -12,7 +12,7 @@ description: Verification、Review、CI、E2E、外部サービスで FAIL/BLOCK
 - review finding が再発
 - CI / E2E failure 原因不明
 - local と CI / production-like env の結果が異なる
-- env / auth / Cloudflare / Supabase が原因で Gate を進めない
+- env / auth / Cloudflare / Auth0 / Convex / legacy Supabase が原因で Gate を進めない
 
 `BLOCKED` は `DONE` ではない。「理由を PR に書いて次へ進む」を回避策にしない。
 

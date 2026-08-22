@@ -24,8 +24,9 @@ pnpm build
 追加例:
 
 - React UI / browser flow → targeted component/integration + 必要な Playwright E2E
-- Worker / Hono → API / Worker test
-- schema / RLS / RPC → migration / SQL / cross-user access-control test
+- Cloudflare Worker / assets → routing / asset test
+- Convex schema / function / authorization → push validation / cross-user access-control test
+- legacy Supabase migration / RLS / RPC → migration / SQL / access-control test
 - R2 object lifecycle → upload / delete / access boundary
 - stateful / destructive → error path / idempotency / rollback or recovery evidence
 
@@ -37,7 +38,7 @@ pnpm build
 - R3: full affected scope including boundary / error cases
 - R4: R3 + rollback / recovery evidence
 
-Required Controls は profile に追加する。たとえば R2 でも RLS を変えるなら access-control test は必須や。
+Required Controls は profile に追加する。たとえば R2 でも authorization を変えるなら access-control test は必須や。
 
 ## Acceptance Criteria result
 

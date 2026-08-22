@@ -1,13 +1,13 @@
 ---
 name: service-ops-safety
-description: Cloudflare、Supabase、GitHub、OAuth、R2、env、secret、deploy など外部サービス操作がある task で読む詳細 Safety Skill。基本 invariant は AGENTS.md に常時保持する。
+description: Cloudflare、Auth0、Convex、Supabase legacy、GitHub、OAuth、R2、env、secret、deploy など外部サービス操作がある task で読む詳細 Safety Skill。基本 invariant は AGENTS.md に常時保持する。
 ---
 
 # Service Operations Safety
 
 基本原則「secret を出さない」「production / irreversible write は明示承認なしに行わない」「必須 Verification を環境不足で省略しない」は `AGENTS.md` に常時保持する。
 
-この Skill 全文は、Cloudflare / Supabase / OAuth / R2 / GitHub write / env / secret / deploy など service operation が実際にある時だけ読む。
+この Skill 全文は、Cloudflare / Auth0 / Convex / Supabase legacy / OAuth / R2 / GitHub write / env / secret / deploy など service operation が実際にある時だけ読む。
 
 ## Operation check
 
@@ -35,16 +35,18 @@ Read-only の軽微な問い合わせで上記 packet を毎回フル生成す�
 
 ## Re:Me の対象
 
-- Cloudflare Workers / R2 / Cron / DNS
-- Supabase Auth / PostgreSQL / RLS / Storage configuration
+- Cloudflare Workers / R2 / DNS
+- Auth0 tenant / application / connection / custom domain
+- Convex deployment / schema / function / environment
+- legacy Supabase Auth / PostgreSQL / RLS の移行・撤去
 - Google OAuth
 - GitHub / GitHub Actions
 - Web Push / VAPID
-- `.env*` / Worker Secret / Supabase Service Role
+- `.env*` / Convex environment / Worker Secret / deploy key
 
 ## Secret boundary
 
-- Supabase Service Role、VAPID private key、OAuth secret を browser bundle へ入れない。
+- Auth0 Management credential、Convex deploy key、R2 secret、VAPID private key、OAuth secret を browser bundle へ入れない。
 - `.env.local`、`.dev.vars` 等を commit / PR / log へ出さない。
 - Browser-visible key と server-only secret を混同しない。
 - Secret rotation を副次作業として勝手に行わない。

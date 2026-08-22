@@ -1,248 +1,172 @@
 # 認証・セキュリティ
 
-## Auth
+## Authentication
 
-Supabase Auth を採用し、Social Login を中心にする。
+Auth0 を identity provider とし、MVP は Google OAuth connection + Universal Login を使う。
 
-MVP:
+```text
+React SPA
+  ↓ redirect
+Auth0 Universal Login
+  ↓ Google OAuth 2.0
+Auth0 callback / token
+  ↓
+ConvexProviderWithAuth0
+  ↓ token verification
+Convex functions
+```
 
-- Google OAuth
+Re:Me は Google account password / OAuth credential を保持しない。Auth0 custom domain は DEV に不要で、Production でも初回リリースの必須条件にしない。
 
-追加候補:
+### Google OAuth redirect boundary
 
-- Apple OAuth
+Redirect は二段階で分ける。
 
-Browser は Supabase の publishable / anon credential を使う。Service Role は Cloudflare Worker Secret のみに置き、Browser bundle・GitHub・ログへ出さない。
+```text
+Google OAuth 2.0
+  → https://<auth0-domain>/login/callback
+Auth0
+  → https://<re-me-domain>/auth/callback
+```
 
-## Session
+- Google Cloud の Authorized redirect URI には Auth0 domain の `/login/callback` を登録する
+- Auth0 SPA の Allowed Callback URLs には Re:Me の `/auth/callback` を登録する
+- Local / DEV と Production は Google OAuth client、Auth0 tenant、callback URL を共有しない
+- MVP は login に必要な `openid profile email` を基本とし、Google API の追加 scope を要求しない
 
-SPA 起動時に Supabase session を application provider で復元・購読し、React Router の auth-required route で未認証 user を `/login` へ誘導する。
+## Session / route
 
-OAuth callback は `/auth/callback` へ集約する。
+- `Auth0Provider`: login、logout、Auth0 session、profile presentation
+- `ConvexProviderWithAuth0`: Auth0 token を Convex client へ供給
+- `useConvexAuth()`: authenticated Convex request が可能かを UI で判定
+- React Router guard: 未認証 user を `/login` へ案内
 
-React Router の route protection は UX 上の入口制御にすぎない。認証済みでも、認可は UI や route guard だけに依存せず DB RLS / trusted RPC / Worker 側で強制する。
+Router guard は authorization の source of truth ではない。
 
-TanStack Query の cache に auth session を source of truth として保存しない。session は Supabase Auth を正とし、server-state query は現在の認証状態に応じて enable / invalidate する。
+## Authorization
 
-## Local / Production auth environments
+Convex には Supabase RLS 相当の自動 row policy がない。代わりに public function の入口で明示的に強制する。
 
-MVP は cloud Supabase project を DEV / PROD のためだけに二重化しない。
+1. `ctx.auth.getUserIdentity()` が存在する
+2. identity の `tokenIdentifier` を internal `users` document に解決する
+3. request target の `ownerId` が current `users._id` と一致する
+4. status / sealed / opened / deleted state が操作を許可する
+5. 許可された field だけを return validator に合わせて返す
 
-### Local / DEV
+共通の authenticated query / mutation wrapper を使い、function ごとの ownership check 抜けを防ぐ。client から送られた `userId` / owner claim は信用しない。
 
-- Supabase CLI の local PostgreSQL を使う
-- Supabase CLI の local Auth (GoTrue) を起動する
-- local Supabase 起動時に GoTrue を除外しない
-- Google OAuth を実際に確認する場合だけ local 開発用 OAuth client を利用する
+## User identity model
+
+- Auth0 `sub` / Convex `tokenIdentifier`: external identity lookup key
+- `users._id`: domain ownership key
+
+Letter や settings は `users._id` を参照する。将来 provider link / account recovery を行う際に、外部 subject を domain row 全体へ直接埋め込まないためである。
+
+## Environment separation
+
+### DEV
+
+- Auth0 DEV tenant / SPA application
+- Auth0 Google OAuth DEV connection / client
+- localhost と preview callback / logout / web origins
+- Convex developer / preview deployment
 
 ### Production
 
-- Supabase Cloud project
-- production 用 Google OAuth client
+- Auth0 PROD tenant / SPA application
+- Auth0 Google OAuth PROD connection / client
+- production callback / logout / web origins
+- Convex production deployment
 
-Google OAuth client は local / production で分離し、redirect URI の取り違えを避ける。
+Auth0 domain / client id は browser-visible configuration だが secret ではない。Google OAuth client secret、Auth0 Management API credential、Convex deploy key、R2 credential、VAPID private key は browser bundle / Git / log に出さない。
 
-## Auth testing strategy
+## Token validation
 
-認証テストは責務を分ける。
+Convex `auth.config.ts` は environment ごとの Auth0 issuer domain と application id を使う。token の issuer / audience が一致しない場合は拒否する。
 
-### Unit / component
-
-- auth provider の状態遷移
-- 未認証時の route redirect
-- session loading / logout 後の UI
-
-外部 Google UI は呼ばない。
-
-### Automated E2E
-
-通常の Playwright E2E は local Supabase Auth にテストユーザーを用意し、session を取得・再利用して認証済み状態を作る。
-
-Google のログイン画面を critical E2E の前提にしない。外部 UI、CAPTCHA、MFA、bot detection、Google 側変更による不安定性をプロダクト E2E から切り離す。
-
-### Google OAuth smoke test
-
-少数の smoke test で以下だけを確認する。
-
-```text
-React app
-  ↓
-Supabase Auth
-  ↓
-Google OAuth
-  ↓
-/auth/callback
-  ↓
-Supabase session 作成
-  ↓
-認証済み画面へ遷移
-```
-
-この smoke test は OAuth provider と Supabase Auth の integration 確認が目的であり、全機能 E2E の入口にはしない。
-
-## RLS
-
-public schema のユーザーデータは RLS を必須とする。
-
-基本原則:
-
-```text
-row.user_id = auth.uid()
-```
-
-ただし Re:Me では「本人であっても封をした本文を到着前に読めない」という追加条件がある。
-
-そのため metadata と body を分離する。
-
-### letters
-
-本人の metadata は SELECT 可能。
-
-### letter_contents / letter_attachments
-
-本人であっても以下の場合のみ SELECT 可能。
-
-- draft
-- `sealed = false`
-- `opened_at is not null`
-
-これにより sealed + traveling / sealed + delivered + unopened の本文は authenticated client から取得できない。
-
-## Column / operation privileges
-
-RLS だけでなく table privilege も絞る。
-
-Browser から直接許可しないもの:
-
-- `letters` INSERT / UPDATE / DELETE
-- `threads` INSERT / UPDATE / DELETE
-- sent content update
-- delivery state update
-
-重要な状態変更は RPC 経由にする。
-
-## Trusted RPC
-
-Authenticated user:
-
-- `create_draft`
-- `send_letter`
-- `open_letter`
-- `delete_letter`
-
-Service Role only:
-
-- `deliver_due_letters`
-- `claim_notification_jobs`
-- `complete_notification_job`
-
-Service Role RPC は anon / authenticated から EXECUTE できないよう revoke する。
-
-Notification outbox の完了 RPC は job id だけでなく現在の `claim_token` も検証する。reclaim 後に遅れて到着した旧 Worker の結果や、完了済み job の再完了は拒否し、別世代の通知状態を上書きできないようにする。
-
-## Sent letter immutability
-
-送信後編集不可は UI ルールだけではなく、本文の後付け INSERT を含む DB trigger でも守る。
-
-変更不可:
-
-- 本文
-- 添付
-- parent / thread
-- seal
-- delivery mode / window
-- sent_at
-
-変更可能:
-
-- delivered / opened / replied lifecycle timestamp
-- soft delete
-
-React component / TanStack Query mutation の client-side validation は補助であり、immutability の source of truth にしない。
-
-## Exact schedule secrecy
-
-正確な `scheduled_at` は `private.letter_delivery` に保存し、authenticated client の SELECT 対象にしない。
-
-ユーザーには public の delivery window だけを返す。
-
-これは秘密情報というより、Re:Me の「いつ届くか分からない」体験を API contract で壊しにくくするための境界。
+Custom Auth0 domain へ切り替えると issuer が変わるため、Convex auth config、callback URL、session cutover を同じ production change として扱う。
 
 ## Sealed letter
 
-「封をする」は MVP では **ユーザーアクセスを DB / API で制御する機能** とする。
+sealed content は本人にも以下の条件まで返さない。
 
-ただし E2EE ではない。
+```text
+owner
+AND delivered
+AND openedAt != null
+AND deletedAt == null
+```
 
-意味:
+`openLetter` mutation が本人、delivered、unopened を確認して `openedAt` を設定する。本文取得 query は開封済み state を再検証する。
 
-- 本人の通常 client からも到着・開封前は本文取得不可
-- Service Role / DB operator まで暗号学的に読めないことは保証しない
+これは application-level access control であり E2EE ではない。Auth0 / Convex / R2 の運用権限者から暗号学的に隠す保証はしない。
 
-将来「運営にも読めない」を提供する場合は E2EE / key recovery / device migration を別 ADR で設計する。
+## Exact schedule secrecy
 
-## Worker authentication
+exact `scheduledAt` は `letterDeliveries` に保存し、browser-facing query の return shape に含めない。delivery window だけを返す。
 
-R2 upload など `/api/*` では Supabase access token を検証し、user id を request body から信用しない。
+Debug endpoint、error detail、log、analytics に exact schedule を誤って出さない。
 
-Worker は検証済み token の subject から user を確定する。
+## Sent immutability
+
+送信後に変更できないもの:
+
+- body
+- attachment
+- thread / parent
+- sealed
+- delivery mode / window / exact schedule
+- sentAt
+
+generic patch mutation を公開しない。draft mutation は `status === "draft"` を検証し、send / open / delete は専用 mutation にする。
+
+## Photo / R2 privacy
+
+- bucket は private
+- Convex は R2 object id と ownership metadata を保持
+- upload intent 作成時に owner / draft state を検証
+- MIME、size、dimension、EXIF / location metadata を検証
+- sealed / unopened attachment の download URL を返さない
+- download capability は短命にし、送信後は開封まで新規発行せず、application log に残さない
+- delete は Convex metadata と R2 object の partial failure を reconciliation できる状態で行う
 
 ## Notification privacy
 
-Push / Email に以下を含めない。
-
-- 本文
-- 写真
-- location
-- ユーザーが入力した任意テキスト
-
-通知文:
+Push / Email に本文、写真、location、ユーザー入力テキストを含めない。
 
 > Re:Me  
 > あなた宛ての手紙が届いています。
 
-## Photo privacy
+Push subscription endpoint / key は本人だけが管理できる。ログでは endpoint と auth secret を redact する。
 
-- R2 object は public にしない
-- object key を推測困難にする
-- 認可済み route / 期限付き access を使う
-- upload 前または upload 処理で EXIF を除去する
-- MIME / byte size / dimension を検証する
+## Deletion / longevity
 
-## Push subscription
+送信後も削除は可能。client access と delivery 対象から即時除外する soft delete を基本とし、Convex document、R2 object、backup の物理削除・保持期間は Privacy Policy と migration issue で確定する。
 
-Web Push endpoint / key は本人だけが CRUD できる RLS を設定する。
+Re:Me は数年後の利用を正常系とするため、Auth0 account recovery、provider link、data export / delete、Convex export / backup、vendor migration を production readiness の必須検討にする。
 
-ログに endpoint / auth secret を不用意に出さない。
+## Testing strategy
 
-## Deletion
+通常の automated E2E は Google OAuth UI を通さず、Auth0 test identity / cached session または backend test harness で authenticated state を作る。少数の smoke test だけが以下を確認する。
 
-送信後編集不可でも削除は可能。
-
-初期 schema は soft delete で delivery / client access から即座に除外する。
-
-R2 object・DB row の最終物理削除、バックアップ保持期間、退会時一括削除は Privacy Policy と実装 issue で確定する。
-
-## Account longevity
-
-Re:Me は数か月〜数年後に戻ることが正常系。
-
-一般的な短期 SaaS より以下を重要視する。
-
-- OAuth provider 継続性
-- email / provider 変更
-- account recovery
-- 退会と data export / delete
-- 長期 backup / migration
+```text
+Google OAuth login
+  → Auth0 callback
+  → Auth0 token
+  → Convex token verification
+  → authenticated query
+```
 
 ## Required security tests
 
-- User A から User B の metadata / body を取得できない
-- sealed traveling body を本人が SELECT できない
-- sealed delivered + unopened body を本人が SELECT できない
-- `open_letter` 後だけ body が SELECT 可能になる
-- sent body update が失敗する
-- authenticated user が service-role-only delivery RPC を実行できない
-- exact scheduled time を authenticated client が取得できない
-- unauthenticated route access が login へ誘導される
-- Google OAuth smoke test で callback 後に Supabase session が生成される
+- unauthenticated public function denial
+- User A から User B の metadata / body / attachment を取得・変更できない
+- sealed traveling body / attachment を本人が取得できない
+- sealed delivered + unopened body / attachment を本人が取得できない
+- `openLetter` 後だけ content を取得できる
+- sent content mutation が失敗する
+- exact `scheduledAt` が public result / log / error に出ない
+- scheduled / internal function を browser から呼べない
+- expired / wrong-generation upload / download capability を拒否する
+- Auth0 issuer / audience mismatch を拒否する
+- Google OAuth smoke で Convex authenticated query まで成功する

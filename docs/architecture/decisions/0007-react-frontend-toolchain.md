@@ -3,6 +3,9 @@
 - Status: Accepted
 - Date: 2026-08-20
 - Supersedes: [ADR-0004](0004-frontend-toolchain.md)
+- Amended by: [ADR-0009](0009-auth0-convex-cloudflare.md)
+
+> Current interpretation: React / Vite / React Router / Mantine の決定だけが現行。以下の TanStack Query / Supabase / Hono / Worker backend に関する記述は当時の context であり、ADR-0009 により superseded された。
 
 ## Context
 
@@ -36,7 +39,7 @@ frontend の標準を以下とする。
 - Vitest + React Testing Library
 - Playwright
 
-Cloudflare Worker + Hono、Supabase、R2、Cron の責務は変更しない。
+Backend / auth / hosting の責務は ADR-0009 で Auth0 + Convex + Cloudflare に変更した。React / Vite / React Router / Mantine の選定は維持するが、Convex data に TanStack Query を重ねない。
 
 ## Responsibility boundaries
 

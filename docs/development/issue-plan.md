@@ -1,35 +1,31 @@
 # Initial implementation issue plan
 
-実装開始時の順序を GitHub Issues と同期するための補助資料。
-
-基本順序:
-
 ```text
-Foundation
+Architecture decision
   ↓
-Supabase schema / RLS
+Auth0 + Convex foundation
   ↓
-Auth
+Convex schema + authorization
   ↓
-AppShell / Design System
+Auth0 Google OAuth connection + Convex auth
+  ↓
+Legacy Supabase boundary removal
   ↓
 Compose / Draft
-  ├─ Photo / R2
+  ├─ Photo / private R2
   └─ Send / Seal
        ↓
-Traveling letters
-       ↓
-Delivery Worker / Notification
-       ↓
+Convex delivery / notification
+  ↓
 Inbox / Open
-       ↓
+  ↓
 Reply / Thread
-       ↓
-PWA / Push polish
-       ↓
-CI / Critical E2E hardening
+  ↓
+PWA / Push
+  ↓
+Migration cleanup / CI hardening
 ```
 
-各 Issue は DB / UI / Worker の境界を跨ぎすぎないように分割する。ただし Re:Me の critical flow は最終的に E2E で繋いで検証する。
+Auth0 tenant、Convex deployment、Cloudflare environment の provisioning と production write を同じ Issue に混ぜない。Production data migration は inventory、dry-run、rollback、Human Gate を独立 acceptance criteria にする。
 
-Issue 本文の acceptance criteria を実装完了条件とし、仕様変更が発生した場合は Issue だけでなく関連 docs / ADR / migration を更新する。
+各 Issue は最新の [ADR-0009](../architecture/decisions/0009-auth0-convex-cloudflare.md) を source of truth とし、旧 Supabase Issue / PR の記述だけで target architecture を上書きしない。
