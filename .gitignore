@@ -18,3 +18,4 @@ agent/
 skills-lock.json
 convex/_generated/ai/
 .tools/
+supabase/database.generated.ts

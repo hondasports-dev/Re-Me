@@ -1,7 +1,7 @@
-import { app } from './app'
+import { handleWorkerFetch } from './app'
 
 const worker = {
-  fetch: app.fetch,
+  fetch: handleWorkerFetch,
   scheduled: async (): Promise<void> => {
     // Delivery and notification jobs will be added in later issues.
   },

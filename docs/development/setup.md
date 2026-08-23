@@ -1,6 +1,6 @@
 # 開発セットアップ
 
-この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。#26 で runtime パッケージ、provider 骨格、Convex developer deployment、Auth0 DEV SPA、Google connection、E2E database test identity まで入れた。domain schema、production 用 Google Cloud OAuth client、legacy Supabase 撤去は後続 Issue で接続する。
+この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。runtime は Auth0 + Convex。legacy `supabase/migrations/` と security tests は invariant 比較用に残し、通常の local / CI test は Supabase 起動を要求しない。
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ convex
 @convex-dev/r2
 ```
 
-TanStack Query、Supabase client、Hono は migration 完了後に削除する。Convex data へ別の query cache を重ねない。
+TanStack Query、Supabase client、Hono は runtime に含めない。Convex data へ別の query cache を重ねない。
 
 ### Development
 
@@ -174,4 +174,4 @@ Google OAuth login
 - Convex schema / indexes / scheduled function が push できる
 - React SPA が Cloudflare Worker local runtime で表示される
 - standard quality gates が通る
-- Supabase / TanStack Query / Hono の runtime import、scripts、env が撤去される
+- Supabase / TanStack Query / Hono の runtime import が無い

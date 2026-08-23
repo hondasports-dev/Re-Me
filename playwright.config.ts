@@ -31,8 +31,6 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_ALLOW_E2E_DB_LOGIN: '1',
-      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
-      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
     },
     reuseExistingServer: !process.env.CI,
     url: 'http://127.0.0.1:4173',

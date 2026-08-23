@@ -126,7 +126,7 @@ edge 固有 route を将来追加する場合は、Convex と責務が重複し�
 
 ## Legacy migration boundary
 
-現行の `supabase/`、Supabase client、Hono route、TanStack Query client は移行期間だけ残る legacy artifact である。Convex critical flow が検証される前に削除せず、検証後は同じ migration task で dependency / env / CI とまとめて撤去する。
+`supabase/migrations/` と `supabase/tests/` は production data migration まで残す legacy artifact である。runtime の Supabase client / Hono application API / TanStack Query は置かない。
 
 ## Testing placement
 
