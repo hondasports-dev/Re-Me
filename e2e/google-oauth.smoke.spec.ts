@@ -5,7 +5,7 @@ const googleSmokeEnabled = process.env.E2E_GOOGLE_SMOKE === '1'
 test.describe('Google OAuth smoke', () => {
   test.skip(
     !googleSmokeEnabled,
-    'Set E2E_GOOGLE_SMOKE=1 with local Google OAuth client credentials to run this smoke test',
+    'Set E2E_GOOGLE_SMOKE=1 to run the Google OAuth smoke against the Auth0 DEV connection',
   )
 
   test('starts Google OAuth from the login screen without embedding secrets', async ({ page }) => {
@@ -17,7 +17,7 @@ test.describe('Google OAuth smoke', () => {
 
     // Local smoke may navigate the same tab or open a provider popup depending on browser settings.
     const target = popup ?? page
-    await expect(target).toHaveURL(/accounts\.google\.com|supabase|\/auth\/v1\/authorize/, {
+    await expect(target).toHaveURL(/accounts\.google\.com|auth0\.com|\/authorize/, {
       timeout: 20_000,
     })
   })

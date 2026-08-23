@@ -55,6 +55,7 @@ Convex query は reactive cache を持つため、Convex data に TanStack Query
 
 - Google OAuth connection を MVP の login method とする
 - Universal Login を使い、password / Google OAuth credential を Re:Me が保持しない
+- DEV の E2E だけ Username-Password connection を使い、public signup は disable する
 - SPA callback / logout / web origin を environment ごとに allowlist する
 - Auth0 が発行する token を Convex が issuer / audience / signature まで検証する
 - custom domain は DEV の必須条件にしない
@@ -133,7 +134,7 @@ sealed letter の本文と添付は、到着後に本人が明示的に開封す
 
 ## Migration status
 
-この文書は target architecture の正本である。現行 repository には Supabase / Hono / TanStack Query ベースの migration code と dependency が残っており、まだ runtime は移行完了していない。移行順序は [Implementation order](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
+この文書は target architecture の正本である。repository には Auth0 + Convex provider 骨格、`convex/` 初期化、Cloudflare Workers Static Assets の SPA hosting、DEV tenant / developer deployment の接続が入っている。通常 E2E は Auth0 database test identity を使い、人間の login 入口は Google のままにする。domain schema、production 用 Google Cloud OAuth client、legacy Supabase / Hono / TanStack Query の撤去は後続 Issue で行う。移行順序は [Implementation order](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
 
 ## References
 

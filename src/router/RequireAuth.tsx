@@ -1,15 +1,13 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 
-import { useAuthSession } from '../features/auth/AuthSessionProvider'
-import { useAuthReadiness } from '../features/auth/useAuthReadiness'
+import { useAuthRuntime } from '../features/auth/AuthRuntimeProvider'
 import { StatusScreen } from '../shared/components/StatusScreen'
 
 export function RequireAuth() {
-  const { session } = useAuthSession()
-  const readiness = useAuthReadiness()
+  const { readiness } = useAuthRuntime()
   const location = useLocation()
 
-  if (readiness.kind === 'auth-loading') {
+  if (readiness.status === 'loading') {
     return (
       <StatusScreen
         description="未来へ続く場所を、静かに準備しています。"
@@ -20,22 +18,11 @@ export function RequireAuth() {
     )
   }
 
-  if (readiness.kind === 'backend-loading') {
-    return (
-      <StatusScreen
-        description="手紙を届ける準備をしています。"
-        title="接続を確認しています"
-        tone="backend"
-        variant="loading"
-      />
-    )
-  }
-
-  if (readiness.kind === 'auth-error') {
+  if (readiness.status === 'error') {
     return <Navigate replace to="/login?reason=session_restore_failed" />
   }
 
-  if (!session || readiness.kind === 'unauthenticated') {
+  if (readiness.status === 'unauthenticated') {
     return <Navigate replace to="/login" state={{ from: location }} />
   }
 
@@ -43,10 +30,9 @@ export function RequireAuth() {
 }
 
 export function GuestOnly() {
-  const { session } = useAuthSession()
-  const readiness = useAuthReadiness()
+  const { readiness } = useAuthRuntime()
 
-  if (readiness.kind === 'auth-loading') {
+  if (readiness.status === 'loading') {
     return (
       <StatusScreen
         description="未来へ続く場所を、静かに準備しています。"
@@ -57,7 +43,7 @@ export function GuestOnly() {
     )
   }
 
-  if (session) {
+  if (readiness.status === 'authenticated') {
     return <Navigate replace to="/" />
   }
 

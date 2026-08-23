@@ -26,4 +26,12 @@ describe('Vite browser credential boundary', () => {
       }),
     ).toThrowError('privileged_browser_credential_rejected')
   })
+
+  it('rejects a Convex deploy key before it can enter public assets', () => {
+    expect(() =>
+      createViteConfig({
+        VITE_CONVEX_DEPLOY_KEY: 'cvx_must_not_bundle',
+      }),
+    ).toThrowError('privileged_browser_credential_rejected')
+  })
 })

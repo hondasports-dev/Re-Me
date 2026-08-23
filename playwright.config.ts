@@ -1,4 +1,21 @@
 import { defineConfig, devices } from '@playwright/test'
+import { loadEnv } from 'vite'
+
+import { authStatePath, hasAuth0E2eCredentials } from './e2e/fixtures/auth'
+
+const loadedEnv = loadEnv('development', process.cwd(), '')
+
+for (const [name, value] of Object.entries(loadedEnv)) {
+  if (process.env[name] === undefined) {
+    process.env[name] = value
+  }
+}
+
+const auth0E2eReady = hasAuth0E2eCredentials()
+const mobileUse = {
+  ...devices['Desktop Chrome'],
+  viewport: { width: 390, height: 844 },
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -13,6 +30,7 @@ export default defineConfig({
     command: 'pnpm build && pnpm preview --host 127.0.0.1',
     env: {
       ...process.env,
+      VITE_ALLOW_E2E_DB_LOGIN: '1',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
       VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
     },
@@ -20,12 +38,32 @@ export default defineConfig({
     url: 'http://127.0.0.1:4173',
   },
   projects: [
+    ...(auth0E2eReady
+      ? [
+          {
+            name: 'auth-setup',
+            testMatch: /auth\.setup\.ts/,
+            use: mobileUse,
+          },
+        ]
+      : []),
     {
       name: 'chromium-mobile',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 390, height: 844 },
-      },
+      testIgnore: auth0E2eReady ? /auth\.setup\.ts|auth-session\.spec\.ts/ : /auth\.setup\.ts/,
+      use: mobileUse,
     },
+    ...(auth0E2eReady
+      ? [
+          {
+            name: 'chromium-authenticated',
+            dependencies: ['auth-setup'],
+            testMatch: /auth-session\.spec\.ts/,
+            use: {
+              ...mobileUse,
+              storageState: authStatePath,
+            },
+          },
+        ]
+      : []),
   ],
 })

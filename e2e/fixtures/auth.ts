@@ -1,76 +1,36 @@
-import { createClient, type Session } from '@supabase/supabase-js'
-import { test as base, expect, type Page } from '@playwright/test'
+import { type Page } from '@playwright/test'
+import path from 'node:path'
 
-const supabaseUrl = process.env.E2E_SUPABASE_URL ?? 'http://127.0.0.1:54321'
-const supabasePublishableKey =
-  process.env.E2E_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? ''
-const testEmail = process.env.E2E_AUTH_EMAIL ?? 'e2e-user@example.com'
-const testPassword = process.env.E2E_AUTH_PASSWORD ?? 'e2e-password-123456'
+export const authStatePath = path.join('e2e', '.auth', 'user.json')
 
-export function hasLocalAuthCredentials(): boolean {
-  return Boolean(supabasePublishableKey && process.env.E2E_AUTH_ENABLED === '1')
+export function hasAuth0E2eCredentials(): boolean {
+  return Boolean(process.env.E2E_AUTH0_EMAIL && process.env.E2E_AUTH0_PASSWORD)
 }
 
-async function createLocalTestSession(): Promise<Session> {
-  const client = createClient(supabaseUrl, supabasePublishableKey, {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  })
+export async function completeAuth0DatabaseLogin(
+  page: Page,
+  email: string,
+  password: string,
+): Promise<void> {
+  await page.waitForURL(/auth0\.com/, { timeout: 30_000 })
 
-  const signIn = await client.auth.signInWithPassword({
-    email: testEmail,
-    password: testPassword,
-  })
+  const identifier = page
+    .locator('input[name="username"], input[name="email"], input[type="email"]')
+    .first()
+  await identifier.waitFor({ state: 'visible', timeout: 30_000 })
+  await identifier.fill(email)
 
-  if (signIn.data.session) {
-    return signIn.data.session
+  const passwordInput = page.locator('input[name="password"], input[type="password"]')
+  const passwordVisible = await passwordInput
+    .first()
+    .isVisible()
+    .catch(() => false)
+
+  if (!passwordVisible) {
+    await page.getByRole('button', { name: /continue|続ける|next/i }).click()
+    await passwordInput.first().waitFor({ state: 'visible', timeout: 30_000 })
   }
 
-  const signUp = await client.auth.signUp({
-    email: testEmail,
-    password: testPassword,
-  })
-
-  if (signUp.data.session) {
-    return signUp.data.session
-  }
-
-  const retry = await client.auth.signInWithPassword({
-    email: testEmail,
-    password: testPassword,
-  })
-
-  if (!retry.data.session) {
-    throw new Error(retry.error?.message ?? signUp.error?.message ?? 'local_auth_session_failed')
-  }
-
-  return retry.data.session
+  await passwordInput.first().fill(password)
+  await page.getByRole('button', { name: /continue|続ける|log in|ログイン|submit/i }).click()
 }
-
-async function injectSession(page: Page, session: Session): Promise<void> {
-  const projectRef = new URL(supabaseUrl).hostname.split('.')[0] ?? '127'
-  const storageKey = `sb-${projectRef}-auth-token`
-
-  await page.addInitScript(
-    ({ key, value }) => {
-      window.localStorage.setItem(key, value)
-    },
-    {
-      key: storageKey,
-      value: JSON.stringify(session),
-    },
-  )
-}
-
-export const test = base.extend<{ authenticatedPage: Page }>({
-  authenticatedPage: async ({ page }, use) => {
-    const session = await createLocalTestSession()
-    await injectSession(page, session)
-    await use(page)
-  },
-})
-
-export { expect }

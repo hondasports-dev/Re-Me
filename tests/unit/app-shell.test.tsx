@@ -1,74 +1,28 @@
-import { MantineProvider } from '@mantine/core'
-import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { AuthSessionProvider } from '../../src/features/auth/AuthSessionProvider'
-import { AuthSessionManager } from '../../src/features/auth/auth-session'
+import { AppProviders } from '../../src/app/providers'
+import { createTestAuthRuntime } from '../../src/features/auth/auth-runtime'
 import { createTestRouter } from '../../src/router'
-import type { Database } from '../../src/shared/types/database.generated'
-import { reMeCssVariablesResolver, reMeTheme } from '../../src/styles/theme'
 
-function session(accessToken = 'access-token'): Session {
-  return {
-    access_token: accessToken,
-    expires_in: 3600,
-    refresh_token: 'refresh-token',
-    token_type: 'bearer',
-    user: {
-      app_metadata: {},
-      aud: 'authenticated',
-      created_at: '2026-08-20T00:00:00.000Z',
-      id: 'user-id',
-      user_metadata: {},
-    },
-  }
-}
-
-function manager(
-  options: {
-    hangRestore?: boolean
-    initialSession?: Session | null
-  } = {},
-): AuthSessionManager {
-  const auth = {
-    getSession: options.hangRestore
-      ? vi.fn(() => new Promise(() => {}))
-      : vi
-          .fn()
-          .mockResolvedValue({ data: { session: options.initialSession ?? null }, error: null }),
-    onAuthStateChange: vi.fn(() => ({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    })),
-    signOut: vi.fn().mockResolvedValue({ error: null }),
-  }
-
-  return new AuthSessionManager(() => ({ auth }) as unknown as SupabaseClient<Database>)
-}
-
-function renderApp(auth: AuthSessionManager, initialEntries: string[] = ['/']) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  })
+function renderApp(
+  status: 'unauthenticated' | 'loading' | 'authenticated',
+  initialEntries: string[] = ['/'],
+) {
   const router = createTestRouter(initialEntries)
 
   return render(
-    <MantineProvider cssVariablesResolver={reMeCssVariablesResolver} theme={reMeTheme}>
-      <QueryClientProvider client={queryClient}>
-        <AuthSessionProvider manager={auth}>
-          <RouterProvider router={router} />
-        </AuthSessionProvider>
-      </QueryClientProvider>
-    </MantineProvider>,
+    <AppProviders runtime={createTestAuthRuntime({ status })}>
+      <RouterProvider router={router} />
+    </AppProviders>,
   )
 }
 
 describe('AppShell', () => {
   it('redirects an anonymous visitor to the mobile-first login shell', async () => {
-    const screen = renderApp(manager({ initialSession: null }), ['/'])
+    const screen = renderApp('unauthenticated', ['/'])
 
     await waitFor(() => {
       expect(screen.getByLabelText('Re:Me 未来のあなたへ')).toHaveTextContent('Re:Me')
@@ -81,7 +35,7 @@ describe('AppShell', () => {
   })
 
   it('shows auth loading instead of content loading while restoring a session', () => {
-    const screen = renderApp(manager({ hangRestore: true }), ['/'])
+    const screen = renderApp('loading', ['/'])
 
     expect(screen.getByRole('status')).toHaveAttribute('data-status', 'auth-loading')
     expect(screen.getByRole('heading', { name: '認証を確認しています' })).toBeInTheDocument()
@@ -93,7 +47,7 @@ describe('AppShell', () => {
 
   it('renders the authenticated mobile shell with a keyboard-reachable bottom nav', async () => {
     const user = userEvent.setup()
-    const screen = renderApp(manager({ initialSession: session() }), ['/'])
+    const screen = renderApp('authenticated', ['/'])
 
     await waitFor(() => {
       expect(screen.getByRole('navigation', { name: 'メインナビゲーション' })).toBeInTheDocument()

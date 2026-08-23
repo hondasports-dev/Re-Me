@@ -1,44 +1,62 @@
 import { Button } from '@mantine/core'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { useAuthSession } from '../AuthSessionProvider'
+import { useAuthRuntime } from '../AuthRuntimeProvider'
+import { AUTH0_DATABASE_CONNECTION, shouldStartE2eDatabaseLogin } from '../e2e-database-login'
 
 export function LoginPage() {
-  const { initializeError, manager } = useAuthSession()
+  const { loginWithRedirect, readiness } = useAuthRuntime()
   const [searchParams] = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const e2eStarted = useRef(false)
+  const submittingRef = useRef(false)
 
   const routeError = useMemo(() => {
-    const reason = searchParams.get('reason')
-
-    if (reason === 'session_restore_failed' || initializeError === 'session_restore_failed') {
+    if (searchParams.get('reason') === 'session_restore_failed' || readiness.status === 'error') {
       return '認証の設定またはセッションを確認できませんでした。設定を確認して、もう一度お試しください。'
     }
 
     return null
-  }, [initializeError, searchParams])
+  }, [readiness.status, searchParams])
 
   const errorMessage = localError ?? routeError
 
-  async function continueWithGoogle(): Promise<void> {
-    if (isSubmitting) {
+  async function startLogin(connection = 'google-oauth2'): Promise<void> {
+    if (submittingRef.current) {
       return
     }
 
+    submittingRef.current = true
     setIsSubmitting(true)
     setLocalError(null)
 
     try {
-      await manager.signInWithGoogle()
+      await loginWithRedirect({ connection })
     } catch {
-      setLocalError(
-        'Google ログインを開始できませんでした。少し待ってから、もう一度お試しください。',
-      )
+      submittingRef.current = false
       setIsSubmitting(false)
+      setLocalError(
+        connection === 'google-oauth2'
+          ? 'Google ログインを開始できませんでした。少し待ってから、もう一度お試しください。'
+          : 'ログインを開始できませんでした。少し待ってから、もう一度お試しください。',
+      )
     }
   }
+
+  useEffect(() => {
+    if (e2eStarted.current) {
+      return
+    }
+
+    if (!shouldStartE2eDatabaseLogin(import.meta.env.VITE_ALLOW_E2E_DB_LOGIN, searchParams)) {
+      return
+    }
+
+    e2eStarted.current = true
+    void startLogin(AUTH0_DATABASE_CONNECTION)
+  }, [loginWithRedirect, searchParams])
 
   return (
     <section className="auth-panel" aria-labelledby="login-title">
@@ -59,7 +77,7 @@ export function LoginPage() {
         disabled={isSubmitting}
         loading={isSubmitting}
         onClick={() => {
-          void continueWithGoogle()
+          void startLogin()
         }}
         variant="light"
       >

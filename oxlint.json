@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["convex/_generated/**"],
   "rules": {
     "correctness/no-unused-vars": "error",
     "typescript/no-explicit-any": "error"

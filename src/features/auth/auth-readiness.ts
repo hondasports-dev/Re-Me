@@ -1,35 +1,37 @@
-import type { AuthStatus } from './auth-session'
+export type AuthReadiness =
+  | { status: 'loading' }
+  | { status: 'unauthenticated' }
+  | { status: 'authenticated' }
+  | { reason: 'session_restore_failed'; status: 'error' }
 
-export type AuthReadinessKind =
-  | 'auth-error'
-  | 'auth-loading'
-  | 'backend-loading'
-  | 'ready'
-  | 'unauthenticated'
-
-export interface AuthReadiness {
-  kind: AuthReadinessKind
+export interface AuthReadinessInput {
+  auth0Error?: Error
+  auth0IsAuthenticated: boolean
+  auth0IsLoading: boolean
+  convexIsAuthenticated: boolean
+  convexIsLoading: boolean
 }
 
-export function resolveAuthReadiness(input: {
-  authStatus: AuthStatus
-  backendReady: boolean | null
-}): AuthReadiness {
-  if (input.authStatus === 'idle' || input.authStatus === 'initializing') {
-    return { kind: 'auth-loading' }
+export function resolveAuthReadiness(input: AuthReadinessInput): AuthReadiness {
+  if (input.auth0Error) {
+    return { reason: 'session_restore_failed', status: 'error' }
   }
 
-  if (input.authStatus === 'error') {
-    return { kind: 'auth-error' }
+  if (input.auth0IsLoading) {
+    return { status: 'loading' }
   }
 
-  if (input.authStatus !== 'authenticated') {
-    return { kind: 'unauthenticated' }
+  if (!input.auth0IsAuthenticated) {
+    return { status: 'unauthenticated' }
   }
 
-  if (input.backendReady === false) {
-    return { kind: 'backend-loading' }
+  if (input.convexIsLoading) {
+    return { status: 'loading' }
   }
 
-  return { kind: 'ready' }
+  if (!input.convexIsAuthenticated) {
+    return { reason: 'session_restore_failed', status: 'error' }
+  }
+
+  return { status: 'authenticated' }
 }
