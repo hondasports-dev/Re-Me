@@ -1,8 +1,10 @@
 {
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 100,
   "singleQuote": true,
   "semi": false,
   "trailingComma": "all",
+  "endOfLine": "lf",
   "ignorePatterns": [
     ".github/pull_request_template.md",
     ".loop/**",
@@ -11,6 +13,7 @@
     "docs/**",
     "skills/**",
     "convex/_generated/**",
+    "pnpm-lock.yaml",
     "supabase/**",
     "worker-configuration.d.ts"
   ]

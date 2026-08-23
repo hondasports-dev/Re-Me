@@ -95,7 +95,7 @@ TanStack Query は認可境界ではなく client-side server-state orchestratio
 ## Oxc / TypeScript
 
 - Oxlint: lint
-- Oxfmt: format
+- Oxfmt: format（`endOfLine: "lf"`。Windows でも CRLF に正規化しない）
 - TypeScript: `tsc --noEmit` で typecheck
 
 ESLint / Prettier を同じ責務で重複導入しない。
