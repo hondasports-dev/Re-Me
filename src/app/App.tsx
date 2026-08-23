@@ -25,7 +25,7 @@ export function App() {
     try {
       await logout()
     } catch {
-      setLogoutError('ログアウト処理を完了できませんでした。認証が必要な内容は閉じました。')
+      setLogoutError('ログアウト処理を完了できませんでした。もう一度お試しください。')
     } finally {
       setIsLoggingOut(false)
     }
