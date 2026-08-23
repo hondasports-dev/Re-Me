@@ -13,6 +13,7 @@ export function App() {
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const showAppChrome = readiness.status === 'authenticated'
+  const isCompose = location.pathname.startsWith('/write')
 
   async function handleLogout(): Promise<void> {
     if (isLoggingOut) {
@@ -35,6 +36,7 @@ export function App() {
     <AppShell
       className="re-me-shell"
       data-chrome={showAppChrome ? 'app' : 'guest'}
+      data-compose={isCompose ? 'true' : 'false'}
       footer={showAppChrome ? { height: 'var(--re-me-nav-height)' } : undefined}
       header={showAppChrome ? { height: 'var(--re-me-header-height)' } : undefined}
       transitionDuration={reduceMotion ? 0 : 220}

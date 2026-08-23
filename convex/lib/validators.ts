@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 
 export const MAX_LETTER_BODY_LENGTH = 20_000
+export const MAX_LOCATION_LABEL_LENGTH = 80
 export const LETTER_LIST_LIMIT = 50
 export const DUE_DELIVERY_LIMIT = 100
 
@@ -79,4 +80,13 @@ export const readableAttachmentValidator = v.object({
 export const createdDraftValidator = v.object({
   letterId: v.id('letters'),
   threadId: v.id('threads'),
+})
+
+export const draftEditorValidator = v.object({
+  letterId: v.id('letters'),
+  threadId: v.id('threads'),
+  sealed: v.boolean(),
+  deliveryMode: v.union(deliveryModeValidator, v.null()),
+  body: v.string(),
+  locationLabel: v.union(v.string(), v.null()),
 })

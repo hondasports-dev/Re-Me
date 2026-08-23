@@ -44,6 +44,25 @@ describe('Convex authorization harness', () => {
     await expect(
       t.query(api.attachments.listReadableAttachments, { letterId: created.letterId }),
     ).rejects.toThrow(/authentication required/)
+    await expect(t.query(api.letters.getDraft, { letterId: created.letterId })).rejects.toThrow(
+      /authentication required/,
+    )
+    await expect(
+      t.mutation(api.letters.saveDraftSettings, {
+        letterId: created.letterId,
+        sealed: false,
+        deliveryMode: 'few_days',
+      }),
+    ).rejects.toThrow(/authentication required/)
+    await expect(
+      t.mutation(api.attachments.setDraftLocation, {
+        letterId: created.letterId,
+        locationLabel: '京都',
+      }),
+    ).rejects.toThrow(/authentication required/)
+    await expect(
+      t.mutation(api.attachments.removeDraftLocation, { letterId: created.letterId }),
+    ).rejects.toThrow(/authentication required/)
   })
 
   it('provisions the users document and returns it from an authenticated query', async () => {
@@ -103,6 +122,22 @@ describe('Convex authorization harness', () => {
       asBob.mutation(api.letters.saveDraft, {
         letterId: created.letterId,
         body: 'hijack',
+      }),
+    ).rejects.toThrow(/draft letter not found/)
+    await expect(
+      asBob.query(api.letters.getDraft, { letterId: created.letterId }),
+    ).resolves.toBeNull()
+    await expect(
+      asBob.mutation(api.letters.saveDraftSettings, {
+        letterId: created.letterId,
+        sealed: false,
+        deliveryMode: 'few_weeks',
+      }),
+    ).rejects.toThrow(/draft letter not found/)
+    await expect(
+      asBob.mutation(api.attachments.setDraftLocation, {
+        letterId: created.letterId,
+        locationLabel: 'hijack',
       }),
     ).rejects.toThrow(/draft letter not found/)
 
@@ -309,6 +344,65 @@ describe('Convex authorization harness', () => {
 
     expect(drafts.length).toBe(2)
     expect(drafts.every((letter) => letter.status === 'draft')).toBe(true)
+  })
+
+  it('saves draft delivery settings and a location label for the owner only', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const created = await asAlice.mutation(api.letters.createDraft, {})
+
+    await asAlice.mutation(api.letters.saveDraft, {
+      letterId: created.letterId,
+      body: '今の自分へ',
+    })
+    await asAlice.mutation(api.letters.saveDraftSettings, {
+      letterId: created.letterId,
+      sealed: false,
+      deliveryMode: 'few_months',
+    })
+    await asAlice.mutation(api.attachments.setDraftLocation, {
+      letterId: created.letterId,
+      locationLabel: '  鴨川  ',
+    })
+
+    await expect(
+      asAlice.query(api.letters.getDraft, { letterId: created.letterId }),
+    ).resolves.toMatchObject({
+      letterId: created.letterId,
+      body: '今の自分へ',
+      sealed: false,
+      deliveryMode: 'few_months',
+      locationLabel: '鴨川',
+    })
+
+    await asAlice.mutation(api.attachments.removeDraftLocation, {
+      letterId: created.letterId,
+    })
+    const afterRemove = await asAlice.query(api.letters.getDraft, {
+      letterId: created.letterId,
+    })
+    expect(afterRemove?.locationLabel).toBeNull()
+
+    const traveling = await seedSentLetter(
+      t,
+      (await asAlice.mutation(api.users.ensureCurrentUser, {})).userId,
+      {
+        status: 'traveling',
+        sealed: true,
+        opened: false,
+        body: 'sent',
+      },
+    )
+    await expect(
+      asAlice.query(api.letters.getDraft, { letterId: traveling.letterId }),
+    ).resolves.toBeNull()
+    await expect(
+      asAlice.mutation(api.letters.saveDraftSettings, {
+        letterId: traveling.letterId,
+        sealed: false,
+        deliveryMode: 'few_days',
+      }),
+    ).rejects.toThrow(/letter is not a draft/)
   })
 })
 

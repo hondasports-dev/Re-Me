@@ -3,7 +3,9 @@ import { createBrowserRouter, createMemoryRouter, type RouteObject } from 'react
 import { App } from '../app/App'
 import { AuthCallbackPage } from '../features/auth/pages/AuthCallbackPage'
 import { LoginPage } from '../features/auth/pages/LoginPage'
+import { ComposeEditorPage } from '../features/compose/pages/ComposeEditorPage'
 import { ComposePage } from '../features/compose/pages/ComposePage'
+import { ComposeSendPage } from '../features/compose/pages/ComposeSendPage'
 import { InboxPage } from '../features/inbox/pages/InboxPage'
 import { TravelingPage } from '../features/traveling/pages/TravelingPage'
 import { GuestOnly, RequireAuth } from './RequireAuth'
@@ -26,6 +28,14 @@ export function createAppRoutes(): RouteObject[] {
             {
               path: 'write',
               element: <ComposePage />,
+            },
+            {
+              path: 'write/:letterId',
+              element: <ComposeEditorPage />,
+            },
+            {
+              path: 'write/:letterId/send',
+              element: <ComposeSendPage />,
             },
             {
               path: 'traveling',
