@@ -97,6 +97,8 @@ MantineProvider
 
 ## Environment boundary
 
+Local / developer と共有 Preview の具体的な構築・rollback 手順は [`preview-environment.md`](./preview-environment.md) を正とする。Production は別 Issue で扱い、このセットアップ作業では作成・更新しない。
+
 ### Browser-visible
 
 ```text
