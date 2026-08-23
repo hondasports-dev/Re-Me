@@ -42,6 +42,7 @@ Closes #
 - [ ] `pnpm format:check`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
+- [ ] `pnpm test:convex`（schema / authorization 変更時）
 - [ ] `pnpm build`
 - [ ] Targeted E2E（必要な場合）
 - [ ] DB / RLS test（必要な場合）

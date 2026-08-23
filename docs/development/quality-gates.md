@@ -14,6 +14,8 @@ Critical flow を変更する場合は `pnpm test:e2e` を実行する。
 
 ## Convex gates
 
+CI の Quality gates は `pnpm test:convex` を必須 step にする。`convex-test` の in-memory harness で authorization / schema を検証し、live Convex deployment は使わない。
+
 Convex schema / function を変更する場合:
 
 - `convex dev --once` 相当で target deployment へ push / validation
@@ -21,7 +23,7 @@ Convex schema / function を変更する場合:
 - args / return validators
 - index-backed bounded reads
 - public / internal surface review
-- changed authorization / state transition tests
+- changed authorization / state transition tests（`pnpm test:convex`）
 
 ## Required authorization tests
 
