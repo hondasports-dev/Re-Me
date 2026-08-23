@@ -2,20 +2,14 @@ import { Button } from '@mantine/core'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 
-import { useAuthSession } from '../AuthSessionProvider'
+import { useAuthRuntime } from '../AuthRuntimeProvider'
 
 export function AuthCallbackPage() {
-  const { manager, session, status } = useAuthSession()
+  const { readiness } = useAuthRuntime()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [uiStatus, setUiStatus] = useState<'error' | 'processing'>('processing')
   const started = useRef(false)
-
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      void navigate('/', { replace: true })
-    }
-  }, [navigate, session, status])
 
   useEffect(() => {
     if (started.current) {
@@ -23,31 +17,35 @@ export function AuthCallbackPage() {
     }
 
     started.current = true
-    const code = searchParams.get('code') ?? ''
     const providerError = searchParams.has('error') || searchParams.has('error_description')
 
-    // Scrub one-time codes and provider error details from both the address bar and router state.
-    void navigate('/auth/callback', { replace: true })
+    if (providerError) {
+      // Scrub provider error details from the address bar without echoing them into the UI.
+      void navigate('/auth/callback', { replace: true })
+      setUiStatus('error')
+    }
+  }, [navigate, searchParams])
 
-    if (providerError || !code) {
+  useEffect(() => {
+    if (uiStatus === 'error') {
+      return
+    }
+
+    if (readiness.status === 'authenticated') {
+      void navigate('/', { replace: true })
+      return
+    }
+
+    if (readiness.status === 'error') {
+      void navigate('/auth/callback', { replace: true })
       setUiStatus('error')
       return
     }
 
-    void manager
-      .completeOAuthCallback(code)
-      .then(() => {
-        void navigate('/', { replace: true })
-      })
-      .catch(() => {
-        if (manager.session) {
-          void navigate('/', { replace: true })
-          return
-        }
-
-        setUiStatus('error')
-      })
-  }, [manager, navigate, searchParams])
+    if (readiness.status === 'unauthenticated' && !searchParams.has('code')) {
+      setUiStatus('error')
+    }
+  }, [navigate, readiness.status, searchParams, uiStatus])
 
   return (
     <section className="auth-panel" aria-labelledby="callback-title" aria-live="polite">

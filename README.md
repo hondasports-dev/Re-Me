@@ -97,7 +97,7 @@ target backend の正本は `convex/schema.ts` と function validators に移行
 - **Production**: Auth0 PROD tenant/application + Convex production deployment + Cloudflare production Worker
 - **Google OAuth**: DEV client と production client を分離する
 
-通常の自動 E2E は Google OAuth のログイン画面へ依存せず、Auth0 test identity / session または backend test harness を使う。Google OAuth の実連携は Auth0 callback から Convex authenticated query までを少数の smoke test で確認する。
+通常の自動 E2E は Google OAuth のログイン画面へ依存せず、Auth0 の database test identity で session を作る。Google OAuth の実連携は Auth0 callback から Convex authenticated query までを少数の smoke test で確認する。
 
 ## ドキュメント
 
@@ -131,4 +131,4 @@ target backend の正本は `convex/schema.ts` と function validators に移行
 
 ## ステータス
 
-プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine へ移行済みで、backend / auth runtime は Supabase から新構成への移行前です。
+プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine、Auth0 + Convex の provider 骨格、DEV tenant / developer deployment の接続、E2E 用 Auth0 test identity まで入っています。domain schema、production 用 Google Cloud OAuth client、legacy Supabase runtime の撤去は後続です。

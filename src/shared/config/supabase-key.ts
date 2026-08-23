@@ -14,14 +14,6 @@ export function assertBrowserSafeSupabaseKey(key: string | undefined): void {
   }
 }
 
-export function assertBrowserSafeViteEnv(env: Record<string, string | undefined>): void {
-  for (const [name, value] of Object.entries(env)) {
-    if (name.startsWith('VITE_')) {
-      assertBrowserSafeSupabaseKey(value)
-    }
-  }
-}
-
 function hasServiceRoleClaim(key: string): boolean {
   const payload = key.split('.')[1]
 

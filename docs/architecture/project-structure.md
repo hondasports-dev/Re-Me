@@ -135,4 +135,4 @@ edge 固有 route を将来追加する場合は、Convex と責務が重複し�
 - Cloudflare asset / Worker behavior: `tests/worker/`
 - critical user journeys: `e2e/`
 
-Google OAuth UI を通常 E2E に含めず、Auth0 test identity / session と少数の Google OAuth connection smoke を分離する。
+Google OAuth UI を通常 E2E に含めず、Auth0 database test identity の `storageState` と少数の Google OAuth connection smoke を分離する。

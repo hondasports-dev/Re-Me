@@ -1,6 +1,6 @@
 # 開発セットアップ
 
-この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。現行 repository の dependency / scripts は移行前であり、実装 Issue で段階的に置き換える。
+この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。#26 で runtime パッケージ、provider 骨格、Convex developer deployment、Auth0 DEV SPA、Google connection、E2E database test identity まで入れた。domain schema、production 用 Google Cloud OAuth client、legacy Supabase 撤去は後続 Issue で接続する。
 
 ## Prerequisites
 
@@ -9,7 +9,7 @@
 - Auth0 account（DEV tenant/application）
 - Convex account / project
 - Cloudflare account
-- Google Cloud project（DEV OAuth client）
+- Google Cloud project（production 前の専用 OAuth client。local DEV は Auth0 の Google connection で開始できる）
 
 Docker / local PostgreSQL は target architecture の必須条件ではない。
 
@@ -69,6 +69,7 @@ package version は導入時の stable を公式 docs と compatibility で確�
     "test": "pnpm test:unit && pnpm test:convex && pnpm test:worker",
     "test:e2e": "playwright test",
     "convex:dev": "convex dev",
+    "convex:codegen": "convex codegen",
     "convex:check": "convex dev --once",
     "cf:typegen": "wrangler types"
   }
@@ -118,14 +119,15 @@ Workers Static Assets を SPA mode で配信する。application backend secret 
 ## Auth0 DEV setup
 
 1. DEV tenant に Single Page Application を作成
-2. Google Cloud に DEV 用 OAuth 2.0 Web client と consent screen を作成
-3. Google の Authorized redirect URI に `https://<auth0-dev-domain>/login/callback` を登録
-4. Auth0 に Google OAuth DEV connection を作成し、DEV SPA application のみ enable
-5. Auth0 の Allowed Callback URLs に `http://localhost:5173/auth/callback` と必要な preview callback を登録
-6. Allowed Logout URLs / Allowed Web Origins に localhost と preview origin を登録
-7. Universal Login から Google OAuth login を確認
-8. Auth0 issuer / client id を Convex developer deployment と Vite env に設定
-9. `ConvexProviderWithAuth0` 経由の authenticated query を確認
+2. Auth0 の Google OAuth connection を DEV SPA に enable する。local の「Googleで続ける」はこれを使う
+3. Auth0 の Allowed Callback URLs に `http://127.0.0.1:5173/auth/callback`、`http://127.0.0.1:4173/auth/callback` と必要な preview callback を登録
+4. Allowed Logout URLs / Allowed Web Origins に `127.0.0.1` の Vite / Playwright origin と preview origin を登録
+5. Auth0 issuer / client id を Convex developer deployment と Vite env に設定する。browser へは `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` / `VITE_CONVEX_URL` だけを出す
+6. Universal Login から Google OAuth login を確認する
+7. DEV の Username-Password connection を SPA に enable し、public signup は disable する
+8. E2E 用 database user を Management API で作成し、`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は `.env.local` にだけ置く
+
+production 前に Google Cloud の専用 OAuth 2.0 Web client を作り、Authorized redirect URI に `https://<auth0-domain>/login/callback` を登録して Auth0 Google connection へ差し替える。Auth0 の共有 developer key に本番を載せない。
 
 Production tenant / Google OAuth client / callback は共有しない。Custom domain はこの手順の必須条件ではない。
 
@@ -143,9 +145,11 @@ Production data を DEV へコピーする場合は個人情報 inventory と承
 
 ## Auth testing
 
-通常 E2E は Google OAuth UI を毎回通さない。Auth0 test identity / session fixture または isolated backend harness で認証済み状態を作り、Re:Me の authorization と user flow を検証する。
+通常 E2E は Google OAuth UI を毎回通さない。Playwright は Auth0 の database test identity で Universal Login を完了し、`storageState` を `e2e/.auth/` に保存して保護ルートを検証する。
 
-Google OAuth smoke は少数だけ実行する。
+この経路は Playwright preview build だけが `VITE_ALLOW_E2E_DB_LOGIN=1` を持ち、`/login?e2e_db=1` で Username-Password connection を開始する。通常の `pnpm dev` と production build では Google ボタン以外の login 入口を出さない。
+
+Google OAuth smoke は少数だけ実行する。`E2E_GOOGLE_SMOKE=1` のときだけ走る。
 
 ```text
 Google OAuth login

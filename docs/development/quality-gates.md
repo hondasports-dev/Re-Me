@@ -36,7 +36,7 @@ Convex schema / function を変更する場合:
 
 ## Required critical E2E
 
-通常 E2E は Google OAuth UI を経由せず Auth0 test identity / session または backend test harness を使う。
+通常 E2E は Google OAuth UI を経由せず、Auth0 database test identity で session を作り `e2e/.auth/` に保存して使う。
 
 1. authenticated session → draft → send
 2. sealed letter delivered → open → content visible

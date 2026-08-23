@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { readBrowserSupabaseConfig } from '../../src/shared/api/supabase'
-import {
-  assertBrowserSafeSupabaseKey,
-  assertBrowserSafeViteEnv,
-} from '../../src/shared/config/supabase-key'
+import { assertBrowserSafeViteEnv } from '../../src/shared/config/browser-env'
+import { assertBrowserSafeSupabaseKey } from '../../src/shared/config/supabase-key'
 
 describe('readBrowserSupabaseConfig', () => {
   it('accepts HTTPS and local HTTP configuration', () => {

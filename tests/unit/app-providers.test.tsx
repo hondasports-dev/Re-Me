@@ -3,21 +3,19 @@ import { RouterProvider } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import { AppProviders } from '../../src/app/providers'
-import { createTestAuthRuntime } from '../../src/features/auth/auth-runtime'
 import { createTestRouter } from '../../src/router'
 
-describe('AppShell', () => {
-  it('redirects an anonymous visitor to the mobile-first login shell', async () => {
+describe('AppProviders', () => {
+  it('boots the router without Auth0 when browser auth env is absent', async () => {
     const router = createTestRouter(['/'])
     const screen = render(
-      <AppProviders runtime={createTestAuthRuntime({ status: 'unauthenticated' })}>
+      <AppProviders>
         <RouterProvider router={router} />
       </AppProviders>,
     )
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Re:Me 未来のあなたへ')).toHaveTextContent('Re:Me')
-      expect(screen.getByRole('heading', { name: '未来のあなたへ' })).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe('/login')
       expect(screen.getByRole('button', { name: 'Googleで続ける' })).toBeInTheDocument()
     })
   })

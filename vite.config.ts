@@ -2,7 +2,7 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type UserConfig } from 'vite'
 
-import { assertBrowserSafeViteEnv } from './src/shared/config/supabase-key.ts'
+import { assertBrowserSafeViteEnv } from './src/shared/config/browser-env.ts'
 
 type BrowserBuildEnv = Record<string, string | undefined>
 

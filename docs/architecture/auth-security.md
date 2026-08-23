@@ -147,7 +147,7 @@ Re:Me は数年後の利用を正常系とするため、Auth0 account recovery�
 
 ## Testing strategy
 
-通常の automated E2E は Google OAuth UI を通さず、Auth0 test identity / cached session または backend test harness で authenticated state を作る。少数の smoke test だけが以下を確認する。
+通常の automated E2E は Google OAuth UI を通さず、Auth0 の database test identity で Universal Login を完了し、`e2e/.auth/` の `storageState` から authenticated state を復元する。少数の smoke test だけが以下を確認する。
 
 ```text
 Google OAuth login

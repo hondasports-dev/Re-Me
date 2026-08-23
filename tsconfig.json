@@ -17,6 +17,7 @@
     "types": ["vite/client", "node"]
   },
   "include": [
+    "convex/**/*.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "worker-configuration.d.ts",

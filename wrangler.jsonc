@@ -4,6 +4,8 @@
   "compatibility_date": "2026-08-18",
   "main": "./worker/index.ts",
   "assets": {
+    // React Router client routes fall back to index.html. Hashed /assets/* cache
+    // headers live in public/_headers. Do not add application APIs here.
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],
   },

@@ -1,20 +1,20 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 
-import { useAuthSession } from '../features/auth/AuthSessionProvider'
+import { useAuthRuntime } from '../features/auth/AuthRuntimeProvider'
 
 export function RequireAuth() {
-  const { session, status } = useAuthSession()
+  const { readiness } = useAuthRuntime()
   const location = useLocation()
 
-  if (status === 'idle' || status === 'initializing') {
+  if (readiness.status === 'loading') {
     return null
   }
 
-  if (status === 'error') {
+  if (readiness.status === 'error') {
     return <Navigate replace to="/login?reason=session_restore_failed" />
   }
 
-  if (!session) {
+  if (readiness.status === 'unauthenticated') {
     return <Navigate replace to="/login" state={{ from: location }} />
   }
 
@@ -22,13 +22,13 @@ export function RequireAuth() {
 }
 
 export function GuestOnly() {
-  const { session, status } = useAuthSession()
+  const { readiness } = useAuthRuntime()
 
-  if (status === 'idle' || status === 'initializing') {
+  if (readiness.status === 'loading') {
     return null
   }
 
-  if (session) {
+  if (readiness.status === 'authenticated') {
     return <Navigate replace to="/" />
   }
 
