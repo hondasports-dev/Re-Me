@@ -74,6 +74,7 @@ function LiveAuthProviders({
       clientId={config.auth0ClientId}
       domain={config.auth0Domain}
       useRefreshTokens
+      useRefreshTokensFallback
     >
       <ConvexProviderWithAuth0 client={convexClient}>
         <LiveAuthRuntimeProvider>{children}</LiveAuthRuntimeProvider>

@@ -46,6 +46,19 @@ describe('Convex authorization harness', () => {
     ).rejects.toThrow(/authentication required/)
   })
 
+  it('provisions the users document and returns it from an authenticated query', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+
+    await expect(asAlice.query(api.users.me, {})).resolves.toBeNull()
+
+    const user = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    const me = await asAlice.query(api.users.me, {})
+
+    expect(me).toEqual(user)
+    expect(user.name).toBe('Alice')
+  })
+
   it('creates a draft atomically for the authenticated user', async () => {
     const t = testConvex()
     const asAlice = t.withIdentity(alice)

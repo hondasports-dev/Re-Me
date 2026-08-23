@@ -5,6 +5,7 @@ import { useMemo, type ReactNode } from 'react'
 import { resolveAuthReadiness } from './auth-readiness'
 import type { AuthLoginOptions } from './auth-runtime'
 import { AuthRuntimeProvider } from './AuthRuntimeProvider'
+import { CurrentUserSession } from './CurrentUserSession'
 
 export function LiveAuthRuntimeProvider({ children }: { children: ReactNode }) {
   const auth0 = useAuth0()
@@ -37,5 +38,10 @@ export function LiveAuthRuntimeProvider({ children }: { children: ReactNode }) {
     [auth0, convexAuth],
   )
 
-  return <AuthRuntimeProvider value={runtime}>{children}</AuthRuntimeProvider>
+  return (
+    <AuthRuntimeProvider value={runtime}>
+      <CurrentUserSession />
+      {children}
+    </AuthRuntimeProvider>
+  )
 }

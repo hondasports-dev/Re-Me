@@ -15,9 +15,10 @@ test.describe('Google OAuth smoke', () => {
     await page.getByRole('button', { name: 'Googleで続ける' }).click()
     const popup = await popupPromise
 
-    // Local smoke may navigate the same tab or open a provider popup depending on browser settings.
+    // Completing Google's hosted UI is a manual / opt-in smoke, not default CI.
+    // This test only proves the Auth0 Google connection redirect starts.
     const target = popup ?? page
-    await expect(target).toHaveURL(/accounts\.google\.com|auth0\.com|\/authorize/, {
+    await expect(target).toHaveURL(/accounts\.google\.com|[?&]connection=google-oauth2/, {
       timeout: 20_000,
     })
   })

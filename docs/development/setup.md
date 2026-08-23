@@ -151,7 +151,7 @@ Production data を DEV へコピーする場合は個人情報 inventory と承
 
 ## Auth testing
 
-通常 E2E は Google OAuth UI を毎回通さない。Playwright は Auth0 の database test identity で Universal Login を完了し、`storageState` を `e2e/.auth/` に保存して保護ルートを検証する。
+通常 E2E は Google OAuth UI を毎回通さない。Playwright は Auth0 の database test identity で Universal Login を完了し、`storageState` を `e2e/.auth/` に保存して保護ルートと authenticated Convex query（`users.me` / `ensureCurrentUser`）を検証する。
 
 この経路は Playwright preview build だけが `VITE_ALLOW_E2E_DB_LOGIN=1` を持ち、`/login?e2e_db=1` で Username-Password connection を開始する。通常の `pnpm dev` と production build では Google ボタン以外の login 入口を出さない。
 
