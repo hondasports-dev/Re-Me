@@ -1,13 +1,21 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 
 import { useAuthRuntime } from '../features/auth/AuthRuntimeProvider'
+import { StatusScreen } from '../shared/components/StatusScreen'
 
 export function RequireAuth() {
   const { readiness } = useAuthRuntime()
   const location = useLocation()
 
   if (readiness.status === 'loading') {
-    return null
+    return (
+      <StatusScreen
+        description="未来へ続く場所を、静かに準備しています。"
+        title="認証を確認しています"
+        tone="auth"
+        variant="loading"
+      />
+    )
   }
 
   if (readiness.status === 'error') {
@@ -25,7 +33,14 @@ export function GuestOnly() {
   const { readiness } = useAuthRuntime()
 
   if (readiness.status === 'loading') {
-    return null
+    return (
+      <StatusScreen
+        description="未来へ続く場所を、静かに準備しています。"
+        title="認証を確認しています"
+        tone="auth"
+        variant="loading"
+      />
+    )
   }
 
   if (readiness.status === 'authenticated') {

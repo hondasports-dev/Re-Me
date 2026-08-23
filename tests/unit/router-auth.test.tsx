@@ -52,8 +52,9 @@ describe('auth router guards', () => {
 
     await waitFor(() => {
       expect(view.router.state.location.pathname).toBe('/')
-      expect(view.getByRole('heading', { name: '未来のあなたへ' })).toBeInTheDocument()
+      expect(view.getByRole('heading', { name: '届いた手紙' })).toBeInTheDocument()
       expect(view.getByRole('button', { name: 'ログアウト' })).toBeInTheDocument()
+      expect(view.getByRole('navigation', { name: 'メインナビゲーション' })).toBeInTheDocument()
     })
   })
 
@@ -62,7 +63,7 @@ describe('auth router guards', () => {
 
     await waitFor(() => {
       expect(view.router.state.location.pathname).toBe('/')
-      expect(view.getByRole('heading', { name: '未来のあなたへ' })).toBeInTheDocument()
+      expect(view.getByRole('heading', { name: '届いた手紙' })).toBeInTheDocument()
     })
   })
 
@@ -103,9 +104,14 @@ describe('auth router guards', () => {
   })
 
   it('does not treat router state as enough to show protected data while Convex is still loading', async () => {
-    const { router, queryByRole } = renderAt('/', createTestAuthRuntime({ status: 'loading' }))
+    const { router, getByRole, queryByRole } = renderAt(
+      '/',
+      createTestAuthRuntime({ status: 'loading' }),
+    )
 
     expect(router.state.location.pathname).toBe('/')
-    expect(queryByRole('heading', { name: '未来のあなたへ' })).not.toBeInTheDocument()
+    expect(getByRole('heading', { name: '認証を確認しています' })).toBeInTheDocument()
+    expect(queryByRole('heading', { name: '届いた手紙' })).not.toBeInTheDocument()
+    expect(queryByRole('navigation', { name: 'メインナビゲーション' })).not.toBeInTheDocument()
   })
 })

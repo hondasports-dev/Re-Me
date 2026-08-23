@@ -15,7 +15,7 @@ import {
   type LiveBrowserAuthConfig,
 } from '../shared/config/browser-env'
 import { createConvexClient } from '../shared/convex/client'
-import { reMeTheme } from '../styles/theme'
+import { reMeCssVariablesResolver, reMeTheme } from '../styles/theme'
 
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
@@ -30,7 +30,12 @@ export function AppProviders({ children, runtime }: AppProvidersProps) {
   const tree = children ?? <RouterProvider router={router} />
 
   return (
-    <MantineProvider defaultColorScheme="light" forceColorScheme="light" theme={reMeTheme}>
+    <MantineProvider
+      cssVariablesResolver={reMeCssVariablesResolver}
+      defaultColorScheme="light"
+      forceColorScheme="light"
+      theme={reMeTheme}
+    >
       <Notifications position="top-center" />
       <AuthTree runtime={runtime}>{tree}</AuthTree>
     </MantineProvider>

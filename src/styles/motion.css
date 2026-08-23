@@ -1,14 +1,24 @@
 @media (prefers-reduced-motion: no-preference) {
-  .welcome-panel {
-    animation: welcome-panel-enter 500ms var(--re-me-motion-standard) both;
+  .auth-panel,
+  .status-screen[data-status$='-empty'] {
+    animation: re-me-panel-enter var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
   }
 
-  .auth-panel__spinner {
+  .auth-panel__spinner,
+  .status-screen__spinner {
     animation: re-me-spin 900ms linear infinite;
   }
 }
 
-@keyframes welcome-panel-enter {
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel__spinner,
+  .status-screen__spinner {
+    animation: none;
+    border-top-color: var(--re-me-color-sky-deep);
+  }
+}
+
+@keyframes re-me-panel-enter {
   from {
     opacity: 0;
     transform: translateY(0.75rem);

@@ -12,7 +12,8 @@ test.describe('authenticated local session', () => {
     await page.goto('/')
 
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('heading', { name: '未来のあなたへ' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'ログアウト' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'メインナビゲーション' })).toBeVisible()
   })
 })
