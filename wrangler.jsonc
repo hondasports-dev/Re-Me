@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "re-me",
+  // The top-level Worker is local-only. Remote deploys must select an explicit
+  // environment so a bare command cannot update a future Production Worker.
+  "name": "re-me-local",
   "compatibility_date": "2026-08-18",
   "main": "./worker/index.ts",
   "assets": {
@@ -8,5 +10,12 @@
     // headers live in public/_headers. Do not add application APIs here.
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],
+  },
+  "env": {
+    "preview": {
+      "name": "re-me-preview",
+      "workers_dev": true,
+      "preview_urls": true,
+    },
   },
 }
