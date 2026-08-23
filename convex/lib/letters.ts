@@ -1,7 +1,7 @@
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { canReadLetterContent, canReadLetterMetadata, isReplyableParent } from './authorization'
-import { MAX_LETTER_BODY_LENGTH } from './validators'
+import { MAX_LETTER_BODY_LENGTH, MAX_LOCATION_LABEL_LENGTH } from './validators'
 
 type LetterCtx = QueryCtx | MutationCtx
 
@@ -78,6 +78,63 @@ export async function loadVisibleLetter(
   }
 
   return letter
+}
+
+export function normalizeLocationLabel(label: string): string {
+  const normalized = label.trim().replace(/\s+/g, ' ')
+
+  if (normalized.length === 0) {
+    throw new Error('location label is required')
+  }
+
+  if (normalized.length > MAX_LOCATION_LABEL_LENGTH) {
+    throw new Error('location label is too long')
+  }
+
+  return normalized
+}
+
+export async function upsertDraftLocation(
+  ctx: MutationCtx,
+  letter: Doc<'letters'>,
+  locationLabel: string,
+): Promise<string> {
+  const normalized = normalizeLocationLabel(locationLabel)
+  const existing = (await listLetterAttachments(ctx, letter._id)).find(
+    (attachment) => attachment.kind === 'location' && attachment.status !== 'deleting',
+  )
+  const now = Date.now()
+
+  if (existing) {
+    await ctx.db.patch(existing._id, { locationLabel: normalized, status: 'ready' })
+  } else {
+    await ctx.db.insert('letterAttachments', {
+      letterId: letter._id,
+      ownerId: letter.ownerId,
+      kind: 'location',
+      status: 'ready',
+      locationLabel: normalized,
+      createdAt: now,
+    })
+  }
+
+  await ctx.db.patch(letter._id, { updatedAt: now })
+  await ctx.db.patch(letter.threadId, { updatedAt: now })
+  return normalized
+}
+
+export async function clearDraftLocation(ctx: MutationCtx, letter: Doc<'letters'>): Promise<void> {
+  const existing = (await listLetterAttachments(ctx, letter._id)).find(
+    (attachment) => attachment.kind === 'location' && attachment.status !== 'deleting',
+  )
+
+  if (existing) {
+    await ctx.db.delete(existing._id)
+  }
+
+  const now = Date.now()
+  await ctx.db.patch(letter._id, { updatedAt: now })
+  await ctx.db.patch(letter.threadId, { updatedAt: now })
 }
 
 export async function loadOwnedDraft(

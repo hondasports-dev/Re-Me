@@ -1,11 +1,16 @@
 import { render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AppProviders } from '../../src/app/providers'
 import { createTestAuthRuntime } from '../../src/features/auth/auth-runtime'
 import { createTestRouter } from '../../src/router'
+
+vi.mock('convex/react', () => ({
+  useMutation: () => vi.fn(() => new Promise(() => undefined)),
+  useQuery: () => undefined,
+}))
 
 function renderApp(
   status: 'unauthenticated' | 'loading' | 'authenticated',
@@ -79,6 +84,6 @@ describe('AppShell', () => {
     expect(screen.getByRole('heading', { name: '手紙を書く' })).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '手紙を書く' }).closest('[data-status]'),
-    ).toHaveAttribute('data-status', 'content-empty')
+    ).toHaveAttribute('data-status', 'content-loading')
   })
 })
