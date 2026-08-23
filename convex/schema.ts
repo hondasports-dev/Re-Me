@@ -73,13 +73,41 @@ export default defineSchema({
     kind: attachmentKindValidator,
     status: attachmentStatusValidator,
     r2ObjectId: v.optional(v.string()),
+    uploadR2ObjectId: v.optional(v.string()),
+    contentEtag: v.optional(v.string()),
     mimeType: v.optional(v.string()),
     byteSize: v.optional(v.number()),
     width: v.optional(v.number()),
     height: v.optional(v.number()),
+    generationToken: v.optional(v.string()),
+    uploadExpiresAt: v.optional(v.number()),
+    deleteAttemptCount: v.optional(v.number()),
+    nextReconcileAt: v.optional(v.number()),
+    lastErrorCode: v.optional(v.string()),
     locationLabel: v.optional(v.string()),
     createdAt: v.number(),
-  }).index('by_letterId', ['letterId']),
+    updatedAt: v.optional(v.number()),
+  })
+    .index('by_letterId', ['letterId'])
+    .index('by_status_and_uploadExpiresAt', ['status', 'uploadExpiresAt'])
+    .index('by_status_and_nextReconcileAt', ['status', 'nextReconcileAt']),
+
+  attachmentFinalizationAttempts: defineTable({
+    attachmentId: v.id('letterAttachments'),
+    generationToken: v.string(),
+    runnerToken: v.string(),
+    objectKey: v.string(),
+    state: v.union(v.literal('claimed'), v.literal('winner'), v.literal('deleting')),
+    deleteAttemptCount: v.number(),
+    nextReconcileAt: v.optional(v.number()),
+    retireAfter: v.optional(v.number()),
+    lastErrorCode: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_attachmentId', ['attachmentId'])
+    .index('by_attachmentId_and_state', ['attachmentId', 'state'])
+    .index('by_state_and_nextReconcileAt', ['state', 'nextReconcileAt']),
 
   letterDeliveries: defineTable({
     letterId: v.id('letters'),

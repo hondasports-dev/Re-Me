@@ -1,31 +1,43 @@
-import { Button, TextInput } from '@mantine/core'
+import { Button, FileButton, Progress, TextInput } from '@mantine/core'
 
 import { canAdvanceToSend } from '../model/compose'
+import { ACCEPTED_PHOTO_TYPES, MAX_PHOTOS_PER_LETTER } from '../model/photo'
+import { PhotoAttachmentList, type PhotoAttachment } from './PhotoAttachmentList'
 
 interface LetterEditorProps {
   body: string
   locationDraft: string
   locationLabel: string | null
+  onAddPhoto: (file: File) => void
   onBodyChange: (body: string) => void
   onLocationDraftChange: (value: string) => void
   onNext: () => void
   onRemoveLocation: () => void
+  onRemovePhoto: (photo: PhotoAttachment) => void
   onSaveLocation: () => void
   saveStatus: 'idle' | 'saving' | 'saved' | 'error'
+  photos: PhotoAttachment[]
+  photoUploadProgress: number | null
 }
 
 export function LetterEditor({
   body,
   locationDraft,
   locationLabel,
+  onAddPhoto,
   onBodyChange,
   onLocationDraftChange,
   onNext,
   onRemoveLocation,
+  onRemovePhoto,
   onSaveLocation,
   saveStatus,
+  photos,
+  photoUploadProgress,
 }: LetterEditorProps) {
-  const canNext = canAdvanceToSend(body)
+  const photosReady =
+    photoUploadProgress === null && photos.every((photo) => photo.status === 'ready')
+  const canNext = canAdvanceToSend(body) && photosReady
 
   return (
     <section aria-labelledby="compose-title" className="letter-editor">
@@ -51,9 +63,30 @@ export function LetterEditor({
       </label>
 
       <div className="letter-editor__attachments">
-        <Button disabled type="button" variant="default">
-          写真（次のステップ）
-        </Button>
+        <FileButton
+          accept={ACCEPTED_PHOTO_TYPES.join(',')}
+          disabled={photos.length >= MAX_PHOTOS_PER_LETTER || photoUploadProgress !== null}
+          onChange={(file) => {
+            if (file) onAddPhoto(file)
+          }}
+        >
+          {(props) => (
+            <Button {...props} type="button" variant="default">
+              写真を添える（{photos.length}/{MAX_PHOTOS_PER_LETTER}）
+            </Button>
+          )}
+        </FileButton>
+        {photoUploadProgress === null ? null : (
+          <div aria-live="polite">
+            <Progress aria-label="写真のアップロード" value={photoUploadProgress} />
+            <span className="visually-hidden">{photoUploadProgress}%</span>
+          </div>
+        )}
+        <PhotoAttachmentList
+          disabled={photoUploadProgress !== null}
+          onRemove={onRemovePhoto}
+          photos={photos}
+        />
 
         {locationLabel ? (
           <div className="letter-editor__location">
@@ -88,7 +121,8 @@ export function LetterEditor({
         <Button disabled={!canNext} onClick={onNext} type="button">
           次へ
         </Button>
-        {canNext ? null : <p>本文を書いてから、届ける時期へ進める。</p>}
+        {canAdvanceToSend(body) ? null : <p>本文を書いてから、届ける時期へ進める。</p>}
+        {photosReady ? null : <p>写真の準備が終わるまでお待ちください。</p>}
       </div>
     </section>
   )

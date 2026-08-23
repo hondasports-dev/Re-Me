@@ -124,11 +124,14 @@ generic patch mutation を公開しない。draft mutation は `status === "draf
 
 - bucket は private
 - Convex は R2 object id と ownership metadata を保持
-- upload intent 作成時に owner / draft state を検証
-- MIME、size、dimension、EXIF / location metadata を検証
+- 1 letter あたり最大3枚。入力は JPEG / PNG / WebP、10 MiB 以下
+- client の Canvas で JPEG に再 encode し、長辺 4096 px、5 MiB 以下へ縮小して EXIF / XMP / IPTC を除去
+- upload intent 作成時に owner / draft state を検証し、Content-Lengthと`If-None-Match: *`を束縛した5分だけ有効な staging object 単位の署名 PUT URLを発行する。同じ capability の再利用は既存 object への上書き前に失敗させ、finalize 時の HEAD と完全JPEG検査でも intent の byte size・5MB上限・content typeを強制する
+- finalize 前に R2 HEAD で MIME / size、取得後に JPEG dimension と APP1 / APP13 metadata 不在を server 側で再検証
+- finalize はattachmentごとのsingle-flightとし、有効なclaim中は別runnerを拒否してcandidate keyの並行上書きを防ぐ。外部copy前に候補keyをConvexへ永続登録し、検証した staging ETag を条件に一意な immutable final key へcopyする。atomic mutationに勝ったkeyだけを採用し、負けたattemptやcopy後に停止したattemptはdurable stateとcron retryで削除完了まで追跡する
 - sealed / unopened attachment の download URL を返さない
-- download capability は短命にし、送信後は開封まで新規発行せず、application log に残さない
-- delete は Convex metadata と R2 object の partial failure を reconciliation できる状態で行う
+- download capability は60秒にし、送信後は開封まで新規発行せず、application log に残さない
+- delete は `deleting` state を先に記録し、R2 / Convex metadata の partial failure を15分 cron と指数 backoff で reconciliation する
 
 ## Notification privacy
 

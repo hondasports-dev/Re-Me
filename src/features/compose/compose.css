@@ -81,6 +81,37 @@
   gap: var(--re-me-space-3);
 }
 
+.letter-editor__photos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--re-me-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.letter-editor__photo {
+  display: grid;
+  gap: var(--re-me-space-1);
+  justify-items: center;
+}
+
+.letter-editor__photo img,
+.letter-editor__photo-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--re-me-radius-md);
+  background: var(--re-me-color-paper);
+  object-fit: cover;
+}
+
+.letter-editor__photo-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--re-me-color-ink-muted);
+  font-size: var(--re-me-font-size-xs);
+}
+
 .letter-editor__cta {
   position: sticky;
   bottom: 0;

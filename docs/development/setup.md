@@ -118,6 +118,15 @@ WEB_PUSH_SUBJECT
 R2 integration credentials / component config
 ```
 
+R2 component は以下の4値を Convex deployment environment にだけ設定する。値を `.env.local`、Vite、Worker、GitHub log へ複製しない。
+
+```text
+R2_BUCKET
+R2_ENDPOINT
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+```
+
 Auth0 domain / client id は secret ではないが、DEV / PROD の組み合わせを混ぜない。Management API credential、Google OAuth client secret、Convex deploy key、R2 secret、VAPID private key は `VITE_*` にしない。
 
 ### Cloudflare
