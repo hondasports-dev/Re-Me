@@ -186,6 +186,18 @@ verification_policy:
   no_blind_retry: true
   duplicate_full_check_requires_reason: true
   test_gap_blocks_verification: true
+  browser_e2e:
+    required_when:
+      - Acceptance Criteria が user-visible な画面 / 遷移 / 操作を含む
+      - 既存画面の見た目・操作・route を変える
+    must_exercise: 変更した画面または遷移そのもの
+    not_evidence:
+      - 変更していない経路の CI E2E 成功
+      - unit / component / convex-test だけの結果
+      - 最低限の critical E2E が未実装であること
+      - 既存 Playwright に該当 spec が無いこと
+    missing_spec: 新しい Playwright spec を書く。無いことを省略理由にしない
+    missing_credentials: NOT_REQUIRED にせず verification を BLOCKED にする
 
 review_policy:
   required_when:

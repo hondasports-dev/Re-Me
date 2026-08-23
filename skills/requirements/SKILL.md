@@ -42,6 +42,8 @@ Verification plan:
 Impact summary:
 ```
 
+Verification plan の E2E は `する` か `BLOCKED` だけを書く。`必要なら` / `NOT_REQUIRED` で browser AC を先送りしない。user-visible な画面を変えるなら、踏む path を plan に名指しする。
+
 Current behavior / edge state などは AC や control 判定に必要な分だけ書く。
 
 ## 3. Risk

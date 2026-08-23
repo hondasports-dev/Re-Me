@@ -63,7 +63,7 @@ export function App() {
         </AppShell.Header>
       ) : null}
 
-      <AppShell.Main className="re-me-shell__main" key={location.pathname}>
+      <AppShell.Main className="re-me-shell__main">
         {logoutError ? (
           <p className="re-me-shell__alert" role="alert">
             {logoutError}

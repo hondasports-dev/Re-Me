@@ -19,6 +19,7 @@ export function useAutosaveDraft(
   const savedBodyRef = useRef(savedBody ?? '')
   const saveRef = useRef(save)
   const timerRef = useRef<number | undefined>(undefined)
+  const hasLocalEditsRef = useRef(false)
 
   bodyRef.current = body
   saveRef.current = save
@@ -29,7 +30,13 @@ export function useAutosaveDraft(
     }
 
     savedBodyRef.current = savedBody
-    setBodyState((current) => (isDraftDirty(current, savedBodyRef.current) ? current : savedBody))
+
+    if (!hasLocalEditsRef.current) {
+      setBodyState(savedBody)
+      return
+    }
+
+    setBodyState((current) => (isDraftDirty(current, savedBody) ? current : savedBody))
   }, [savedBody])
 
   const flush = useCallback(async (): Promise<void> => {
@@ -53,6 +60,7 @@ export function useAutosaveDraft(
 
   const setBody = useCallback(
     (next: string) => {
+      hasLocalEditsRef.current = true
       setBodyState(next)
       setSaveStatus('idle')
       window.clearTimeout(timerRef.current)

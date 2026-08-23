@@ -1,13 +1,14 @@
 import { Auth0Provider } from '@auth0/auth0-react'
 import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
-import { ConvexProviderWithAuth0 } from 'convex/react-auth0'
+import { ConvexProviderWithAuth } from 'convex/react'
 import { useState, type ReactNode } from 'react'
 import { RouterProvider } from 'react-router'
 
 import { AuthRuntimeProvider } from '../features/auth/AuthRuntimeProvider'
 import { unconfiguredAuthRuntime, type AuthRuntime } from '../features/auth/auth-runtime'
 import { LiveAuthRuntimeProvider } from '../features/auth/LiveAuthRuntimeProvider'
+import { useConvexAuthFromAuth0 } from '../features/auth/useConvexAuthFromAuth0'
 import { createAppRouter } from '../router'
 import {
   createAuth0RedirectUri,
@@ -69,6 +70,7 @@ function LiveAuthProviders({
     <Auth0Provider
       authorizationParams={{
         redirect_uri: createAuth0RedirectUri(window.location.origin),
+        scope: 'openid profile email offline_access',
       }}
       cacheLocation="localstorage"
       clientId={config.auth0ClientId}
@@ -76,9 +78,9 @@ function LiveAuthProviders({
       useRefreshTokens
       useRefreshTokensFallback
     >
-      <ConvexProviderWithAuth0 client={convexClient}>
+      <ConvexProviderWithAuth client={convexClient} useAuth={useConvexAuthFromAuth0}>
         <LiveAuthRuntimeProvider>{children}</LiveAuthRuntimeProvider>
-      </ConvexProviderWithAuth0>
+      </ConvexProviderWithAuth>
     </Auth0Provider>
   )
 }

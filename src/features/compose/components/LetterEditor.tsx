@@ -40,6 +40,7 @@ export function LetterEditor({
       <label className="letter-editor__paper">
         <span className="visually-hidden">本文</span>
         <textarea
+          aria-label="本文"
           className="letter-editor__body"
           onChange={(event) => {
             onBodyChange(event.currentTarget.value)
