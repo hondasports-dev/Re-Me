@@ -71,8 +71,12 @@ Workers Static Assets を React SPA の deployment unit とする。
 
 - bucket は private
 - object id / metadata / ownership は Convex document に保存する
-- upload 前に MIME、size、dimension を検証し、EXIF / location metadata を除去する
-- download は authorization 後の短命 URL / capability とする
+- Local / developer と Preview は別 bucket・別 bucket-scoped credential を使う。Production は別 Issue とする
+- upload 前に JPEG / PNG / WebP、10 MiB 以下を検証し、Canvas 再 encode 後の JPEG を長辺 4096 px、5 MiB 以下にする
+- upload capability は5分、download capability は60秒とする
+- upload URL は5分だけ有効な staging key、Content-Length、`If-None-Match: *`に限定し、同じ capability による上書きを拒否する。finalize 時の HEAD でも intent の byte size と5MB上限へ一致することを強制する。検証後は attempt ごとの一意な final key をcopy前に永続登録してETag条件付きcopyし、Convexのatomic winnerだけをattachmentへ確定する。非winnerは最大 action 時間を越える tombstone 期間中に再削除し、cronが削除成功まで追跡する
+- finalize 時に MIME、size、dimension、EXIF / XMP / IPTC metadata 不在を server 側で再検証する
+- CORS は既知の Local / Preview origin と `PUT, GET, HEAD`、`Content-Type`・`Content-Length`・`If-None-Match` header だけを許可する
 - sealed / unopened content の URL を client query に返さない
 
 Convex File Storage の恒久 bearer URL は access condition が後から変わる sealed media と相性が悪いため、MVP photo は R2 integration を採用する。

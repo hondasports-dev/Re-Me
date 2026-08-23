@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { encode } from 'jpeg-js'
 
 import { hasAuth0E2eCredentials } from './fixtures/auth'
 
@@ -22,7 +23,7 @@ test.describe('compose draft editor', () => {
     await expect(body).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole('heading', { name: '手紙を書く' })).toBeVisible()
     await expect(page.getByRole('button', { name: '次へ' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: '写真（次のステップ）' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: '写真を添える（0/3）' })).toBeEnabled()
 
     await body.fill(letterBody)
     await expect(page.getByRole('button', { name: '次へ' })).toBeEnabled()
@@ -74,6 +75,36 @@ test.describe('compose draft editor', () => {
     await expect(page.getByRole('textbox', { name: '本文' })).toHaveValue(letterBody, {
       timeout: 20_000,
     })
+  })
+
+  test('uploads, reads, and removes a private photo attachment', async ({ page }) => {
+    test.setTimeout(60_000)
+    await openAuthenticatedInbox(page)
+
+    await page.getByRole('link', { name: '書く' }).click()
+    await expect(page).toHaveURL(/\/write\/[^/]+$/, { timeout: 20_000 })
+
+    const rgba = Buffer.alloc(8 * 8 * 4)
+    for (let offset = 0; offset < rgba.length; offset += 4) {
+      rgba[offset] = 120
+      rgba[offset + 1] = 72
+      rgba[offset + 2] = 96
+      rgba[offset + 3] = 255
+    }
+    const jpeg = encode({ data: rgba, width: 8, height: 8 }, 85).data
+
+    await page.locator('input[type="file"]').setInputFiles({
+      buffer: Buffer.from(jpeg),
+      mimeType: 'image/jpeg',
+      name: 're-me-e2e.jpg',
+    })
+
+    await expect(page.getByRole('img', { name: '添付写真 1' })).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByRole('button', { name: '写真を添える（1/3）' })).toBeEnabled()
+
+    await page.getByRole('button', { name: '外す' }).click()
+    await expect(page.getByRole('img', { name: '添付写真 1' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '写真を添える（0/3）' })).toBeEnabled()
   })
 })
 

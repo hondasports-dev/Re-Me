@@ -74,7 +74,24 @@ export const readableAttachmentValidator = v.object({
   attachmentId: v.id('letterAttachments'),
   kind: attachmentKindValidator,
   status: attachmentStatusValidator,
+  generationToken: v.union(v.string(), v.null()),
+  mimeType: v.union(v.string(), v.null()),
+  byteSize: v.union(v.number(), v.null()),
+  width: v.union(v.number(), v.null()),
+  height: v.union(v.number(), v.null()),
   locationLabel: v.union(v.string(), v.null()),
+})
+
+export const attachmentUploadIntentValidator = v.object({
+  attachmentId: v.id('letterAttachments'),
+  generationToken: v.string(),
+  uploadUrl: v.string(),
+  expiresAt: v.number(),
+})
+
+export const attachmentDownloadCapabilityValidator = v.object({
+  url: v.string(),
+  expiresAt: v.number(),
 })
 
 export const createdDraftValidator = v.object({

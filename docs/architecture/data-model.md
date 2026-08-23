@@ -77,6 +77,15 @@ metadata と body を分け、一覧 query が sealed body を読み込まない
 
 正確な緯度経度と EXIF は恒久保存しない。
 
+### attachmentFinalizationAttempts
+
+- `attachmentId` / `generationToken`
+- copy前に確定する一意なprivate R2 object key
+- `state`: `claimed | winner | deleting`
+- delete attempt / next reconciliation / sanitized error metadata
+
+external copy直後のprocess停止でも候補keyを見失わず、winner以外を削除成功まで追跡する。
+
 ### letterDeliveries
 
 - `letterId`
@@ -115,6 +124,8 @@ Delivery と external notification を分離する outbox。
 - letters by parentLetterId
 - letterContents by letterId
 - letterAttachments by letterId
+- attachmentFinalizationAttempts by attachmentId
+- attachmentFinalizationAttempts by state and nextReconcileAt
 - letterDeliveries by delivery state and scheduledAt
 - notificationJobs by status and availableAt
 - pushSubscriptions by ownerId
@@ -167,7 +178,7 @@ Authenticated client:
 - `openLetter`
 - `deleteLetter`
 - `createAttachmentIntent`
-- `finalizeAttachment`
+- `attachmentActions.finalizeAttachment`
 
 Internal only:
 

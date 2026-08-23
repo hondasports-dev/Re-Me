@@ -1,7 +1,11 @@
 import { MantineProvider } from '@mantine/core'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('convex/react', () => ({
+  useAction: () => vi.fn().mockResolvedValue(null),
+}))
 
 import { LetterEditor } from '../../src/features/compose/components/LetterEditor'
 import {
@@ -43,20 +47,24 @@ describe('LetterEditor', () => {
           body=""
           locationDraft=""
           locationLabel={null}
+          onAddPhoto={() => undefined}
           onBodyChange={() => undefined}
           onLocationDraftChange={() => undefined}
           onNext={() => {
             nextCount += 1
           }}
           onRemoveLocation={() => undefined}
+          onRemovePhoto={() => undefined}
           onSaveLocation={() => undefined}
           saveStatus="idle"
+          photos={[]}
+          photoUploadProgress={null}
         />
       </MantineProvider>,
     )
 
     expect(screen.getByRole('button', { name: '次へ' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '写真（次のステップ）' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '写真を添える（0/3）' })).toBeEnabled()
 
     view.rerender(
       <MantineProvider theme={reMeTheme}>
@@ -64,19 +72,54 @@ describe('LetterEditor', () => {
           body="未来の自分へ"
           locationDraft=""
           locationLabel={null}
+          onAddPhoto={() => undefined}
           onBodyChange={() => undefined}
           onLocationDraftChange={() => undefined}
           onNext={() => {
             nextCount += 1
           }}
           onRemoveLocation={() => undefined}
+          onRemovePhoto={() => undefined}
           onSaveLocation={() => undefined}
           saveStatus="saved"
+          photos={[]}
+          photoUploadProgress={null}
         />
       </MantineProvider>,
     )
 
     await user.click(screen.getByRole('button', { name: '次へ' }))
     expect(nextCount).toBe(1)
+  })
+
+  it('keeps next disabled while an attached photo is pending', () => {
+    render(
+      <MantineProvider theme={reMeTheme}>
+        <LetterEditor
+          body="未来の自分へ"
+          locationDraft=""
+          locationLabel={null}
+          onAddPhoto={() => undefined}
+          onBodyChange={() => undefined}
+          onLocationDraftChange={() => undefined}
+          onNext={() => undefined}
+          onRemoveLocation={() => undefined}
+          onRemovePhoto={() => undefined}
+          onSaveLocation={() => undefined}
+          saveStatus="saved"
+          photos={[
+            {
+              attachmentId: 'attachment-1' as never,
+              generationToken: 'generation-1',
+              status: 'pending',
+            },
+          ]}
+          photoUploadProgress={null}
+        />
+      </MantineProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: '次へ' })).toBeDisabled()
+    expect(screen.getByText('写真の準備が終わるまでお待ちください。')).toBeInTheDocument()
   })
 })
