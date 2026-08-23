@@ -8,7 +8,7 @@
 - `supabase/tests/` — legacy security tests
 - `supabase/config.toml` — local comparison 用
 
-通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` と CI の `Legacy database invariants` job を使う。
+通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` と CI の `Database security gates` job を使う。
 
 最終削除は implementation-order の data migration issue と Human Gate で行う。
 

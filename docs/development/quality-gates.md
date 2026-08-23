@@ -12,7 +12,7 @@ pnpm build
 
 Critical flow を変更する場合は `pnpm test:e2e` を実行する。
 
-通常の Quality gates / `pnpm test` は local Supabase を起動しない。legacy PostgreSQL / RLS の比較は CI の `Legacy database invariants` job（`pnpm db:test`）で残す。
+通常の Quality gates / `pnpm test` は local Supabase を起動しない。legacy PostgreSQL / RLS の比較は CI の `Database security gates` job（`pnpm db:test`）で残す。check 名は main の ruleset が要求する `Database security gates` のままにし、中身は runtime ではなく invariant 比較である。
 
 ## Convex gates
 
