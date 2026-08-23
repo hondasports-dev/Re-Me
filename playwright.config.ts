@@ -20,6 +20,8 @@ const mobileUse = {
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // Auth0 refresh-token rotation cannot be shared across parallel authenticated browsers.
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   reporter: 'list',
   use: {
@@ -47,7 +49,9 @@ export default defineConfig({
       : []),
     {
       name: 'chromium-mobile',
-      testIgnore: auth0E2eReady ? /auth\.setup\.ts|auth-session\.spec\.ts/ : /auth\.setup\.ts/,
+      testIgnore: auth0E2eReady
+        ? /auth\.setup\.ts|auth-session\.spec\.ts|compose\.spec\.ts/
+        : /auth\.setup\.ts/,
       use: mobileUse,
     },
     ...(auth0E2eReady
@@ -55,7 +59,7 @@ export default defineConfig({
           {
             name: 'chromium-authenticated',
             dependencies: ['auth-setup'],
-            testMatch: /auth-session\.spec\.ts/,
+            testMatch: /auth-session\.spec\.ts|compose\.spec\.ts/,
             use: {
               ...mobileUse,
               storageState: authStatePath,

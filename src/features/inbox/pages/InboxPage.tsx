@@ -1,13 +1,21 @@
 import { Button } from '@mantine/core'
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
 
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 
 export function InboxPage() {
+  const navigate = useNavigate()
+
   return (
     <StatusScreen
       action={
-        <Button component={Link} to="/write" variant="light">
+        <Button
+          onClick={() => {
+            void navigate('/write')
+          }}
+          type="button"
+          variant="light"
+        >
           手紙を書く
         </Button>
       }

@@ -45,9 +45,11 @@ Closes #
 - [ ] `pnpm test`
 - [ ] `pnpm test:convex`（schema / authorization 変更時）
 - [ ] `pnpm build`
-- [ ] Targeted E2E（必要な場合）
-- [ ] Legacy DB / RLS test（必要な場合。通常 test ではない）
-- [ ] Worker / R2 test（必要な場合）
+- [ ] 変更した画面 / 遷移を踏む Playwright
+  踏んだ path:
+  結果: `PASS / BLOCKED`
+- [ ] Legacy DB / RLS test（SQL / migration 差分がある場合。通常 test ではない）
+- [ ] Worker / R2 test（該当する場合）
 
 結果 / 実行範囲:
 
@@ -55,7 +57,7 @@ Closes #
 
 なし
 
-<!-- NOT_REQUIRED の理由を明記。required check をスキップして PASS 扱いにしない。 -->
+<!-- required check を未実施のまま NOT_REQUIRED / PASS 扱いにしない。credential 不足は BLOCKED。 -->
 
 ## Review Evidence
 

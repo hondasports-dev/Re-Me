@@ -11,22 +11,8 @@ import { canAdvanceToSend } from '../model/compose'
 
 export function ComposeEditorPage() {
   const { letterId } = useParams()
-  const navigate = useNavigate()
   const typedLetterId = letterId as Id<'letters'> | undefined
   const draft = useQuery(api.letters.getDraft, typedLetterId ? { letterId: typedLetterId } : 'skip')
-  const saveDraft = useMutation(api.letters.saveDraft)
-  const setDraftLocation = useMutation(api.attachments.setDraftLocation)
-  const removeDraftLocation = useMutation(api.attachments.removeDraftLocation)
-  const [locationDraft, setLocationDraft] = useState('')
-  const [locationError, setLocationError] = useState<string | null>(null)
-
-  const { body, flush, saveStatus, setBody } = useAutosaveDraft(draft?.body, async (nextBody) => {
-    if (!typedLetterId) {
-      throw new Error('draft_save_failed')
-    }
-
-    await saveDraft({ letterId: typedLetterId, body: nextBody })
-  })
 
   if (!typedLetterId || draft === null) {
     return (
@@ -50,28 +36,47 @@ export function ComposeEditorPage() {
     )
   }
 
+  return <LoadedComposeEditor draft={draft} letterId={typedLetterId} />
+}
+
+function LoadedComposeEditor({
+  draft,
+  letterId,
+}: {
+  draft: {
+    body: string
+    locationLabel: string | null
+  }
+  letterId: Id<'letters'>
+}) {
+  const navigate = useNavigate()
+  const saveDraft = useMutation(api.letters.saveDraft)
+  const setDraftLocation = useMutation(api.attachments.setDraftLocation)
+  const removeDraftLocation = useMutation(api.attachments.removeDraftLocation)
+  const [locationDraft, setLocationDraft] = useState('')
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const { body, flush, saveStatus, setBody } = useAutosaveDraft(draft.body, async (nextBody) => {
+    await saveDraft({ letterId, body: nextBody })
+  })
+
   async function handleNext(): Promise<void> {
-    if (!canAdvanceToSend(body) || !typedLetterId) {
+    if (!canAdvanceToSend(body)) {
       return
     }
 
     try {
       await flush()
-      void navigate(`/write/${typedLetterId}/send`)
+      void navigate(`/write/${letterId}/send`)
     } catch {
       setLocationError('下書きを保存してから進めてください。')
     }
   }
 
   async function handleSaveLocation(): Promise<void> {
-    if (!typedLetterId) {
-      return
-    }
-
     setLocationError(null)
 
     try {
-      await setDraftLocation({ letterId: typedLetterId, locationLabel: locationDraft })
+      await setDraftLocation({ letterId, locationLabel: locationDraft })
       setLocationDraft('')
     } catch {
       setLocationError('場所の名前を残できませんでした。')
@@ -79,14 +84,10 @@ export function ComposeEditorPage() {
   }
 
   async function handleRemoveLocation(): Promise<void> {
-    if (!typedLetterId) {
-      return
-    }
-
     setLocationError(null)
 
     try {
-      await removeDraftLocation({ letterId: typedLetterId })
+      await removeDraftLocation({ letterId })
     } catch {
       setLocationError('場所を外せませんでした。')
     }

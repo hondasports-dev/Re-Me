@@ -23,12 +23,19 @@ pnpm build
 
 追加例:
 
-- React UI / browser flow → targeted component/integration + 必要な Playwright E2E
+- React UI / browser flow → targeted component/integration + 変更した画面を踏む Playwright E2E
 - Cloudflare Worker / assets → routing / asset test
 - Convex schema / function / authorization → push validation / cross-user access-control test
 - legacy Supabase migration / RLS / RPC → migration / SQL / access-control test
 - R2 object lifecycle → upload / delete / access boundary
 - stateful / destructive → error path / idempotency / rollback or recovery evidence
+
+browser E2E の禁止置換:
+
+- unit / convex-test だけで user-visible な画面 AC を証明したことにしない
+- 変更していない経路の CI E2E 成功を、変更した画面の evidence にしない
+- 「最低限の critical E2E が未実装」「既存 spec が無い」を省略理由にしない。spec が無ければ書く
+- credential 不足は `NOT_REQUIRED` にせず `BLOCKED` にする
 
 ## Profile
 

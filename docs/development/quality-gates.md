@@ -10,7 +10,7 @@ pnpm test
 pnpm build
 ```
 
-Critical flow を変更する場合は `pnpm test:e2e` を実行する。
+Critical flow を変更する場合は `pnpm test:e2e` を実行する。user-visible な画面 / 遷移を足す・変える場合は、**変更した画面そのもの** を踏む Playwright が mandatory である。未実装の critical 3本や、変更していない login E2E の成功を省略理由・代替 evidence にしない。credential 不足は `NOT_REQUIRED` ではなく BLOCKED とする。
 
 通常の Quality gates / `pnpm test` は local Supabase を起動しない。legacy PostgreSQL / RLS の比較は CI の `Database security gates` job（`pnpm db:test`）で残す。check 名は main の ruleset が要求する `Database security gates` のままにし、中身は runtime ではなく invariant 比較である。
 
@@ -38,9 +38,13 @@ Convex schema / function を変更する場合:
 - internal delivery / notification function non-public
 - R2 upload / download capability ownership and expiry
 
-## Required critical E2E
+## 今回変えた画面の E2E
 
-通常 E2E は Google OAuth UI を経由せず、Auth0 database test identity で session を作り `e2e/.auth/` に保存して使う。
+user-visible な画面 / 遷移 / 操作を変えたら、その path を踏む Playwright を実行する。既存 spec が無いなら追加する。
+
+## MVP までに揃える critical E2E
+
+通常 E2E は Google OAuth UI を経由せず、Auth0 database test identity で session を作り `e2e/.auth/` に保存して使う。以下は MVP の下限であり、これ以外の画面の E2E を省略する根拠にはしない。
 
 1. authenticated session → draft → send
 2. sealed letter delivered → open → content visible

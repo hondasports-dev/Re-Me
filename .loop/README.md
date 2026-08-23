@@ -187,6 +187,8 @@ rebase や commit metadata だけで tree が同じなら、Verification / Revie
 - R3: full affected scope
 - R4: R3 + recovery evidence
 
+user-visible な画面 / 遷移を変えたら、変更した画面を踏む Playwright が affected scope に入る。未実装の critical 3本や、変更していない login E2E は代替にならない。
+
 CI が repository-wide required checks を同じ content に対して実行するなら、ローカルで理由なく同じ full suite を二重実行しない。
 
 ## Delivery / Aftercare

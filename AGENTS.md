@@ -190,6 +190,11 @@ pnpm build
 critical user flow を変更する場合は該当 Playwright E2E も実行する。
 Convex schema / authorization を変更する場合は schema push verification / access-control test を必須にする。
 
+最低限の critical E2E（draft→send / 開封 / 返信）は MVP の下限であり、E2E 対象の上限ではない。
+新しい user-visible 画面を足したら、その画面を踏む Playwright が mandatory である。
+3本が未実装でも、当該画面の E2E を省略しない。
+変更していない login E2E の成功を、変更した画面の evidence にしない。
+
 最低限の critical E2E:
 
 1. authenticated local session → draft → send
