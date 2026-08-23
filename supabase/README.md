@@ -1,10 +1,26 @@
-# Supabase
+# Legacy Supabase artifacts
 
-Re:Me の Auth / PostgreSQL / RLS を管理するディレクトリ。
+このディレクトリは **runtime ではない**。Auth0 + Convex へ移行したあとも、production data migration / rollback 方針が固まるまで invariant 比較用に残す。
 
-## Source of truth
+残すもの:
 
-DB schema と policy は Dashboard の手作業ではなく `supabase/migrations/` を正とする。
+- `supabase/migrations/` — legacy PostgreSQL / RLS / RPC の正本
+- `supabase/tests/` — legacy security tests
+- `supabase/config.toml` — local comparison 用
+
+通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` と CI の `Legacy database invariants` job を使う。
+
+最終削除は implementation-order の data migration issue と Human Gate で行う。
+
+---
+
+## Legacy schema contents
+
+このディレクトリはかつての PostgreSQL / RLS / RPC 正本であり、現行 runtime の Auth / backend ではない。
+
+## Source of truth (legacy comparison)
+
+現行 backend の正本は `convex/schema.ts` である。legacy PostgreSQL / RLS を比較するときは Dashboard の手作業ではなく `supabase/migrations/` を正とする。
 
 変更時は新しい migration を追加し、既存 migration を書き換えない。
 
@@ -52,25 +68,11 @@ DB schema と policy は Dashboard の手作業ではなく `supabase/migrations
 - `claim_notification_jobs`
 - `complete_notification_job`
 
-## Auth
+## Auth (legacy)
 
-MVP は Supabase Auth + Google OAuth を第一候補とする。
+これらの migration は Supabase Auth を前提に書かれている。現行 runtime の authentication は Auth0、authorization は Convex function である。新しい Supabase client / Service Role Worker path を追加しない。
 
-Browser で使う publishable / anon key と、Worker だけが使う service role credential を明確に分離する。
-
-Service Role は Cloudflare Worker Secret に置き、Browser bundle や repository に含めない。
-
-### Environment policy
-
-- Local / DEV: Supabase CLI の local Auth (GoTrue) + local PostgreSQL
-- Production: Supabase Cloud Auth + PostgreSQL
-- Google OAuth: local 開発用 OAuth client と production 用 OAuth client を分離
-
-cloud Supabase DEV project は MVP の必須要件にしない。
-
-通常の automated E2E は Google UI を経由せず、local Auth の test user / session を使う。Google OAuth の実連携は少数の smoke test として分離する。
-
-## Local workflow
+## Local comparison workflow
 
 Supabase CLI は project の dev dependency として固定している。Docker Desktop などの Docker-compatible runtime を起動してから実行する。
 
@@ -84,28 +86,15 @@ pnpm db:types
 pnpm db:stop
 ```
 
-local development では database だけでなく Auth (GoTrue) も起動する。`pnpm db:start` は `supabase start` 相当で、Auth を除外しない。
+比較用に `pnpm db:start` すると local PostgreSQL と Auth (GoTrue) も起動する。これは runtime や通常 E2E の前提ではない。
 
 remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。初回は Docker image の取得に時間がかかる。`db:advisors` は security / performance の warning 以上を CI failure にする。
 
-生成した public schema の TypeScript types は `src/shared/types/database.generated.ts` に commit する。schema 変更後は `pnpm db:types` で再生成し、手編集しない。
-
-## Local auth testing
-
-通常の E2E では local Supabase Auth に test user を用意し、認証済み session を fixture として利用する。
-
-これにより以下を Google UI から独立して検証する。
-
-- auth-required route
-- user A / user B の access boundary
-- RLS
-- sealed letter visibility
-- trusted RPC
-- draft / send / open / reply flow
-
-Google OAuth smoke test は別に実施し、provider login → Supabase callback → React `/auth/callback` → session restore までを確認する。
+生成した public schema の TypeScript types は `supabase/database.generated.ts` に出す（gitignored、runtime では使わない）。schema 比較が必要なときだけ `pnpm db:types` で再生成する。
 
 ## RLS test requirement
+
+これらは legacy PostgreSQL / RLS の比較用 SQL test である。現行の user-facing E2E や Quality gates の前提ではない。
 
 少なくとも以下を自動テストする。
 

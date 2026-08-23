@@ -84,7 +84,7 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 - Delivery と Notification を outbox で分離
 - Auth0 / Convex / Cloudflare の secret は browser bundle へ公開しない
 
-target backend の正本は `convex/schema.ts` と function validators に移行する。現行 `supabase/` は migration 実装が完了するまで残る legacy artifact です。
+target backend の正本は `convex/schema.ts` と function validators である。`supabase/` は production data migration まで残す legacy 比較 artifact であり、runtime ではない。
 
 > 無料枠は MVP / 初期検証のために活用する。本番運用では、可用性・休止条件・容量・料金を再評価する。
 
@@ -131,4 +131,4 @@ target backend の正本は `convex/schema.ts` と function validators に移行
 
 ## ステータス
 
-プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine、Auth0 + Convex の provider 骨格、DEV tenant / developer deployment の接続、E2E 用 Auth0 test identity まで入っています。domain schema、production 用 Google Cloud OAuth client、legacy Supabase runtime の撤去は後続です。
+プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine、Auth0 + Convex の provider 骨格、DEV tenant / developer deployment の接続、E2E 用 Auth0 test identity、Convex schema / authorization harness まで入っています。production 用 Google Cloud OAuth client と production data migration は後続です。

@@ -29,7 +29,7 @@
     "db:lint": "supabase db lint --local --level warning",
     "db:advisors": "supabase db advisors --local --type all --level warn --fail-on warn",
     "db:test": "supabase test db --local",
-    "db:types": "supabase gen types --local --schema public > src/shared/types/database.generated.ts",
+    "db:types": "supabase gen types --local --schema public > supabase/database.generated.ts",
     "cf:typegen": "wrangler types"
   },
   "dependencies": {
@@ -37,10 +37,7 @@
     "@mantine/core": "^8.3.2",
     "@mantine/hooks": "^8.3.2",
     "@mantine/notifications": "^8.3.2",
-    "@supabase/supabase-js": "2.112.3",
-    "@tanstack/react-query": "^5.90.2",
     "convex": "^1.45.0",
-    "hono": "^4.13.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router": "^7.9.1"

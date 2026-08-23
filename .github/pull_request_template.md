@@ -24,10 +24,11 @@ Closes #
 
 ## 影響範囲
 
-- [ ] UI / Vue
-- [ ] Worker / API
-- [ ] Supabase Auth
-- [ ] PostgreSQL / RLS / RPC / Migration
+- [ ] UI / mobile
+- [ ] Worker / health
+- [ ] Auth0 / Convex auth
+- [ ] Convex schema / functions
+- [ ] Legacy PostgreSQL / RLS（比較用）
 - [ ] Cloudflare R2
 - [ ] PWA / Push
 - [ ] CI / Deploy
@@ -45,7 +46,7 @@ Closes #
 - [ ] `pnpm test:convex`（schema / authorization 変更時）
 - [ ] `pnpm build`
 - [ ] Targeted E2E（必要な場合）
-- [ ] DB / RLS test（必要な場合）
+- [ ] Legacy DB / RLS test（必要な場合。通常 test ではない）
 - [ ] Worker / R2 test（必要な場合）
 
 結果 / 実行範囲:
@@ -75,7 +76,7 @@ Must-fix / residual risk:
 - DB schema / migration: なし
 - RLS / auth: なし
 - 環境変数 / Secret: なし
-- Cloudflare / Supabase 設定変更: なし
+- Cloudflare / Auth0 / Convex 設定変更: なし
 - Deploy 手順変更: なし
 
 ## 最終確認

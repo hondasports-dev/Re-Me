@@ -1,7 +1,9 @@
-import { Hono } from 'hono'
+export function handleWorkerFetch(request: Request): Response {
+  const url = new URL(request.url)
 
-import { healthRoute } from './routes/health'
+  if (url.pathname === '/api/health' || url.pathname === '/api/health/') {
+    return Response.json({ status: 'ok' })
+  }
 
-export const app = new Hono()
-
-app.route('/api/health', healthRoute)
+  return new Response('Not found', { status: 404 })
+}

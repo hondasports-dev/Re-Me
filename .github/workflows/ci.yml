@@ -76,7 +76,7 @@ jobs:
         run: pnpm test:e2e
 
   database:
-    name: Database security gates
+    name: Legacy database invariants
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -110,12 +110,6 @@ jobs:
 
       - name: Test RLS, grants, RPCs, and triggers
         run: pnpm db:test
-
-      - name: Check generated database types
-        run: |
-          pnpm db:types
-          pnpm exec oxfmt src/shared/types/database.generated.ts
-          git diff --exit-code -- src/shared/types/database.generated.ts
 
       - name: Stop local Supabase database
         if: always()

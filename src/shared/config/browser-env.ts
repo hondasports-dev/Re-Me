@@ -1,5 +1,3 @@
-import { assertBrowserSafeSupabaseKey } from './supabase-key.ts'
-
 export interface LiveBrowserAuthConfig {
   kind: 'live'
   auth0ClientId: string
@@ -31,8 +29,6 @@ export function assertBrowserSafeViteEnv(env: Record<string, string | undefined>
     if (PRIVILEGED_VITE_NAME.test(name) || looksLikePrivilegedValue(value)) {
       throw new Error('privileged_browser_credential_rejected')
     }
-
-    assertBrowserSafeSupabaseKey(value)
   }
 }
 
@@ -106,5 +102,27 @@ function looksLikePrivilegedValue(value: string | undefined): boolean {
     return false
   }
 
-  return normalized.includes('BEGIN PRIVATE KEY') || normalized.startsWith('cvx_')
+  return (
+    normalized.includes('BEGIN PRIVATE KEY') ||
+    normalized.startsWith('cvx_') ||
+    normalized.startsWith('sb_secret_') ||
+    hasServiceRoleClaim(normalized)
+  )
+}
+
+function hasServiceRoleClaim(key: string): boolean {
+  const payload = key.split('.')[1]
+
+  if (!payload) {
+    return false
+  }
+
+  try {
+    const base64 = payload.replaceAll('-', '+').replaceAll('_', '/')
+    const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')
+    const parsed = JSON.parse(atob(paddedBase64)) as { role?: unknown }
+    return parsed.role === 'service_role'
+  } catch {
+    return false
+  }
 }

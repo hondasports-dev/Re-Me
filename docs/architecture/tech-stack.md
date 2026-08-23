@@ -28,7 +28,7 @@
 - Redux / Zustand before a demonstrated client-state need
 - ESLint / Prettier alongside Oxc tools
 
-These packages may remain temporarily during migration. Presence in `package.json` does not make them part of the target stack.
+Runtime から外した。`supabase` CLI は `supabase/migrations/` と SQL security tests の比較用にだけ残す。
 
 ## Frontend providers
 
@@ -87,4 +87,4 @@ Convex File Storage の恒久 bearer URL は access condition が後から変わ
 
 ## Migration note
 
-Target stack への runtime migration は別 Issue で段階的に行う。移行完了までは legacy Supabase migration / tests を削除せず、同一 PR 内で新旧 backend を長期二重運用しない。
+Runtime は Auth0 + Convex。`supabase/migrations/` と `supabase/tests/` は production data migration / rollback 方針が固まるまで invariant 比較用に残す。通常の `pnpm test` は local Supabase を起動しない。最終削除は別 Issue と Human Gate で行う。

@@ -12,6 +12,8 @@ pnpm build
 
 Critical flow を変更する場合は `pnpm test:e2e` を実行する。
 
+通常の Quality gates / `pnpm test` は local Supabase を起動しない。legacy PostgreSQL / RLS の比較は CI の `Legacy database invariants` job（`pnpm db:test`）で残す。
+
 ## Convex gates
 
 CI の Quality gates は `pnpm test:convex` を必須 step にする。`convex-test` の in-memory harness で authorization / schema を検証し、live Convex deployment は使わない。
