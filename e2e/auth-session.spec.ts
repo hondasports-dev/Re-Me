@@ -9,7 +9,10 @@ test.describe('authenticated local session', () => {
     await authenticatedPage.goto('/')
 
     await expect(authenticatedPage).toHaveURL(/\/$/)
-    await expect(authenticatedPage.getByRole('heading', { name: '未来のあなたへ' })).toBeVisible()
+    await expect(authenticatedPage.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
     await expect(authenticatedPage.getByRole('button', { name: 'ログアウト' })).toBeVisible()
+    await expect(
+      authenticatedPage.getByRole('navigation', { name: 'メインナビゲーション' }),
+    ).toBeVisible()
   })
 })

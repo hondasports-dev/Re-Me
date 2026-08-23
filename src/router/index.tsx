@@ -3,7 +3,9 @@ import { createBrowserRouter, createMemoryRouter, type RouteObject } from 'react
 import { App } from '../app/App'
 import { AuthCallbackPage } from '../features/auth/pages/AuthCallbackPage'
 import { LoginPage } from '../features/auth/pages/LoginPage'
-import { HomePage } from '../features/home/pages/HomePage'
+import { ComposePage } from '../features/compose/pages/ComposePage'
+import { InboxPage } from '../features/inbox/pages/InboxPage'
+import { TravelingPage } from '../features/traveling/pages/TravelingPage'
 import { GuestOnly, RequireAuth } from './RequireAuth'
 
 export type AppRouter = ReturnType<typeof createBrowserRouter>
@@ -19,7 +21,15 @@ export function createAppRoutes(): RouteObject[] {
           children: [
             {
               index: true,
-              element: <HomePage />,
+              element: <InboxPage />,
+            },
+            {
+              path: 'write',
+              element: <ComposePage />,
+            },
+            {
+              path: 'traveling',
+              element: <TravelingPage />,
             },
           ],
         },

@@ -8,7 +8,7 @@ import { AuthSessionProvider } from '../features/auth/AuthSessionProvider'
 import { authSession } from '../features/auth/auth-session'
 import { createAppRouter } from '../router'
 import { createQueryClient } from '../shared/query/client'
-import { reMeTheme } from '../styles/theme'
+import { reMeCssVariablesResolver, reMeTheme } from '../styles/theme'
 
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
@@ -32,7 +32,12 @@ export function AppProviders({ children }: AppProvidersProps) {
   const [router] = useState(() => createAppRouter())
 
   return (
-    <MantineProvider defaultColorScheme="light" forceColorScheme="light" theme={reMeTheme}>
+    <MantineProvider
+      cssVariablesResolver={reMeCssVariablesResolver}
+      defaultColorScheme="light"
+      forceColorScheme="light"
+      theme={reMeTheme}
+    >
       <Notifications position="top-center" />
       <QueryClientProvider client={queryClient}>
         <AuthQueryBridge queryClient={queryClient} />

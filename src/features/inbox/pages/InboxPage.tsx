@@ -1,0 +1,20 @@
+import { Button } from '@mantine/core'
+import { Link } from 'react-router'
+
+import { StatusScreen } from '../../../shared/components/StatusScreen'
+
+export function InboxPage() {
+  return (
+    <StatusScreen
+      action={
+        <Button component={Link} to="/write" variant="light">
+          手紙を書く
+        </Button>
+      }
+      description="まだ、あなた宛ての手紙は届いていません。今の気持ちを書いて、未来の自分へ届けよう。"
+      title="届いた手紙"
+      tone="content"
+      variant="empty"
+    />
+  )
+}

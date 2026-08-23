@@ -51,7 +51,9 @@ export function AuthCallbackPage() {
 
   return (
     <section className="auth-panel" aria-labelledby="callback-title" aria-live="polite">
-      <p className="auth-panel__brand">Re:Me</p>
+      <p className="auth-panel__brand" aria-label="Re:Me 未来のあなたへ">
+        Re:Me
+      </p>
 
       {uiStatus === 'processing' ? (
         <>

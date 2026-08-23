@@ -2,13 +2,70 @@
   --re-me-color-ink: #203047;
   --re-me-color-ink-muted: #617189;
   --re-me-color-paper: #ffffff;
+  --re-me-color-surface: #f8fbfd;
   --re-me-color-mist: #f4f8fc;
   --re-me-color-sky: #d8e8f7;
   --re-me-color-sky-deep: #7fa9ce;
+  --re-me-color-navy: #203047;
   --re-me-color-accent: #e7b8a5;
   --re-me-color-border: rgba(127, 169, 206, 0.24);
-  --re-me-shadow-soft: 0 1.5rem 3rem rgba(72, 102, 132, 0.12);
-  --re-me-radius-panel: 1.75rem;
+  --re-me-color-danger: #8a3f39;
+  --re-me-color-focus: color-mix(in srgb, var(--re-me-color-sky-deep) 65%, white);
+
+  --re-me-font-sans:
+    'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', system-ui, sans-serif;
+  --re-me-font-serif: Georgia, 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --re-me-font-size-xs: 0.7rem;
+  --re-me-font-size-sm: 0.85rem;
+  --re-me-font-size-md: 1rem;
+  --re-me-font-size-lg: 1.35rem;
+  --re-me-font-size-xl: clamp(1.6rem, 8vw, 2.4rem);
+  --re-me-line-height-body: 1.7;
+  --re-me-letter-spacing-brand: 0.04em;
+  --re-me-letter-spacing-label: 0.16em;
+
+  --re-me-space-1: 0.25rem;
+  --re-me-space-2: 0.5rem;
+  --re-me-space-3: 0.75rem;
+  --re-me-space-4: 1rem;
+  --re-me-space-5: 1.5rem;
+  --re-me-space-6: 2rem;
+  --re-me-space-7: 2.5rem;
+  --re-me-space-8: 3.5rem;
   --re-me-spacing-page: clamp(1.25rem, 5vw, 2rem);
-  --re-me-motion-standard: 220ms ease;
+
+  --re-me-safe-top: env(safe-area-inset-top, 0px);
+  --re-me-safe-right: env(safe-area-inset-right, 0px);
+  --re-me-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --re-me-safe-left: env(safe-area-inset-left, 0px);
+  --re-me-header-content-height: 3.5rem;
+  --re-me-nav-content-height: 4.25rem;
+  --re-me-header-height: calc(var(--re-me-header-content-height) + var(--re-me-safe-top));
+  --re-me-nav-height: calc(var(--re-me-nav-content-height) + var(--re-me-safe-bottom));
+
+  --re-me-radius-sm: 0.5rem;
+  --re-me-radius-md: 0.75rem;
+  --re-me-radius-lg: 1rem;
+  --re-me-radius-xl: 1.75rem;
+  --re-me-radius-pill: 999px;
+  --re-me-radius-panel: var(--re-me-radius-xl);
+
+  --re-me-shadow-sm: 0 0.4rem 1.2rem rgba(72, 102, 132, 0.08);
+  --re-me-shadow-md: 0 1rem 2rem rgba(72, 102, 132, 0.1);
+  --re-me-shadow-soft: 0 1.5rem 3rem rgba(72, 102, 132, 0.12);
+
+  --re-me-motion-duration-fast: 120ms;
+  --re-me-motion-duration-standard: 220ms;
+  --re-me-motion-duration-slow: 400ms;
+  --re-me-motion-easing: ease;
+  --re-me-motion-standard: var(--re-me-motion-duration-standard) var(--re-me-motion-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --re-me-motion-duration-fast: 0.01ms;
+    --re-me-motion-duration-standard: 0.01ms;
+    --re-me-motion-duration-slow: 0.01ms;
+    --re-me-motion-standard: 0.01ms linear;
+  }
 }
