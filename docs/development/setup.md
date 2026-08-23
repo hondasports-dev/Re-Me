@@ -78,6 +78,12 @@ package version は導入時の stable を公式 docs と compatibility で確�
 
 実際の Convex / Cloudflare deploy command は導入時の公式 docs と CI provider の制約で確定する。Production deploy はこのセットアップ作業の自動実行対象にしない。
 
+## Formatting
+
+Oxfmt が正。Prettier は入れない。改行は LF で固定する。
+
+Windows でも Git の `core.autocrlf` に任せず、`.gitattributes` の `eol=lf` と `.oxfmtrc.json` の `endOfLine: "lf"` を正とする。`pnpm format` が working tree 全体を CRLF に書き換えないようにするため。
+
 ## Provider bootstrap
 
 ```text
