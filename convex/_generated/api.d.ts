@@ -8,7 +8,15 @@
  * @module
  */
 
+import type * as attachments from "../attachments.js";
+import type * as delivery from "../delivery.js";
 import type * as health from "../health.js";
+import type * as letters from "../letters.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_authorization from "../lib/authorization.js";
+import type * as lib_letters from "../lib/letters.js";
+import type * as lib_validators from "../lib/validators.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +25,15 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  attachments: typeof attachments;
+  delivery: typeof delivery;
   health: typeof health;
+  letters: typeof letters;
+  "lib/auth": typeof lib_auth;
+  "lib/authorization": typeof lib_authorization;
+  "lib/letters": typeof lib_letters;
+  "lib/validators": typeof lib_validators;
+  users: typeof users;
 }>;
 
 /**
