@@ -100,8 +100,9 @@ describe('auth router guards', () => {
 
     await waitFor(() => {
       expect(view.router.state.location.pathname).toBe('/')
-      expect(view.getByRole('heading', { name: '未来のあなたへ' })).toBeInTheDocument()
+      expect(view.getByRole('heading', { name: '届いた手紙' })).toBeInTheDocument()
       expect(view.getByRole('button', { name: 'ログアウト' })).toBeInTheDocument()
+      expect(view.getByRole('navigation', { name: 'メインナビゲーション' })).toBeInTheDocument()
     })
   })
 
@@ -110,7 +111,7 @@ describe('auth router guards', () => {
 
     await waitFor(() => {
       expect(view.router.state.location.pathname).toBe('/')
-      expect(view.getByRole('heading', { name: '未来のあなたへ' })).toBeInTheDocument()
+      expect(view.getByRole('heading', { name: '届いた手紙' })).toBeInTheDocument()
     })
   })
 

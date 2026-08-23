@@ -42,7 +42,9 @@ export function LoginPage() {
 
   return (
     <section className="auth-panel" aria-labelledby="login-title">
-      <p className="auth-panel__brand">Re:Me</p>
+      <p className="auth-panel__brand" aria-label="Re:Me 未来のあなたへ">
+        Re:Me
+      </p>
       <h1 id="login-title">未来のあなたへ</h1>
       <p className="auth-panel__copy">今のあなたから、まだ見ぬ未来のあなたへ。</p>
 
