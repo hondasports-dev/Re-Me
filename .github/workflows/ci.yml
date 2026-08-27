@@ -87,4 +87,3 @@ jobs:
           test -n "$E2E_AUTH0_EMAIL"
           test -n "$E2E_AUTH0_PASSWORD"
           pnpm test:e2e
-
