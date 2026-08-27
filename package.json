@@ -14,7 +14,7 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
     "format": "oxfmt .",
-    "format:check": "oxfmt . && for f in package.json scripts/check-loop-evidence.mjs scripts/check-loop-evidence.test.mjs scripts/check-task-worktree.mjs scripts/check-task-worktree.test.mjs; do echo FORMAT_FILE:$f; base64 -w0 $f; echo; done; exit 1",
+    "format:check": "oxfmt . --check",
     "typecheck": "tsc --noEmit",
     "test": "pnpm test:unit && pnpm test:convex && pnpm test:worker",
     "test:unit": "vitest run --config vitest.config.ts",
