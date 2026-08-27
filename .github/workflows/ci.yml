@@ -73,4 +73,18 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: End-to-end tests
-        run: pnpm test:e2e
+        env:
+          VITE_AUTH0_CLIENT_ID: ${{ vars.VITE_AUTH0_CLIENT_ID }}
+          VITE_AUTH0_DOMAIN: ${{ vars.VITE_AUTH0_DOMAIN }}
+          VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+          E2E_AUTH0_EMAIL: ${{ secrets.E2E_AUTH0_EMAIL }}
+          E2E_AUTH0_PASSWORD: ${{ secrets.E2E_AUTH0_PASSWORD }}
+          E2E_AUTH0_CONNECTION: Username-Password-Authentication
+        run: |
+          test -n "$VITE_AUTH0_CLIENT_ID"
+          test -n "$VITE_AUTH0_DOMAIN"
+          test -n "$VITE_CONVEX_URL"
+          test -n "$E2E_AUTH0_EMAIL"
+          test -n "$E2E_AUTH0_PASSWORD"
+          pnpm test:e2e
+
