@@ -11,9 +11,8 @@ test.describe('compose draft editor', () => {
     'Authenticated E2E needs the Auth0 test identity in E2E_AUTH0_EMAIL / E2E_AUTH0_PASSWORD',
   )
 
-  test('writes a draft, keeps attachments optional, and reaches delivery settings', async ({
-    page,
-  }) => {
+  test('writes a draft, confirms delivery settings, and sends the letter', async ({ page }) => {
+    test.setTimeout(60_000)
     await openAuthenticatedInbox(page)
 
     await page.getByRole('link', { name: '書く' }).click()
@@ -40,7 +39,10 @@ test.describe('compose draft editor', () => {
     await page.getByRole('button', { name: '次へ' }).click()
 
     await expect(page).toHaveURL(/\/write\/[^/]+\/send$/, { timeout: 20_000 })
+    const editorUrl = page.url().replace(/\/send$/, '')
     await expect(page.getByRole('heading', { name: '届ける時期と封' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '未来へ送る前の確認' })).toBeVisible()
+    await expect(page.getByText(letterBody)).toBeVisible()
     await expect(page.getByRole('radio', { name: '数日後くらい' })).toBeVisible()
     await expect(page.getByRole('radio', { name: '数週間後くらい' })).toBeVisible()
     await expect(page.getByRole('radio', { name: '数か月後くらい' })).toBeVisible()
@@ -55,7 +57,21 @@ test.describe('compose draft editor', () => {
 
     await page.getByRole('radio', { name: /封をしない/ }).check()
     await expect(page.getByRole('radio', { name: /封をしない/ })).toBeChecked()
-    await expect(page.getByRole('button', { name: '未来へ送る' })).toBeDisabled()
+    await expect(page.locator('dd', { hasText: '数週間後くらい' })).toBeVisible()
+    await expect(page.locator('dd', { hasText: '封をしない' })).toBeVisible()
+    await expect(page.getByText('写真なし / 場所なし')).toBeVisible()
+    await expect(page.getByRole('button', { name: '未来へ送る' })).toBeEnabled()
+
+    await page.getByRole('button', { name: '未来へ送る' }).click()
+    await expect(page.getByRole('heading', { name: '手紙は未来へ旅立ちました' })).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
+
+    await page.goto(editorUrl)
+    await expect(page.getByRole('heading', { name: 'この手紙はもう送れません' })).toBeVisible()
+    await expect(page.getByText('送信後の本文・添付・配送設定は変えられません。')).toBeVisible()
   })
 
   test('autosaves the body so a reload restores the draft', async ({ page }) => {

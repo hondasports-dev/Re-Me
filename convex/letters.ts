@@ -10,6 +10,7 @@ import {
   listLetterAttachments,
   loadOwnedDraft,
   loadVisibleLetter,
+  sendOwnedLetter,
   toLetterMetadata,
 } from './lib/letters'
 import {
@@ -20,6 +21,7 @@ import {
   letterMetadataValidator,
   letterStatusValidator,
   readableContentValidator,
+  sentLetterValidator,
 } from './lib/validators'
 
 export const createDraft = mutation({
@@ -87,6 +89,17 @@ export const getDraft = query({
       body: content.body,
       locationLabel: location?.locationLabel ?? null,
     }
+  },
+})
+
+export const sendLetter = mutation({
+  args: {
+    letterId: v.id('letters'),
+  },
+  returns: sentLetterValidator,
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    return await sendOwnedLetter(ctx, user._id, args.letterId)
   },
 })
 

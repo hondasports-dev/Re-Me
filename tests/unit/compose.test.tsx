@@ -7,10 +7,14 @@ vi.mock('convex/react', () => ({
   useAction: () => vi.fn().mockResolvedValue(null),
 }))
 
+import { DeliverySealForm } from '../../src/features/compose/components/DeliverySealForm'
 import { LetterEditor } from '../../src/features/compose/components/LetterEditor'
+import { SendRitual } from '../../src/features/compose/components/SendRitual'
 import {
   canAdvanceToSend,
+  canConfirmSend,
   resetBlankDraftInflight,
+  sendConfirmationSummary,
   startBlankDraft,
 } from '../../src/features/compose/model/compose'
 import { reMeTheme } from '../../src/styles/theme'
@@ -19,6 +23,58 @@ describe('compose model', () => {
   it('blocks send confirmation until the body has text', () => {
     expect(canAdvanceToSend('   ')).toBe(false)
     expect(canAdvanceToSend('今の自分へ')).toBe(true)
+  })
+
+  it('enables send only when body, delivery mode, and attachments are ready', () => {
+    expect(
+      canConfirmSend({
+        attachmentsReady: true,
+        body: '今の自分へ',
+        deliveryMode: null,
+        sending: false,
+      }),
+    ).toBe(false)
+    expect(
+      canConfirmSend({
+        attachmentsReady: false,
+        body: '今の自分へ',
+        deliveryMode: 'few_days',
+        sending: false,
+      }),
+    ).toBe(false)
+    expect(
+      canConfirmSend({
+        attachmentsReady: true,
+        body: '今の自分へ',
+        deliveryMode: 'few_days',
+        sending: true,
+      }),
+    ).toBe(false)
+    expect(
+      canConfirmSend({
+        attachmentsReady: true,
+        body: '今の自分へ',
+        deliveryMode: 'few_days',
+        sending: false,
+      }),
+    ).toBe(true)
+  })
+
+  it('summarizes body, delivery, seal, and attachments for confirmation', () => {
+    expect(
+      sendConfirmationSummary({
+        body: '  未来の自分へ  ',
+        deliveryMode: 'few_weeks',
+        locationLabel: '鴨川',
+        photoCount: 2,
+        sealed: false,
+      }),
+    ).toEqual({
+      attachmentLabel: '写真 2枚 / 場所「鴨川」',
+      bodyPreview: '未来の自分へ',
+      deliveryLabel: '数週間後くらい',
+      sealLabel: '封をしない',
+    })
   })
 
   it('reuses an in-flight blank draft create', async () => {
@@ -121,5 +177,105 @@ describe('LetterEditor', () => {
 
     expect(screen.getByRole('button', { name: '次へ' })).toBeDisabled()
     expect(screen.getByText('写真の準備が終わるまでお待ちください。')).toBeInTheDocument()
+  })
+})
+
+describe('DeliverySealForm', () => {
+  it('keeps send disabled until a delivery window is chosen, then confirms the letter', async () => {
+    const user = userEvent.setup()
+    let sendCount = 0
+    const view = render(
+      <MantineProvider theme={reMeTheme}>
+        <DeliverySealForm
+          body="未来の自分へ"
+          deliveryMode={null}
+          locationLabel="鴨川"
+          onDeliveryModeChange={() => undefined}
+          onSealedChange={() => undefined}
+          onSend={() => {
+            sendCount += 1
+          }}
+          photoCount={1}
+          photosPending={false}
+          saveStatus="idle"
+          sealed
+          sendError={null}
+          sending={false}
+        />
+      </MantineProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: '未来へ送る' })).toBeDisabled()
+    expect(screen.getByRole('heading', { name: '未来へ送る前の確認' })).toBeVisible()
+    expect(screen.getByText('未来の自分へ')).toBeVisible()
+    expect(screen.getByText('まだ選んでいません')).toBeVisible()
+    expect(screen.getByText('写真 1枚 / 場所「鴨川」')).toBeVisible()
+
+    view.rerender(
+      <MantineProvider theme={reMeTheme}>
+        <DeliverySealForm
+          body="未来の自分へ"
+          deliveryMode="few_weeks"
+          locationLabel="鴨川"
+          onDeliveryModeChange={() => undefined}
+          onSealedChange={() => undefined}
+          onSend={() => {
+            sendCount += 1
+          }}
+          photoCount={1}
+          photosPending={false}
+          saveStatus="saved"
+          sealed={false}
+          sendError={null}
+          sending={false}
+        />
+      </MantineProvider>,
+    )
+
+    expect(screen.getAllByText('数週間後くらい').length).toBeGreaterThan(1)
+    expect(screen.getByRole('radio', { name: /封をしない/ })).toBeChecked()
+    expect(screen.getByText('写真 1枚 / 場所「鴨川」')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: '未来へ送る' }))
+    expect(sendCount).toBe(1)
+  })
+
+  it('keeps send disabled while a photo is still pending', () => {
+    render(
+      <MantineProvider theme={reMeTheme}>
+        <DeliverySealForm
+          body="未来の自分へ"
+          deliveryMode="few_days"
+          locationLabel={null}
+          onDeliveryModeChange={() => undefined}
+          onSealedChange={() => undefined}
+          onSend={() => undefined}
+          photoCount={0}
+          photosPending
+          saveStatus="saved"
+          sealed
+          sendError={null}
+          sending={false}
+        />
+      </MantineProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: '未来へ送る' })).toBeDisabled()
+    expect(screen.getByText('写真の準備が終わるまでお待ちください。')).toBeVisible()
+  })
+})
+
+describe('SendRitual', () => {
+  it('finishes immediately when motion is reduced', async () => {
+    vi.useFakeTimers()
+    const onFinished = vi.fn()
+
+    try {
+      render(<SendRitual onFinished={onFinished} reducedMotion />)
+      expect(screen.getByRole('heading', { name: '手紙は未来へ旅立ちました' })).toBeVisible()
+      await vi.advanceTimersByTimeAsync(50)
+      expect(onFinished).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

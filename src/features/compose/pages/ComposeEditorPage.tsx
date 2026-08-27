@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
+import { ComposeUnavailableScreen } from '../components/ComposeUnavailableScreen'
 import { LetterEditor } from '../components/LetterEditor'
 import type { PhotoAttachment } from '../components/PhotoAttachmentList'
 import { useAutosaveDraft } from '../hooks/useAutosaveDraft'
@@ -15,16 +16,13 @@ export function ComposeEditorPage() {
   const { letterId } = useParams()
   const typedLetterId = letterId as Id<'letters'> | undefined
   const draft = useQuery(api.letters.getDraft, typedLetterId ? { letterId: typedLetterId } : 'skip')
+  const metadata = useQuery(
+    api.letters.getLetterMetadata,
+    typedLetterId && draft === null ? { letterId: typedLetterId } : 'skip',
+  )
 
-  if (!typedLetterId || draft === null) {
-    return (
-      <StatusScreen
-        description="この下書きは開けないか、もう送れない手紙です。"
-        title="手紙が見つかりません"
-        tone="content"
-        variant="error"
-      />
-    )
+  if (!typedLetterId) {
+    return <ComposeUnavailableScreen sent={false} />
   }
 
   if (draft === undefined) {
@@ -34,6 +32,25 @@ export function ComposeEditorPage() {
         title="手紙を書く"
         tone="content"
         variant="loading"
+      />
+    )
+  }
+
+  if (draft === null) {
+    if (metadata === undefined) {
+      return (
+        <StatusScreen
+          description="便箋をひらいています。"
+          title="手紙を書く"
+          tone="content"
+          variant="loading"
+        />
+      )
+    }
+
+    return (
+      <ComposeUnavailableScreen
+        sent={metadata?.status === 'traveling' || metadata?.status === 'delivered'}
       />
     )
   }

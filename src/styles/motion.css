@@ -8,6 +8,10 @@
   .status-screen__spinner {
     animation: re-me-spin 900ms linear infinite;
   }
+
+  .send-ritual__envelope {
+    animation: re-me-send-seal var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -33,5 +37,17 @@
 @keyframes re-me-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes re-me-send-seal {
+  from {
+    opacity: 0.6;
+    transform: translateY(0.4rem) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
