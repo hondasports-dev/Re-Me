@@ -45,6 +45,29 @@ describe('check-loop-evidence', () => {
     expect(result).toEqual({ ok: true, errors: [] })
   })
 
+  it('rejects applied learning without an explicit current-PR request', () => {
+    const result = evaluateLearningApplication({
+      learning: {
+        event: 'human_correction',
+        status: 'pass',
+        candidates: [
+          {
+            observed_problem: 'manual rule was skipped',
+            process_cause: 'no deterministic enforcement',
+            reusable_rule: 'enforce reusable process invariants with a script',
+            improvement_axes: ['precision'],
+            proposed_target: 'scripts/check-loop-evidence.mjs',
+            disposition: 'applied',
+            evidence: ['task-state learning record'],
+            location: 'scripts/check-loop-evidence.mjs',
+            verification_evidence: ['targeted unit tests pass'],
+          },
+        ],
+      },
+    })
+    expect(result.ok).toBe(false)
+  })
+
   it('requires persistent follow-up metadata', () => {
     const result = evaluateLearningApplication({
       learning: {
