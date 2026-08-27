@@ -99,6 +99,17 @@ export const createdDraftValidator = v.object({
   threadId: v.id('threads'),
 })
 
+export const sentLetterValidator = v.object({
+  letterId: v.id('letters'),
+  threadId: v.id('threads'),
+  status: v.literal('traveling'),
+  sealed: v.boolean(),
+  deliveryMode: deliveryModeValidator,
+  deliveryWindowStart: v.number(),
+  deliveryWindowEnd: v.number(),
+  sentAt: v.number(),
+})
+
 export const draftEditorValidator = v.object({
   letterId: v.id('letters'),
   threadId: v.id('threads'),
@@ -106,4 +117,5 @@ export const draftEditorValidator = v.object({
   deliveryMode: v.union(deliveryModeValidator, v.null()),
   body: v.string(),
   locationLabel: v.union(v.string(), v.null()),
+  attachmentsReady: v.boolean(),
 })
