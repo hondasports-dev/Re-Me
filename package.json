@@ -22,7 +22,7 @@
     "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:loop": "vitest run scripts/check-loop-evidence.test.mjs scripts/check-task-worktree.test.mjs --environment=node",
+    "test:loop": "vitest run --config vitest.loop.config.mjs",
     "loop:preflight": "node scripts/check-task-worktree.mjs --require-clean",
     "convex:dev": "convex dev",
     "convex:codegen": "convex codegen",
