@@ -31,7 +31,6 @@
     "db:reset": "supabase db reset --local --no-seed --yes",
     "db:lint": "supabase db lint --local --level warning",
     "db:advisors": "supabase db advisors --local --type all --level warn --fail-on warn",
-    "db:test": "supabase test db --local",
     "db:types": "supabase gen types --local --schema public > supabase/database.generated.ts",
     "cf:typegen": "wrangler types"
   },

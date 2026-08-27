@@ -126,7 +126,7 @@ edge 固有 route を将来追加する場合は、Convex と責務が重複し�
 
 ## Legacy migration boundary
 
-`supabase/migrations/` と `supabase/tests/` は production data migration まで残す legacy artifact である。runtime の Supabase client / Hono application API / TanStack Query は置かない。
+`supabase/migrations/` は production data migration まで残す legacy artifact である。runtime の Supabase client / Hono application API / TanStack Query は置かない。
 
 ## Testing placement
 

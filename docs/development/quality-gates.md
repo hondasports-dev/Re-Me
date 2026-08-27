@@ -12,7 +12,7 @@ pnpm build
 
 Critical flow を変更する場合は `pnpm test:e2e` を実行する。user-visible な画面 / 遷移を足す・変える場合は、**変更した画面そのもの** を踏む Playwright が mandatory である。未実装の critical 3本や、変更していない login E2E の成功を省略理由・代替 evidence にしない。credential 不足は `NOT_REQUIRED` ではなく BLOCKED とする。
 
-通常の Quality gates / `pnpm test` は local Supabase を起動しない。legacy PostgreSQL / RLS の比較は CI の `Database security gates` job（`pnpm db:test`）で残す。check 名は main の ruleset が要求する `Database security gates` のままにし、中身は runtime ではなく invariant 比較である。
+通常の Quality gates / `pnpm test` は local Supabase を起動しない。authorization / schema は `pnpm test:convex` で検証する。
 
 ## Convex gates
 

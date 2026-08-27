@@ -1,6 +1,6 @@
 # 開発セットアップ
 
-この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。runtime は Auth0 + Convex。legacy `supabase/migrations/` と security tests は invariant 比較用に残し、通常の local / CI test は Supabase 起動を要求しない。
+この文書は Auth0 + Convex + Cloudflare target architecture のセットアップ基準。runtime は Auth0 + Convex。legacy `supabase/migrations/` は invariant 比較用に残し、通常の local / CI test は Supabase 起動を要求しない。
 
 ## Prerequisites
 

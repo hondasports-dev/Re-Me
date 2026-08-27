@@ -5,10 +5,9 @@
 残すもの:
 
 - `supabase/migrations/` — legacy PostgreSQL / RLS / RPC の正本
-- `supabase/tests/` — legacy security tests
 - `supabase/config.toml` — local comparison 用
 
-通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` と CI の `Database security gates` job を使う。
+通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` する。
 
 最終削除は implementation-order の data migration issue と Human Gate で行う。
 
@@ -81,35 +80,12 @@ pnpm db:start
 pnpm db:reset
 pnpm db:lint
 pnpm db:advisors
-pnpm db:test
 pnpm db:types
 pnpm db:stop
 ```
 
 比較用に `pnpm db:start` すると local PostgreSQL と Auth (GoTrue) も起動する。これは runtime や通常 E2E の前提ではない。
 
-remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。初回は Docker image の取得に時間がかかる。`db:advisors` は security / performance の warning 以上を CI failure にする。
+remote Supabase project や Dashboard の手作業は、この local workflow の前提にしない。初回は Docker image の取得に時間がかかる。
 
 生成した public schema の TypeScript types は `supabase/database.generated.ts` に出す（gitignored、runtime では使わない）。schema 比較が必要なときだけ `pnpm db:types` で再生成する。
-
-## RLS test requirement
-
-これらは legacy PostgreSQL / RLS の比較用 SQL test である。現行の user-facing E2E や Quality gates の前提ではない。
-
-少なくとも以下を自動テストする。
-
-1. User A から User B の thread / letter metadata が見えない
-2. sealed + traveling の本文が本人にも見えない
-3. sealed + delivered + unopened の本文が本人にも見えない
-4. `open_letter` 後に本文が見える
-5. unsealed の sent letter は本人が読み返せる
-6. sent letter の本文 update が拒否される
-7. draft の本文 update は許可される
-8. exact `scheduled_at` が authenticated client から取得できない
-9. authenticated user から delivery RPC を実行できない
-10. `create_draft -> send_letter` の基本遷移が成功する
-11. 一つの parent に複数の非削除 reply を作れない
-12. notification job の claim → complete が token 世代を検証する
-13. reclaim 後の旧 token 完了、完了済み job の再完了が拒否される
-
-追加で attachment visibility、soft-delete 後の immutability、delivery / notification outbox の冪等性、anon access denial も固定する。
