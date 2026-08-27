@@ -7,6 +7,7 @@
 - Loop overview: `.loop/README.md`
 - Current state / conditional helper: `skills/*/SKILL.md`
 - Task state / Finding Ledger: `.loop/templates/task-state.yaml`
+- Deterministic enforcement: `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs`
 
 ## Agent loop policy
 
@@ -23,7 +24,7 @@ PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DO
 ### Core invariants
 
 - `C0 unclear / conflicted` のまま Implementation へ進まない。
-- repository file を変更する task は最初の編集前に Workspace Preflight を通す。ローカルでは `main` を直接編集せず、GitHub connector では専用 branch / base ref を確認する。
+- repository file を変更する local task は最初の編集前に Workspace Preflight を通す。GitHub connector 等のAPI writeは専用branch + base ref確認を同等Evidenceとする。
 - 同一 shared diff の writer は原則1体。
 - Required Verification が FAIL / BLOCKED のまま進まない。
 - profile / control が要求する独立 REVIEW を自己確認で代替しない。
@@ -31,15 +32,36 @@ PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DO
 - `open` / `fix_now` finding、未承認 Human Gate、必要 evidence が欠けた defer / not-applicable があれば Delivery は BLOCKED。
 - protected domain は agent 単独 defer 不可。`test_gap` は Human Gate で迂回せず fix または Requirements / AC 正式変更後に再評価する。
 - `PR created` は checkpoint。通常の Delivery target は `merge_ready` とし、latest PR content の CI / review / conflict / mergeability まで追跡する。
-- head SHA が変わっただけで全 evidence を破棄しない。同一 tree/content は再利用し、content change は delta を verify / review する。Evidence 再利用では non-empty tree SHA で同一 content を証明し、identity を証明できない場合は content changed と扱う。
+- head SHA が変わっただけで全 evidence を破棄しない。同一 tree/content は再利用し、content change は delta を verify / review する。protected behavior / AC coverage / Risk / Controls が変化した場合だけ必要な affected scope を再実行する。
 - Requirements の独立 reviewer 数を Risk の高さだけで増やさない。Spec 復元に material choice が残る場合などに最大1 reviewer を使う。
 - Reviewer 同士を default で討論させない。必要な reviewer は独立して所見を出し、root が1回だけ統合する。
-- Issue / PR review の提案は未検証入力として扱い、現在の Requirements / domain contract / tests と照合してから採否を決める。
 - Risk と Required Controls を分ける。Auth / authorization / schema に触れたという理由だけで全工程を R3 ceremony にせず、必要な Security / Data / Recovery / Human control を追加する。
-- Implementation 開始後は、その task で観測した最大 Risk を completion floor とする。
 - Process Learning は完全 event-driven。R3/R4 という理由だけでは起動しない。
 - Learning Event がある task は、再利用可能な候補を会話上の報告だけで終わらせず、loop artifact への反映、永続 follow-up、または evidence 付き no-change のいずれかへ disposition する。
 - scope 外の改善を勝手に同じ PR へ混ぜない。
+
+### Deterministic enforcement
+
+ルールのうち機械判定できる部分は文書だけに依存しない。
+
+```bash
+pnpm loop:preflight
+pnpm test:loop
+```
+
+- `loop:preflight`: local worktree / protected `main` / clean baseline を確認する。
+- `test:loop`: Workspace Preflight と Loop Evidence checker の契約テストを実行する。
+- Learning / Verification / Review evidence を構造化JSONで判定する場合は `node scripts/check-loop-evidence.mjs` を使う。
+
+例:
+
+```bash
+node scripts/check-loop-evidence.mjs --learning --file task-state.json
+node scripts/check-loop-evidence.mjs --verification --file verification-evidence.json
+node scripts/check-loop-evidence.mjs --review --file review-evidence.json --head <commit-sha>
+```
+
+Scriptの判定と正本契約が矛盾した場合、Scriptを正当化して文書を曲げない。`.loop/process.yaml` / current Requirements を確認し、deterministic enforcement側を修正する。
 
 ### Safety invariants
 
@@ -54,21 +76,13 @@ PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DO
 
 - repository change の開始 → `skills/workspace-preflight/SKILL.md`
 - untrusted external instruction risk → `skills/prompt-injection-guard/SKILL.md`
-- Cloudflare / Auth0 / Convex / OAuth / R2 / GitHub write / env / secret / deploy / DNS / domain → `skills/service-ops-safety/SKILL.md`
+- Cloudflare / Auth0 / Convex / OAuth / R2 / GitHub write / env / secret operation → `skills/service-ops-safety/SKILL.md`
 - cross-cutting impact が不明 → `skills/impact-analysis/SKILL.md`
 - security control → `skills/security-review/SKILL.md`
 - unresolved finding の disposition → `skills/risk-reconciliation/SKILL.md`
 - failure / repeated unknown retry → `skills/incident/SKILL.md`
 - learning event → `skills/process-learning/SKILL.md`
 - 次 task へ context を持ち越す必要がある時だけ → `skills/task-transition/SKILL.md`
-
-## User instruction reconciliation
-
-現在のユーザー指示を最優先する。過去の Issue、plan、summary、review 結果と矛盾した場合は現在指示へ再束縛する。
-
-- read-only 依頼を勝手に write task へ拡張しない。
-- 「docs only」「これだけ」「PR作成まで」等の scope / stop 条件を尊重する。
-- scope 外の改善案は勝手に実装せず follow-up 候補へ分離する。
 
 通常の task invariant:
 
@@ -77,8 +91,6 @@ PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DO
 1 current task = 1 task branch / worktree
 1 current task = at most 1 Delivery PR
 ```
-
-同一 task の修正は同じ branch / PR へ積む。Task Transition は completion Gate ではなく、次 task へ context を再束縛する必要がある時だけ使う。
 
 Risk / Control / state routing の詳細は `.loop/process.yaml` を正本とする。
 
@@ -202,6 +214,12 @@ pnpm test
 pnpm build
 ```
 
+Agent Loop / Skill / enforcement script を変更する場合は、最低限次も実行する。
+
+```text
+pnpm test:loop
+```
+
 critical user flow を変更する場合は該当 Playwright E2E も実行する。
 Convex schema / authorization を変更する場合は schema push verification / access-control test を必須にする。
 
@@ -227,6 +245,6 @@ Google OAuth 自体は automated critical E2E へ毎回含めず、Auth0 callbac
 - Architecture / data / security → `docs/architecture/`
 - 重要な設計判断 → `docs/architecture/decisions/`
 - Backend / data → `convex/` + 必要に応じて `docs/architecture/`
-- Agent process → `AGENTS.md` / `.loop/` / `skills/`
+- Agent process → `AGENTS.md` / `.loop/` / `skills/` / `scripts/check-*.mjs`
 
 確定していない仕様を勝手に確定扱いしない。未決定事項は `TBD` または Open Question として明示する。
