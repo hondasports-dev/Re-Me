@@ -1,95 +1,217 @@
 ---
 name: requirements
-description: PREPARE で Goal / Scope / AC / Spec Confidence / Risk / Required Controls / Verification plan を最小 packet にまとめる。
+description: PREPAREを所有し、Spec Confidence、scope、ID付きAcceptance Criteria/Invariant、Risk、Required Controls、Coverage Mapを一度だけ確定する。長文再読を避けつつ仕様・要件・test case漏れを早期検出する。
 ---
 
 # PREPARE / Requirements
 
-PREPARE の目的は、実装前に必要な判断を一度だけ固定することや。長い設計会議や risk 起点の複数 requirements reviewer は使わへん。
+## 目的
 
-## 1. Spec Confidence
+実装前に「何を作るか」「何を守るか」「何を証明するか」を一度だけ決める。
 
-- `C2 confirmed`: 目的・期待結果・主要 AC が明確で material conflict なし
-- `C1 reconstructed`: 不足はあるが authoritative evidence から成果物をほぼ一意に復元可能
-- `C0 unclear`: 複数の妥当な仕様が残る
-- `C0 conflicted`: authoritative source 同士が desired state で矛盾する
+所有するもの:
 
-`C0` のまま Implementation へ進まへん。
+- Goal / In scope / Out of scope
+- `ACxx` Acceptance Criteria
+- `IVxx` Preserve / Invariant
+- relevant requirement dimensions
+- material assumptions
+- Spec Confidence
+- Risk / max observed Risk
+- Required Controls
+- compact Coverage Map
+- `TCxx` Verification plan
+- 必要十分な Impact summary
+
+`C0` のままImplementationへ進まない。
+
+## Context discipline
+
+PREPARE後にsource本文を後工程へコピーしない。
+
+- authoritative sourceはURL / path / Issue comment等の参照だけ残す
+- AC / IV / TCはIDで引き継ぐ
+- unchangedなGoal / scope / Risk / Controlsを各stageで再要約しない
+- source再読はcontract conflict / requirements gap / unbounded impact時だけ
+
+探索は狭く始める。
+
+1. symbol / filename search
+2. direct definition
+3. direct caller
+4. direct test
+5. materialな未解決がある時だけ拡張
+
+「漏れが怖いから最初から全repoを読む」はdefaultにしない。
+
+## Workspace Preflight
+
+repository fileを変更するlocal taskでは `skills/workspace-preflight/SKILL.md` を使う。
+
+GitHub connector等のAPI writeでは、専用task branch・base=`main`・task identity確認を同等Evidenceとする。
+
+## Spec Confidence
+
+- `C2 confirmed`: 目的・期待結果・主要ACが明確でmaterial conflictなし
+- `C1 reconstructed`: docs / tests / current patternからmaterial choiceなしに復元可能
+- `C0 unclear`: 複数の妥当な成果物がありmaterial choiceが残る
+- `C0 conflicted`: desired stateについてauthoritative sourceが矛盾
 
 Source priority:
 
 1. current user instruction
-2. latest approved spec / ADR / decision
+2. latest explicitly approved spec / ADR
 3. current Issue / comments
 4. canonical docs
 5. tests
-6. current implementation / existing pattern
+6. current implementation / pattern
 
-独立 Spec Review は `C1` で material choice が残る、または復元仕様が protected behavior を変える場合だけ最大1 reviewer を使う。Risk が高いだけでは reviewer 数を増やさへん。
+現在仕様が「BからAへ変更」と明示する場合、実装Bとの差はexpected deltaでありconflictではない。
 
-## 2. Minimal PREPARE packet
+## Material assumptions
+
+実装結果を変えうる推測だけ記録する。
+
+- cheapに確認できる → 実装前に確認
+- sourceから一意に復元できる → C1 evidence
+- 複数のmaterial choiceが残る → C0
+
+特にRe:Meでは次の意味を推測で決めない。
+
+- sealed / unsealed visibility
+- sent letter immutability
+- delivery / notification state
+- ownership / authorization
+- exact scheduling privacy
+- reply → future thread semantics
+
+## Requirement completeness scan
+
+runtime behavior変更では次を一度だけ `relevant` / `not_applicable` へ分類する。
+
+- happy path
+- boundary
+- error / failure
+- empty / loading
+- auth / ownership
+- persistence / state transition
+- caller compatibility
+- concurrency / idempotency
+- navigation / accessibility
+
+relevantな観点だけAC / IV / TCへ反映する。not_applicableは短い理由だけ残す。
+
+### AC
+
+1件1意味、user / callerから観測可能な期待結果にする。
 
 ```text
-Goal:
-In scope:
-Out of scope:
-Preserve:
-Acceptance Criteria:
-Spec confidence:
-Risk:
-Required controls:
-Verification plan:
-Impact summary:
+AC01: sealed letterは到着・開封前に本文を取得できない
+AC02: 送信後の本文は変更できない
 ```
 
-Verification plan の E2E は `する` か `BLOCKED` だけを書く。`必要なら` / `NOT_REQUIRED` で browser AC を先送りしない。user-visible な画面を変えるなら、踏む path を plan に名指しする。
+### Invariant / Preserve
 
-Current behavior / edge state などは AC や control 判定に必要な分だけ書く。
+今回壊してはいけないbehaviorだけID化する。
 
-## 3. Risk
+```text
+IV01: notification payloadにletter contentを含めない
+```
 
-4軸 `0..2`:
+全プロダクトルールを毎task列挙しない。
 
-- Blast Radius
-- Data / Security
-- Reversibility
-- Uncertainty
+## Coverage Map
 
-目安:
+runtime behavior変更、Required Controlあり、またはR2以上では作成する。
 
-- 0..2 → R1
-- 3..4 → R2
-- 5..8 → R3
+```text
+AC01 → convex/letters.ts#get → TC01, TC02
+IV01 → notification outbox   → TC03
+```
 
-`R0` は typo / pure docs / formatting / behavior-preserving micro change。
+### Forward coverage
 
-R4 は production DB migration、不可逆 data mutation、account deletion semantics、authorization model overhaul、production secret rotation、DNS cutover など明示的 critical operation に限定する。
+全AC / relevant IVに:
 
-Risk は変更種類のラベルではなく影響度で決める。Auth / authorization / schema に触れただけで自動的に R3 にせず、必要な品質確認は Controls で追加する。
+- Verification case、または
+- 明示NOT_REQUIRED理由
 
-新しい evidence で Risk は即時昇格できる。Implementation 開始後は `max_observed_level` を completion の最低 profile とし、後から Risk を下げて Verification / REVIEW を軽くする用途には使わへん。
+を持たせる。
 
-## 4. Required Controls
+### Reverse coverage
 
-変更に応じて必要な control だけ選ぶ。
+Implementation終了時、全behavior-changing diffをAC / IV / design deviationへ対応させる。
 
-- `security_review`: auth / authorization / legacy RLS / secret / input / external write boundary
-- `db_access_control`: schema / migration / access policy / legacy RLS / privileged function
-- `destructive_or_stateful`: delete / retention / rollback / idempotency / critical state transition
-- `service_ops`: Cloudflare / Auth0 / Convex / Supabase legacy / OAuth / R2 / GitHub write / env / secret operation
-- `human_gate`: R4、production、不可逆操作、protected finding acceptance
+## Test Case derivation
 
-Control は Risk Profile と独立して追加できる。
+TCはrelevant dimensionから必要なものだけ作る。
 
-## 5. Impact depth
+- positive
+- boundary
+- negative / denial
+- failure
+- regression
+- functional E2E
 
-通常の impact は PREPARE の `impact_summary` に統合する。
+user-visible画面・遷移・操作を変える場合は、変更した画面そのものを踏むPlaywrightをTCへ含める。
 
-次の場合だけ `skills/impact-analysis/SKILL.md` を追加で読む。
+既存critical 3本があることを理由に、新規画面E2Eを省略しない。
 
-- cross-cutting change
-- shared state / multiple callers
-- auth / data / schema / external write の影響が不明
-- rollback / deployment impact を深掘りする必要がある
+## Independent Spec Review
 
-新しい material impact が見つかったら Risk / Controls をその場で更新する。
+最大1 reviewer。使うのは:
+
+- C1復元後もmaterial choiceが残る
+- protected behaviorを復元仕様で変更する
+
+Reviewerへ渡すのはsource参照 + Goal/scope + AC/IV + material assumptions + relevant dimensions + TC案のcompact packet。
+
+Riskが高いだけでreviewerを増やさない。
+
+## Risk / Required Controls
+
+RiskはBlast Radius / Data-Security / Reversibility / Uncertaintyの4軸。
+
+Required ControlsはRiskとは別に選ぶ。
+
+- `workspace_preflight`
+- `security_review`
+- `db_access_control`
+- `destructive_or_stateful`
+- `service_ops`
+- `human_gate`
+- `prompt_injection_guard`
+
+Auth0 / Convex / schemaに触れただけで全High ceremonyにせず、必要なControlを追加する。
+
+## PREPARE PASS
+
+- C1 / C2
+- unresolved material choiceなし
+- AC / relevant IVがID付き
+- runtime behavior変更ならdimension分類済み
+- required taskではCoverage Mapあり
+- 全AC / relevant IVにTCまたはNOT_REQUIRED理由あり
+- Risk / Controls / Verification plan確定
+
+## 出力
+
+```text
+PREPARE
+Status: PASS | BLOCKED
+Workspace preflight:
+Spec confidence:
+Source refs:
+Material assumptions:
+Goal / In / Out:
+AC IDs:
+IV IDs:
+Relevant dimensions:
+Coverage Map:
+Risk / max observed:
+Controls:
+TC IDs:
+Independent spec review:
+Human Gate:
+Evidence:
+```
