@@ -1,84 +1,173 @@
 ---
 name: verification
-description: Acceptance Criteria・Risk・Required Controls に対応する最小十分な検証を行い、対象 revision と結果を記録する。
+description: AC/IV/TCのCoverage Map、max observed Risk、Required Controlsに対応する最小十分な検証をfail-fast順で行い、requirements gapとtest gapを分離する。
 ---
 
 # Verification
 
-品質は「全部実行したか」ではなく、**Acceptance Criteria と必要な boundary を証明できたか**で判断する。
+## 原則
 
-## Standard checks
+「全部実行した」ではなく、**AC / relevant IVとrequired boundaryを証明した**ことをPASS条件にする。
 
-Repository-wide の候補:
+PREPAREのCoverage Mapを使い、ここで仕様やtest caseをゼロから再導出しない。
 
-```text
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
-pnpm build
-```
+## Context discipline
 
-ローカルでは変更範囲に必要な check を選ぶ。CI が同じ content に repository-wide required checks を実行するなら、理由なく同じ full suite を二重実行せえへん。
+通常読むのは:
 
-追加例:
+- AC / IV / TC IDsと短いcontract
+- behavior change map / changed files
+- Risk / Controls
+- Coverage Map
+- current revision
+- open findings
 
-- React UI / browser flow → targeted component/integration + 変更した画面を踏む Playwright E2E
-- Cloudflare Worker / assets → routing / asset test
-- Convex schema / function / authorization → push validation / cross-user access-control test
-- legacy Supabase migration / RLS / RPC → migration / SQL / access-control test
-- R2 object lifecycle → upload / delete / access boundary
-- stateful / destructive → error path / idempotency / rollback or recovery evidence
+Issue全文・chat履歴・Requirements Skill全文はcontract conflict / requirements gap時だけ再読する。
 
-browser E2E の禁止置換:
+## Fail-fast order
 
-- unit / convex-test だけで user-visible な画面 AC を証明したことにしない
-- 変更していない経路の CI E2E 成功を、変更した画面の evidence にしない
-- 「最低限の critical E2E が未実装」「既存 spec が無い」を省略理由にしない。spec が無ければ書く
-- credential 不足は `NOT_REQUIRED` にせず `BLOCKED` にする
+1. scopeable static / owning `tsconfig`
+2. targeted unit / contract test
+3. affected Convex / integration test
+4. required functional Playwright E2E
+5. repo-wide regressionは原則CI Aftercare
 
-## Profile
+上流失敗で下流結果が無意味になる場合、高価なcheckを先に走らせない。
 
-- R0: targeted static / diff check
-- R1: changed / directly affected tests + scopeable static checks
-- R2: affected scope
-- R3: full affected scope including boundary / error cases
-- R4: R3 + rollback / recovery evidence
+修正後はdeltaで無効化されたcheckだけ再実行する。
 
-Required Controls は profile に追加する。たとえば R2 でも authorization を変えるなら access-control test は必須や。
+## Forward coverage
 
-## Acceptance Criteria result
+全AC / relevant IVについて:
 
-各 AC について `pass / blocked / not_applicable` と Evidence を記録する。実装詳細の検査だけで user-observable AC を証明したことにせえへん。
+- 対応TCまたは明示NOT_REQUIRED理由がある
+- TCが実行されobservable contractを確認する
+- multi-layer contractなら必要なboundaryまでEvidenceが届く
+
+mock call回数や内部fieldだけではuser/caller contractの証明にならない場合がある。
+
+## Reverse coverage
+
+Implementationのbehavior change mapを確認する。
+
+behavior-changing diffがAC / IV / design deviationへ対応しなければ `requirements_gap` としてPREPAREへ戻す。
+
+## Requirements gap / Test gap
+
+- `requirements_gap`: 必要behaviorがAC/IVに無い、またはdiffがcontract外 → PREPARE
+- `test_gap`: AC/IVは明確やがProofが無い → test/evidence追加
+
+Testが無いことを理由に仕様を無かったことにしない。
+
+## Relevant dimensions
+
+PREPAREで`relevant`になったものだけ確認する。
+
+- happy path
+- boundary
+- error / failure
+- empty / loading
+- auth / ownership
+- persistence / state transition
+- caller compatibility
+- concurrency / idempotency
+- navigation / accessibility
+
+新Evidenceがない限り、`not_applicable`観点をここで再議論しない。
+
+## Re:Me controls
+
+### Auth / access
+
+Auth0 / authorization / ownership変更では許可経路だけでなくdenial / cross-userを確認する。
+
+sealed letterは到着・開封前の本人にも本文/attachmentを返さないことをserver boundaryで検証する。
+
+### Data / state
+
+Convex schema / validator / ownership / delivery state変更ではaffected query / mutation / callerを確認する。
+
+sent letter immutability、delivery idempotency、notification separation、exact schedule privacyを関連変更時に検証する。
+
+### R2+
+
+Riskとrelevant dimensionに応じて boundary / error / partial failure / state compatibilityを追加する。
+
+## Browser E2E
+
+user-visible画面・遷移・操作を変更した場合、**その画面・遷移そのもの**をPlaywrightで踏む。
+
+既存critical E2E:
+
+1. authenticated session → draft → send
+2. sealed letter arrival → open
+3. open → reply → send to future
+
+この3本は下限であって上限ではない。新しい画面を変更・追加したら対応specを追加する。
+
+次はEvidenceにならない。
+
+- 変更していないlogin/別画面E2Eの成功
+- unit / component / Convex testだけ
+- 該当Playwright specが既存に無いこと
+
+required credential / environment不足はNOT_REQUIREDにせずBLOCKED / Incident。
+
+Google OAuth UIをcritical E2Eへ毎回含めず、Auth0 test identity/sessionまたはbackend harnessを基本とする。
+
+## CIとの分担
+
+same contentのrepo-wide full checks / regression E2EはCI Aftercareを正本にできる。
+
+localで同じfull suiteを重ねる場合は理由を記録する。
+
+blind retryをしない。失敗原因を分類し、deltaに依存するcheckだけ再実行する。
 
 ## Finding Ledger
 
-Verification で defect や material test gap を見つけたら、`task-state.findings` に1件だけ追加する。同じ内容を `material_test_gaps` や residual-risk record に複製せえへん。
+新しいgapにはstable IDを払い出す。
 
-- defect → `category: correctness` など、`disposition: fix_now`
-- material test gap → `category: test_gap`, `risk_domains: [test_gap]`, `disposition: fix_now`
+- `category: requirements_gap | test_gap`
+- affected AC / IV
+- observed revision
+- evidence
+- `open | fix_now`
 
-`test_gap` は Human Gate で迂回せず、fix または Requirements / AC の正式変更後に再評価する。
+同じgapはduplicateを作らず同じrecordを更新する。
 
-## Revision / rerun
+requirements gapはPREPAREへ戻す。test gapは解決までPASS不可。Human Gateで迂回しない。
 
-Verification は `revision.verified` に対象 commit/tree を記録する。
+## Revision
 
-head が変わった場合:
+same content Evidence再利用にはprevious/currentの非空tree SHA一致を必要とする。
 
-1. tree が同じなら既存 evidence を再利用する。
-2. content が変わったら変更 delta を確認する。
-3. changed scope を targeted verify する。
-4. protected behavior、AC coverage、Risk / Controls が変化した場合だけ必要な full affected scope を再実行する。
+- matching tree → reuse
+- identity不明 → content changed扱い
+- content changed → delta verification
+- protected behavior / AC coverage / Risk / Controls change、またはdeltaをbound不能 → affected scope full rerun
 
-rebase や commit metadata 変更だけで full Verification をやり直さへん。
+## PASS
 
-## Failure routing
+- forward coverage成立
+- reverse coverage成立
+- relevant dimensionのEvidenceあり
+- Required Controlsのboundary証明済み
+- blocking requirements/test gapなし
+- required checks PASS
 
-- code defect → Implementation
-- spec mismatch → PREPARE
-- unknown / repeated failure → Incident
-- required environment unavailable → BLOCKED
-- material test gap → BLOCKED
+## 出力
 
-原因未確認の blind retry はしない。
+```text
+VERIFICATION
+Status: PASS | FAIL | BLOCKED
+Revision commit / tree:
+Affected scope:
+AC / IV results:
+TC results:
+Forward / reverse coverage:
+Checks:
+Skipped + reason:
+Reruns + reason:
+Finding IDs added/updated:
+Evidence:
+```
