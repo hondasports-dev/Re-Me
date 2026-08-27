@@ -149,6 +149,12 @@ export function evaluateLearningApplication({ userRequestedCurrentPrApply = fals
         errors.push(`candidate[${index}] must be applied when current-PR apply was requested`)
       }
     }
+  } else {
+    for (const [index, candidate] of candidates.entries()) {
+      if (candidate?.disposition === 'applied') {
+        errors.push(`candidate[${index}] is applied without a current-PR apply request`)
+      }
+    }
   }
 
   return { ok: errors.length === 0, errors }
