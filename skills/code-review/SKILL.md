@@ -1,77 +1,131 @@
 ---
 name: code-review
-description: REVIEW stage。Risk Profile / Required Controls に応じて独立 review を最大1回行い、finding は単一 Ledger に記録する。
+description: REVIEW stage。compact contract・diff・Coverage Mapを使い、仕様/要件/test caseの漏れを先に探してからcorrectness/securityを確認する。
 ---
 
 # REVIEW
 
-REVIEW は default で複数エージェントを議論させへん。
+## 起動条件
 
-- R0: 原則 NOT_REQUIRED
-- R1: control が要求した時だけ
-- R2/R3/R4: independent reviewer ×1
-- R4 または明確に異なる専門領域が必要な場合だけ specialist を並列追加可能
+- R0: 原則NOT_REQUIRED
+- R1: Controlが要求した時だけ
+- R2: 1 independent reviewer
+- R3: 1 independent risk-aware reviewer
+- R4: 1 independent reviewer + Human Gate
+- Implementationでmaterial new riskを発見した場合
 
-Reviewer 同士は debate せず、各 reviewer が独立に Finding Ledger へ所見を出し、root が1回だけ disposition を統合する。
+通常のindependent reviewerは最大1体。
 
-## Common review rubric
+## Compact review packet
 
-- Goal / AC / scope との一致
-- null / empty / boundary / error
+Reviewerへ渡すdefault input:
+
+- AC / IV IDsと短いcontract
+- relevant dimensions / material assumptions
+- impact summary / Risk / Controls
+- behavior-changing diff / behavior change map
+- Coverage Map / TC結果 / Verification Evidence
+- open Finding IDs
+- reviewed revision
+
+Issue全文・chat履歴・全Skill・全repoを毎回渡さない。
+
+具体的なconflict / missing caller / missing boundaryが見つかった時だけsource探索を広げる。
+
+## Review order
+
+### 1. Omission scan
+
+styleより先に漏れを確認する。
+
+- AC / IVにimplementation surfaceが無い
+- AC / IVにVerification Evidenceが無い
+- behavior-changing diffにAC / IV / design deviationの対応が無い
+- relevant dimensionのTCが無い
+- happy pathだけで必要なboundary / denial / failureが無い
+- Preserve対象を壊すcaller / serializer / validator / persistence経路がある
+- scope外behavior changeが混入している
+
+materialな漏れだけfindingにする。「念のため全部追加」はしない。
+
+### 2. Correctness / boundary
+
+- correctness / error
 - async / race / stale state
-- API / type / DB contract
 - caller compatibility
-- unnecessary abstraction / dependency
-- changed tests が仕様を assert しているか
-- mobile loading / empty / error / a11y / navigation
-- rollback / idempotency when stateful
+- state transition
+- test adequacy
 
-## Security rubric
+### 3. Re:Me protected behavior
 
-`security_review` control がある場合は同じ REVIEW stage に Security 観点を追加する。深い専門確認が必要な場合だけ `skills/security-review/SKILL.md` を読む。
+関連変更がある時だけ深掘りする。
 
-最低限:
+- Auth0 authentication / Convex authorization境界
+- sealed letter content visibility
+- sent letter immutability
+- exact scheduled time privacy
+- private R2 access / attachment exposure
+- delivery idempotency
+- notification payload separation
+- reply → future thread semantics
 
-- authentication / authorization / legacy RLS / user boundary
-- user-controlled HTML / URL / redirect / file / MIME
-- secret / privileged env
-- external write boundary
-- destructive / production behavior
+### 4. Frontend / Convex
+
+Frontend:
+
+- loading / empty / error
+- navigation
+- mobile UX
+- a11y / reduced motion
+- state propagation
+
+Convex:
+
+- validator / schema
+- ownership / access assumption
+- index / query shape
+- idempotency / concurrent state
+- caller contract
+
+## Requirements gap / Test gap
+
+- 必要behaviorがAC/IVに無い → `requirements_gap`、PREPAREへ
+- AC/IVはあるがEvidenceが無い → `test_gap`
+
+Reviewer自身が新仕様を暗黙に決めない。
+
+## Security
+
+通常はこのREVIEW内のsecurity rubricで確認する。
+
+security controlが起動した場合だけ `skills/security-review/SKILL.md` を追加する。別serial Gateとして常時挟まない。
 
 ## Finding Ledger
 
-Finding があれば `task-state.findings` に直接追加する。
+所見は `task-state.findings[]` にstable IDで直接追加する。
+
+同じfindingを別ledgerへ複製しない。review recommendationはfinal dispositionではなく、rootが同じrecordを更新する。
+
+## Revision
+
+content change後:
+
+- delta review
+- protected behavior / AC / Risk / Controls change、またはdeltaをbound不能 → affected scope full review
+
+same tree/contentなら再review不要。
+
+## 出力
 
 ```text
-id
-source
-category
-finding
-failure_scenario
-affected_acceptance_criteria
-affected_invariants
-risk_domains
-evidence
-recommended_action
-disposition
+REVIEW
+Status: PASS | BLOCKED | NOT_REQUIRED
+Revision:
+Required by:
+Reviewer:
+Omission scan:
+Coverage checked: AC/IV IDs
+Findings added:
+Security specialist: used | not_required
+Evidence:
 ```
-
-別の residual-risk record や source-fidelity record へ転記せえへん。
-
-Reviewer は原則 `recommended_action` を出す。明白な must-fix は `disposition: fix_now` としてよいが、defer / human acceptance / not-applicable の最終判断は root が同じ Ledger record を更新する。
-
-Rules:
-
-- `open` / `fix_now` は Delivery BLOCKED
-- protected domain は agent 単独 defer 不可
-- `test_gap` は fix または Requirements / AC 再評価のみ
-- `not_applicable` は proof 必須
-- Human acceptance は approval evidence 必須
-
-## Revision / delta review
-
-Review は `revision.reviewed` に対象 commit/tree を記録する。
-
-後続で head が変わった場合、tree が同じなら review evidence を再利用する。content が変わったら差分だけ review し、protected behavior / AC coverage / Risk / Controls が変わった時だけ full affected review に戻す。
-
-実装時の自己確認を独立 review の代わりにせえへん。
