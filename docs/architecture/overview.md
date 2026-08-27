@@ -134,7 +134,7 @@ sealed letter の本文と添付は、到着後に本人が明示的に開封す
 
 ## Migration status
 
-この文書は target architecture の正本である。repository の runtime は Auth0 + Convex + Cloudflare Workers Static Assets。通常 E2E は Auth0 database test identity を使い、人間の login 入口は Google のままにする。legacy `supabase/migrations/` と SQL security tests は production data migration まで比較用に残す。production 用 Google Cloud OAuth client と data migration は後続 Issue である。移行順序は [Implementation order](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
+この文書は target architecture の正本である。repository の runtime は Auth0 + Convex + Cloudflare Workers Static Assets。通常 E2E は Auth0 database test identity を使い、人間の login 入口は Google のままにする。legacy `supabase/migrations/` は production data migration まで比較用に残す。production 用 Google Cloud OAuth client と data migration は後続 Issue である。移行順序は [Implementation order](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
 
 ## References
 

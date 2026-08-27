@@ -28,7 +28,7 @@
 - Redux / Zustand before a demonstrated client-state need
 - ESLint / Prettier alongside Oxc tools
 
-Runtime から外した。`supabase` CLI は `supabase/migrations/` と SQL security tests の比較用にだけ残す。
+Runtime から外した。`supabase` CLI は `supabase/migrations/` の比較用にだけ残す。
 
 ## Frontend providers
 
@@ -91,4 +91,4 @@ Convex File Storage の恒久 bearer URL は access condition が後から変わ
 
 ## Migration note
 
-Runtime は Auth0 + Convex。`supabase/migrations/` と `supabase/tests/` は production data migration / rollback 方針が固まるまで invariant 比較用に残す。通常の `pnpm test` は local Supabase を起動しない。最終削除は別 Issue と Human Gate で行う。
+Runtime は Auth0 + Convex。`supabase/migrations/` は production data migration / rollback 方針が固まるまで invariant 比較用に残す。通常の `pnpm test` は local Supabase を起動しない。最終削除は別 Issue と Human Gate で行う。

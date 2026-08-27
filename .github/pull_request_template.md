@@ -48,7 +48,6 @@ Closes #
 - [ ] 変更した画面 / 遷移を踏む Playwright
   踏んだ path:
   結果: `PASS / BLOCKED`
-- [ ] Legacy DB / RLS test（SQL / migration 差分がある場合。通常 test ではない）
 - [ ] Worker / R2 test（該当する場合）
 
 結果 / 実行範囲:
