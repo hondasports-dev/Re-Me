@@ -5,11 +5,13 @@ import { getCurrentUser, getOrCreateUser } from './lib/auth'
 import { canReadLetterContent } from './lib/authorization'
 import {
   assertBodyLength,
+  attachmentsAreReadyForSend,
   getLetterContent,
   insertDraft,
   listLetterAttachments,
   loadOwnedDraft,
   loadVisibleLetter,
+  sendOwnedLetter,
   toLetterMetadata,
 } from './lib/letters'
 import {
@@ -20,6 +22,7 @@ import {
   letterMetadataValidator,
   letterStatusValidator,
   readableContentValidator,
+  sentLetterValidator,
 } from './lib/validators'
 
 export const createDraft = mutation({
@@ -75,7 +78,8 @@ export const getDraft = query({
       return null
     }
 
-    const location = (await listLetterAttachments(ctx, letter._id)).find(
+    const attachments = await listLetterAttachments(ctx, letter._id)
+    const location = attachments.find(
       (attachment) => attachment.kind === 'location' && attachment.status !== 'deleting',
     )
 
@@ -86,7 +90,19 @@ export const getDraft = query({
       deliveryMode: letter.deliveryMode ?? null,
       body: content.body,
       locationLabel: location?.locationLabel ?? null,
+      attachmentsReady: attachmentsAreReadyForSend(attachments),
     }
+  },
+})
+
+export const sendLetter = mutation({
+  args: {
+    letterId: v.id('letters'),
+  },
+  returns: sentLetterValidator,
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    return await sendOwnedLetter(ctx, user._id, args.letterId)
   },
 })
 

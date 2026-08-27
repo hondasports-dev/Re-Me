@@ -63,6 +63,9 @@ describe('Convex authorization harness', () => {
     await expect(
       t.mutation(api.attachments.removeDraftLocation, { letterId: created.letterId }),
     ).rejects.toThrow(/authentication required/)
+    await expect(
+      t.mutation(api.letters.sendLetter, { letterId: created.letterId }),
+    ).rejects.toThrow(/authentication required/)
   })
 
   it('provisions the users document and returns it from an authenticated query', async () => {
