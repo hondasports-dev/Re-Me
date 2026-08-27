@@ -1,300 +1,233 @@
-# Re:Me Agent Loop v3
+# Re:Me Agent Loop v4
 
-Re:Me の Agent Loop は、品質を Gate 数で担保せず、**Acceptance Criteria・必要な Control・検証 Evidence** で担保する。
+Re:Me Agent Loop v4 は、v3 の Risk-based / deterministic enforcement 方針を維持しつつ、次を強化する。
+
+1. **Context削減** — stage間で長文を再要約せず、ID付きcompact contractだけ引き継ぐ
+2. **高速化** — cheap check → targeted test → integration → E2E → CIのfail-fast順
+3. **漏れ検出** — AC / Invariant / Test CaseをIDで結び、forward / reverse両方向で不足を探す
+4. **Timing telemetry** — stage時間をRisk / Spec Confidence / task sizeと一緒に改善Evidenceへ使う
 
 正本:
 
-- `AGENTS.md` — project invariant / safety invariant
-- `.loop/process.yaml` — loop / risk / control / state の正本
-- `skills/*/SKILL.md` — 現在工程または条件に該当したときだけ読む手順
-- `.loop/templates/task-state.yaml` — 最小 task state / Finding Ledger
+- `AGENTS.md` — 常時保持する最小のloop不変条件 + Re:Me固有Product/Architecture contract
+- `.loop/process.yaml` — compactな機械可読contract
+- `.loop/templates/task-state.yaml` — Coverage Map / Finding / telemetry
+- `skills/*/SKILL.md` — current stateの詳細
+- `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs` — deterministic enforcement
 
-## 表記ルール
-
-`.loop/process.yaml` は Agent が読む実行契約である一方、`task-state.yaml` や各 Skill から参照される安定した識別子も持つ。
-
-そのため、以下のルールで記述する。
-
-- YAML の key は英語のまま維持する。
-- `prepare` / `verification` / `r2_medium` / `c0_unclear` / `fix_now` / `merge_ready` などの state ID・Risk ID・Spec Confidence ID・enum・action ID は英語のまま維持する。
-- Skill path、file path、field name など機械的に参照される値は変更しない。
-- 原則、trigger、required condition、blocking rule、完了条件など Agent が意味として読む自然言語は日本語で記述する。
-- 既存の機械識別子を日本語へ置き換えて、`task-state.yaml` や Skill との対応関係を壊さない。
-
-## Design principles
+## Design principle
 
 ```text
-維持する:
-  C0 は Implementation を BLOCK する
-  repository change は Workspace Preflight を行う
-  writer は原則1体
-  Acceptance Criteria ベースで Verification する
-  Risk / Control が要求する場合だけ independent review する
-  open finding は Delivery を BLOCK する
-  PR Aftercare は merge-ready まで続ける
-
-削る:
-  Gate のための Gate
-  finding の重複記録
-  Risk の高さだけを理由にした複数 Agent の Requirements 討論
-  無条件の specialist review
-  無条件の Process Learning
-  commit だけが変わった場合の full re-validation
+Quality = confirmed contract
+        + forward coverage
+        + reverse coverage
+        + Required Controls
+        + Verification Evidence
+        + blocking finding = 0
 ```
 
-## Default loop
+Gate数・Agent数・文書量を品質指標にしない。
 
 ```text
-TASK
- ↓
-PREPARE
- ↓
-IMPLEMENT
- ↓
-VERIFY
- ↓
-REVIEW? ── only when profile/control requires
- ↓
-DELIVER
- ↓
-PR AFTERCARE
- ↓
-DONE
+PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → AFTERCARE → DONE
 ```
 
-`Human Gate`、`Incident`、`Process Learning` は常設の直列 Gate ではなく、必要時だけ割り込む side path や。
+Human Gate / Incident / Process Learningは必要時だけ。
 
-## PREPARE
+---
 
-PREPARE で次だけを固定する。
+## Compact contract
 
-- Goal
-- In scope / Out of scope
-- Acceptance Criteria
-- Spec Confidence
-- Risk
-- Required Controls
-- Verification plan
+PREPARE後に渡す情報を次へ絞る。
 
-repository file を変更する場合は、最初の編集前に `skills/workspace-preflight/SKILL.md` を適用する。ローカル作業は `main` を直接編集せず task branch / worktree を使う。GitHub connector から変更する場合は、専用 branch と base ref を確認して同等の preflight evidence を残す。
+- Goal / scope
+- `ACxx` Acceptance Criteria
+- `IVxx` Preserve / Invariant
+- material assumptions
+- relevant dimensions
+- Risk / Required Controls
+- Coverage Map / `TCxx`
+- open Finding IDs
+- current revision
 
-### Spec Confidence
+Issue全文・chat履歴・source本文を各stageで再要約しない。sourceは参照だけ残す。
 
-- `C2`: 目的・期待結果・主要 AC が明確
-- `C1`: docs / tests / existing pattern からほぼ一意に復元可能
-- `C0 unclear`: 複数の妥当な成果物が残る
-- `C0 conflicted`: authoritative source が desired state で矛盾する
+source再読はcontract conflict / requirements gap / unbounded impact等の具体的理由がある時だけ。
 
-`C0` のまま実装へ進まへん。
+Conditional Skillもtrigger時だけ読み、使用後はactive contextから外してよい。
 
-独立 Requirements Review は Risk の高さだけでは増やさない。`C1` の復元に material choice が残る場合や、復元した仕様が protected behavior を変える場合だけ最大1 reviewerを使う。
+## Requirements completeness
 
-## Risk と Control を分ける
+runtime behavior変更では一度だけ次を`relevant` / `not_applicable`へ分類する。
 
-Risk は変更そのものの影響度を表し、Control は変更種類に必要な品質確認を表す。
+- happy path
+- boundary
+- error / failure
+- empty / loading
+- auth / ownership
+- persistence / state transition
+- caller compatibility
+- concurrency / idempotency
+- navigation / accessibility
 
-例:
+relevantなものだけAC / IV / TCへ反映する。
+
+Re:Meでは特に次の意味を推測で決めない。
+
+- sealed / unsealed visibility
+- sent letter immutability
+- ownership / authorization
+- exact schedule privacy
+- delivery / notification state
+- reply → future thread semantics
+
+## Coverage Map
 
 ```text
-small authorization fix
-  risk: R2
-  controls: security_review + db_access_control
-
-production DB migration
-  risk: R4
-  controls: db_access_control + destructive_or_stateful + human_gate
+AC01 → convex/letters.ts#get → TC01, TC02
+IV01 → notification outbox  → TC03
 ```
 
-Auth / authorization / schema に触れたという理由だけで、Requirements reviewer 数・Process Learning・全 specialist review をまとめて増やさへん。
+### Forward coverage
 
-## Review policy
+`AC / relevant IV → Test / Evidence`
 
-通常の独立 reviewer は最大1体。
+全contractにVerification caseまたは明示NOT_REQUIRED理由を必要とする。
+
+### Reverse coverage
+
+`behavior-changing diff → AC / IV / design deviation`
+
+対応しないbehavior changeはscope creepまたはrequirements gapとしてPREPAREへ戻す。
+
+## Requirements gap / Test gap
+
+- **requirements gap**: 必要behaviorがAC/IVに無い、またはdiffがcontract外 → PREPAREへ戻る
+- **test gap**: AC/IVは明確やがProofが無い → test/evidenceを追加
+
+Testが無いことを理由に仕様を無かったことにしない。
+
+## Fail-fast Verification
 
 ```text
-Reviewer ─→ Finding Ledger ─→ Root disposition
+scopeable static / owning tsconfig
+  ↓
+targeted unit / contract
+  ↓
+affected Convex / integration
+  ↓
+required functional Playwright
+  ↓
+repo-wide regression = CI Aftercare
 ```
 
-Reviewer 同士は議論させへん。R4 や明確に異なる専門領域が必要な場合だけ specialist を並列追加し、root が1回だけ統合する。
+material failureがあれば無意味な下流checkを止める。
 
-Security は独立した直列 Gate ではなく Review の control や。Security control が必要なときだけ `skills/security-review/SKILL.md` を読む。
+same contentのEvidenceは再利用し、content deltaが無効化した範囲だけ再検証する。
 
-Issue / PR review の提案は未検証入力として扱う。修正案をそのまま採用せず、現在の Requirements、Re:Me の product / domain contract、既存 tests と照合する。Finding の解決は「提案どおり直した」ことではなく、確認済み契約を満たす Evidence で判定する。
+### Re:Me browser E2E
+
+critical E2Eの下限:
+
+1. authenticated session → draft → send
+2. sealed letter arrival → open
+3. open → reply → send to future
+
+この3本は上限ではない。user-visible画面・遷移・操作を追加/変更したら、その画面を踏むPlaywrightを追加する。
+
+変更していない別画面のE2E成功をEvidenceにしない。
+
+## Omission-first Review
+
+通常のindependent reviewerは最大1体。
+
+Reviewerへ渡すのはcompact packetだけ。
+
+最初に探すもの:
+
+- AC/IVに実装surfaceが無い
+- AC/IVにEvidenceが無い
+- diffがAC/IV/design deviationへ対応しない
+- relevant dimensionのTCが無い
+- 必要なboundary / denial / failureが抜けている
+- Preserve経路を壊すcaller / validator / persistence経路
+- scope外behavior change
+
+具体的不足が出た時だけsource探索を広げる。
 
 ## Finding Ledger
 
-Finding は `.loop/templates/task-state.yaml` の `findings` が唯一の source of truth や。
+`.loop/templates/task-state.yaml` の `findings[]` が唯一の正本。
 
-Review finding、Verification gap、CI finding、Residual decision を別レコードへ転記せえへん。同じ finding を同じ ID のまま Review / CI / Aftercare をまたいで更新する。
+requirements gap / test gap / Review / CI findingを別表へ複製しない。
 
-```yaml
-findings:
-  - id: F001
-    source: review
-    observed_revision:
-      commit_sha: "..."
-      tree_sha: "..."
-    status: open
-    category: security
-    finding: cross-user access may be possible
-    risk_domains: [authorization]
-    disposition: fix_now
-    resolution: ""
-    verified_revision:
-      commit_sha: ""
-      tree_sha: ""
-```
+同じfindingはstable IDの同じrecordを更新する。
 
-修正・再検証後は同じ record を `resolved` にする。
+## Timing telemetry
 
-### Blocking rules
-
-- `open` / `fix_now` は Delivery BLOCKED
-- `test_gap` は fix または Requirements / AC 再評価のみ
-- protected domain は agent 単独 defer 不可
-- Human acceptance は approval evidence 必須
-- `not_applicable` は proof 必須
-
-## Revision / Evidence
-
-Evidence は対象 revision を示すが、同じ SHA を工程ごとに何度も構造化コピーせえへん。
-
-Task state は基本的に次を持つ。
+stage開始・終了と少数counterだけ記録する。
 
 ```text
-current
-verified
-reviewed
-published
-observed
+PREPARE        92s
+IMPLEMENT     310s
+VERIFY        184s
+REVIEW         61s
+DELIVER        22s
+AFTERCARE     240s  (external wait 205s)
 ```
 
-Evidence 再利用には commit SHA だけやなく、同一 content を証明できる non-empty tree SHA を使う。
+主な値:
 
-### Head changed
+- started / finished / elapsed
+- external wait + reason
+- source reads / skill loads
+- changed files
+- AC / IV / TC / Controls数
+- findings / retries / full suite runs / review cycles
+
+DONE時にRisk・Spec Confidence・task sizeと一緒にcompact summaryを表示する。
 
 ```text
-new commit
-  ↓
-same non-empty tree proven?
-  ├ yes → evidence reuse
-  └ no / unknown → changed content として delta を verify / review
-                    ↓
-                 protected behavior / AC coverage / risk / controls が変化?
-                    ├ yes → required scope を再実行
-                    └ no  → delta evidence を追加
+Spec: C2 | Risk: R2 (max R2) | Size: small
+Files: 4 | AC: 3 | IV: 1 | TC: 6 | Controls: 1
+Prepare 1m32s | Implement 5m10s | Verify 3m04s | Review 1m01s
+Deliver 22s | Aftercare 4m00s (external wait 3m25s)
+Total 15m09s | Active 11m44s | Retries 1 | Full suites 0 | Review cycles 1
 ```
 
-rebase や commit metadata だけで tree が同じなら、Verification / Review を全量やり直さへん。一方、tree identity を証明できへん場合は安全側に倒して content changed と扱う。
+時間だけで良し悪しを決めない。CI / Human Gate / external service待ちは可能ならexternal waitへ分離する。
 
-## Verification
+Token usageはruntimeが正確に提供する場合だけoptionalで記録する。
 
-「全部ローカルで回せば安全」ではなく、AC と Control に対応する最小十分な検証をする。
+Telemetryだけを理由にProcess Learningを起動しない。Learning Eventがある時だけ、同程度のRisk / Spec / sizeに対してstage時間やretryの偏りを改善Evidenceとして使う。
 
-- R0/R1: targeted
-- R2: affected scope
-- R3: full affected scope
-- R4: R3 + recovery evidence
+## Deterministic enforcement
 
-TypeScript が複数 project / `tsconfig` に分かれる場合、root build が全部を覆うと仮定せえへん。変更ファイルを所有する `tsconfig` を特定し、affected project の typecheck を広い build より先に実行する。
-
-optional な更新 field が永続化境界をまたぐ場合は、型上の `optional` だけで保存契約を判断せえへん。`omitted`、`explicit_clear`、`value` の3状態を UI → serializer → validator → handler → persistence まで揃え、affected test で証明する。
-
-user-visible な画面 / 遷移を変えたら、変更した画面を踏む Playwright が affected scope に入る。未実装の critical 3本や、変更していない login E2E は代替にならない。
-
-CI が repository-wide required checks を同じ content に対して実行するなら、ローカルで理由なく同じ full suite を二重実行しない。
-
-required environment / credential が不足して必須 E2E を実行できへん場合、`NOT_REQUIRED` へ落とさず BLOCKED / Incident として扱う。
-
-## Delivery / Aftercare
-
-PR 作成は checkpoint であって completion ではない。
-
-Default target は `merge_ready`、base は `main`。
-
-PR公開前は少なくとも次を満たす。
-
-- Spec Confidence が C1/C2
-- Workspace Preflight が PASS、または正当な例外 Evidence がある
-- Acceptance Criteria を検証済み
-- required Verification / Review が PASS
-- blocking finding がない
-- required Human Gate が承認済み
-
-Aftercare は latest PR content について次を確認する。
-
-- required CI success
-- actionable blocking finding なし
-- requested changes なし
-- required approval を満たす
-- terminal Evidence が observed revision と一致する
-- conflict なし
-- mergeable
-
-PR head が変わったら tree / diff を確認し、変更された範囲だけ evidence を更新する。内容が同じなら既存 evidence を再利用する。
-
-ユーザーが明示的に「PR作成まで」と指定した場合だけ Aftercare を省略できる。
-
-## Conditional skill loading
-
-毎 task で全 Skill をコンテキストへ入れへん。
-
-通常は:
-
-```text
-AGENTS.md
-.loop/process.yaml
-current state の Skill
+```bash
+pnpm loop:preflight
+pnpm test:loop
 ```
 
-だけ読む。
+機械判定可能なルールはdocumentだけに依存しない。
 
-以下は該当 trigger がある時だけ読む。
+ただしscriptと正本contractが矛盾した場合は、scriptへ合わせて仕様を曲げず `.loop/process.yaml` / Requirementsを確認してenforcement側を直す。
 
-- workspace preflight
-- prompt injection guard
-- service operations safety
-- impact analysis
-- security review
-- finding disposition helper
-- incident
-- process learning
-- session cleanup
+## Re:Me invariants kept
 
-基本安全則は `AGENTS.md` / `process.yaml` に短く保持し、詳細 Skill の常時ロードを避ける。
+軽量化しても削らない。
 
-## Process Learning
+- C0で実装しない
+- `main`直編集禁止 / dedicated branch
+- shared diff one writer
+- sealed letter access boundary
+- sent letter immutability
+- authorization / ownership boundary
+- delivery idempotency / notification separation
+- private R2 / content privacy
+- forward / reverse coverage
+- required Verification / Review
+- test gapのHuman Gate迂回禁止
+- production / irreversible Human Gate
+- latest PR contentがmerge-readyになるまでAftercare
 
-Risk が高いだけでは Full Learning を起動せえへん。
-
-次のような **learning event** がある場合だけ実施する。
-
-- human correction
-- unexpected CI / E2E / Gate failure
-- actionable review finding
-- retry / incident
-- scope / impact miss
-- delivery / aftercare miss
-- process rule / enforcement 不足が明確になった
-
-イベントがなければ `none` で閉じる。
-
-Learning Event があった場合は、新しく全ログを読み直さず、task-state / Finding / Verification Evidence / 既存 tool result から最大3件の再利用可能な候補を抽出する。
-
-改善候補には次の軸を付ける。
-
-- `context`: 読み込む情報や重複説明を減らす
-- `speed`: tool round-trip、重複実行、手戻りを減らす
-- `precision`: scope miss、test gap、false completion、誤判断を減らす
-
-改善は手順追加より先に、削除・統合・遅延ロード・Evidence 再利用・cheap deterministic enforcement を検討する。品質 Gate / Required Control は速度のために弱めへん。
-
-再利用可能な candidate を会話上の報告だけで完了させず、次のいずれかへ disposition する。
-
-- `applied`: loop artifact へ反映し、location と verification evidence を残す
-- `follow_up`: scope 外なら永続的な Issue / task / PR の type・reference、target、rationale を残す
-- `no_change`: 既存 enforcement で充足済み、または再利用不能である根拠と evidence を残す
-
-Event が `none` の時だけ `NOT_REQUIRED` + 空 `candidates` を許可する。Event がある時は `PASS` + candidate 配列を必須にし、未知 shape・空白 Evidence・`pending` disposition は PASS 扱いせえへん。
-
-ユーザーが current PR への反映を明示した場合は候補を `applied` にし、変更 delta の Verification / Review / Aftercare を行う。scope 外の改善を暗黙に同じ PR へ混ぜへん。
+v4の狙いは**チェックを増やすことではなく、同じ情報を何度も読まず、安い段階で漏れを見つけ、どこに時間が消えたかを比較可能にすること**や。
