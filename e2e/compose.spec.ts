@@ -11,9 +11,8 @@ test.describe('compose draft editor', () => {
     'Authenticated E2E needs the Auth0 test identity in E2E_AUTH0_EMAIL / E2E_AUTH0_PASSWORD',
   )
 
-  test('writes a draft, keeps attachments optional, and reaches delivery settings', async ({
-    page,
-  }) => {
+  test('writes a draft, confirms send, and blocks editing after traveling', async ({ page }) => {
+    test.setTimeout(60_000)
     await openAuthenticatedInbox(page)
 
     await page.getByRole('link', { name: '書く' }).click()
@@ -50,12 +49,33 @@ test.describe('compose draft editor', () => {
     await expect(page.getByRole('radio', { name: /封をしない/ })).toBeVisible()
     await expect(page.getByRole('button', { name: '未来へ送る' })).toBeDisabled()
 
+    await expect(page.getByRole('heading', { name: '未来へ送る前の確認' })).toBeVisible()
+    await expect(page.getByText(letterBody)).toBeVisible()
+
     await page.getByRole('radio', { name: '数週間後くらい' }).check()
     await expect(page.getByRole('radio', { name: '数週間後くらい' })).toBeChecked()
 
     await page.getByRole('radio', { name: /封をしない/ }).check()
     await expect(page.getByRole('radio', { name: /封をしない/ })).toBeChecked()
-    await expect(page.getByRole('button', { name: '未来へ送る' })).toBeDisabled()
+    await expect(page.getByRole('definition').filter({ hasText: '数週間後くらい' })).toBeVisible()
+    await expect(page.getByRole('definition').filter({ hasText: '封をしない' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '未来へ送る' })).toBeEnabled()
+
+    const letterId = page.url().match(/\/write\/([^/]+)\/send/)?.[1]
+    expect(letterId).toBeTruthy()
+
+    await page.getByRole('button', { name: '未来へ送る' }).click()
+    await expect(page.getByRole('heading', { name: '手紙は未来へ旅立ちました' })).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
+    await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
+
+    await page.goto(`/write/${letterId}`)
+    await expect(page.getByRole('heading', { name: 'この手紙はもう送れません' })).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(page.getByRole('textbox', { name: '本文' })).toHaveCount(0)
   })
 
   test('autosaves the body so a reload restores the draft', async ({ page }) => {
