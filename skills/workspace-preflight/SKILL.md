@@ -41,7 +41,7 @@ GitHub connector のように repository API 経由で専用 branch へ直接変
 - base ref が `main`
 - write先が `main` ではない専用 task branch
 - branch が current task 専用である
--変更前のbase/head identityを記録する
+- 変更前のbase/head identityを記録する
 
 `docs/` / README / CHANGELOG だけの純粋な文書変更は、理由を記録して local worktree preflight を省略してよい。`AGENTS.md`、`.loop/`、`skills/`、`scripts/`、migration、CI、設定ファイルは pure docs 扱いにしない。
 
