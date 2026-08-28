@@ -155,5 +155,6 @@ export default defineSchema({
     disabledAt: v.optional(v.number()),
   })
     .index('by_ownerId', ['ownerId'])
-    .index('by_endpoint', ['endpoint']),
+    .index('by_endpoint', ['endpoint'])
+    .index('by_ownerId_and_disabledAt', ['ownerId', 'disabledAt']),
 })

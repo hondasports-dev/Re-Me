@@ -129,6 +129,7 @@ Delivery と external notification を分離する outbox。
 - letterDeliveries by delivery state and scheduledAt
 - notificationJobs by status and availableAt
 - pushSubscriptions by ownerId
+- pushSubscriptions by ownerId and disabledAt
 
 Growing table を unbounded `.collect()` や `.filter()` で走査しない。list query は paginate / bounded `take` を使う。
 

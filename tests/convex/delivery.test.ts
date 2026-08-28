@@ -227,6 +227,53 @@ describe('deliverDueLetters', () => {
     expect((await readJobs(t, letterId))[0]?.lastErrorCode).toBe('push_config_missing')
   })
 
+  it('does not treat disabled subscriptions as an empty push target', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const user = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    const { letterId, scheduledAt } = await seedTravelingLetter(t, user.userId, { due: true })
+    const now = Date.now()
+
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 20; index += 1) {
+        await ctx.db.insert('pushSubscriptions', {
+          ownerId: user.userId,
+          endpoint: `https://push.example.test/disabled-${index}`,
+          p256dh: 'p256dh-public',
+          auth: 'auth-secret',
+          createdAt: now,
+          updatedAt: now,
+          disabledAt: now,
+        })
+      }
+      await ctx.db.insert('pushSubscriptions', {
+        ownerId: user.userId,
+        endpoint: 'https://push.example.test/live',
+        p256dh: 'p256dh-public',
+        auth: 'auth-secret',
+        createdAt: now,
+        updatedAt: now,
+      })
+    })
+
+    await t.mutation(internal.delivery.deliverDueLetters, { now: scheduledAt + 1, limit: 10 })
+    const claimed = await t.mutation(internal.notifications.claimNotificationJobs, {
+      now: scheduledAt + 1,
+      limit: 10,
+    })
+    const job = claimed[0]
+    expect(job).toBeDefined()
+
+    await t.action(internal.notificationActions.sendNotificationJob, {
+      jobId: job!.jobId,
+      generationToken: job!.generationToken,
+    })
+
+    expect((await readLetter(t, letterId))?.status).toBe('delivered')
+    expect((await readJobs(t, letterId))[0]?.status).toBe('failed')
+    expect((await readJobs(t, letterId))[0]?.lastErrorCode).toBe('push_config_missing')
+  })
+
   it('delivers each owner independently and keeps one job per letter', async () => {
     const t = testConvex()
     const asAlice = t.withIdentity(alice)
