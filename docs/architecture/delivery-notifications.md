@@ -1,21 +1,21 @@
 # 手紙の配送・通知
 
-## Delivery model
+## 配送モデル
 
 送信時に以下を一度だけ決定する。
 
 ```text
-delivery mode
-  → delivery window
-  → exact scheduledAt
+配送モード
+  → 配送レンジ
+  → 正確な scheduledAt
   → traveling
 ```
 
-ユーザーへ返すのは delivery window まで。exact `scheduledAt` は `letterDeliveries` に置き、public function の return shape から除外する。
+ユーザーへ返すのは配送レンジまで。正確な `scheduledAt` は `letterDeliveries` に置き、public function の返り値から除外する。
 
-## Initial ranges
+## 初期レンジ
 
-| UI | `deliveryMode` | 初期 range |
+| UI | `deliveryMode` | 初期レンジ |
 |---|---|---|
 | 数日後くらい | `few_days` | 3〜7日 |
 | 数週間後くらい | `few_weeks` | 14〜30日 |
@@ -23,92 +23,92 @@ delivery mode
 | 1年後くらい | `about_year` | 300〜430日 |
 | 未来に任せる | `surprise` | 30〜365日 |
 
-## Send transaction
+## 送信 transaction
 
 `sendLetter` mutation は同一 transaction で以下を行う。
 
-1. current user と draft ownership を検証
-2. body / attachment state を検証
-3. delivery window と exact `scheduledAt` を決定
-4. letter を `traveling` に変更
-5. `letterDeliveries` を作成
-6. reply の場合は parent を transactionally claim する
+1. 現在ユーザーと下書きの所有権を検証する
+2. 本文 / 添付状態を検証する
+3. 配送レンジと正確な `scheduledAt` を決定する
+4. 手紙を `traveling` にする
+5. `letterDeliveries` を作成する
+6. 返信の場合は親手紙を transaction 内で確保する
 
-Client は exact time、owner、traveling state を指定できない。
+Client は正確な時刻、所有者、traveling 状態を指定できない。
 
-## Scheduling strategy
+## スケジュール方針
 
-正本は `letterDeliveries.scheduledAt` である。Convex cron（1分間隔）が due index を bounded batch で読み、internal mutation で配送する。
+正本は `letterDeliveries.scheduledAt` である。Convex cron（1分間隔）が due index を件数上限つきバッチで読み、internal mutation で配送する。
 
-個別 `scheduler.runAt` は近距離の wake-up 最適化として将来利用できるが、MVP の正本にはしない。cancel / reschedule / migration / reconciliation を database state から行えるようにする。
+個別の `scheduler.runAt` は近距離の起こし最適化として将来使えるが、MVP の正本にはしない。cancel / 再スケジュール / 移行 / 復旧を database 状態から行えるようにする。
 
 ```text
 Convex cron
-  → due delivery documents (indexed, bounded)
+  → 期限到来した配送 document（index、件数上限）
   → deliverDueLetters internal mutation
-  → letter delivered + notification outbox
+  → 手紙の到着 + 通知 outbox
 ```
 
-## Idempotency
+## 冪等性
 
-- `traveling` かつ due の letter だけを配送
-- delivery mutation が current state を再検証
-- letter ごとの notification job を一つに固定
-- 同じ cron / scheduled callback が重なっても delivered state と outbox を二重生成しない
-- batch を超えた分は次回 run へ残す
+- `traveling` かつ期限到来した手紙だけを配送する
+- 配送 mutation が現在状態を再検証する
+- 手紙ごとの通知 job を一つに固定する
+- 同じ cron / scheduled callback が重なっても delivered 状態と outbox を二重生成しない
+- バッチを超えた分は次回実行へ残す
 
-Convex mutation は transactional だが、external Push action は transaction ではない。両者を分離する。
+Convex mutation は transactional だが、外部 Push action は transaction ではない。両者を分離する。
 
-## Notification outbox
+## 通知 outbox
 
 ```text
-Letter delivered
-  → notification pending
-  → claim generation
+手紙が到着
+  → 通知 pending
+  → generation を claim
   → Web Push action
   → sent / failed
 ```
 
-`claimNotificationJobs` は pending / retryable failed job を claim し、generation token を発行する。`completeNotificationJob` は現在の generation と processing state が一致する場合だけ結果を書き込む。
+`claimNotificationJobs` は pending / 再試行可能な failed job を claim し、generation token を発行する。`completeNotificationJob` は現在の generation と processing 状態が一致する場合だけ結果を書き込む。
 
-Action は at-most-once failure を前提とし、transient error は mutation が backoff と次回 retry を明示的に schedule する。古い action result で新しい claim を上書きしない。
+Action は at-most-once の失敗を前提とし、一時エラーは mutation が backoff と次回 retry を明示的に予約する。古い action の結果で新しい claim を上書きしない。
 
-## Push privacy
+## Push のプライバシー
 
 通知には本文、写真、場所、ユーザー入力を含めない。
 
 > Re:Me — あなた宛ての手紙が届いています。
 
-notification tap 後に authenticated app が metadata / readable content を取得する。
+通知タップ後に、認証済みアプリが metadata / 読める本文を取得する。
 
-## Timezone
+## タイムゾーン
 
-Convex timestamp は UTC epoch milliseconds。UI は `userSettings.timezone` または browser timezone へ変換する。送信後に timezone が変わっても確定済み `scheduledAt` は変更しない。
+Convex の timestamp は UTC の epoch milliseconds。UI は `userSettings.timezone` またはブラウザのタイムゾーンへ変換する。送信後にタイムゾーンが変わっても、確定済み `scheduledAt` は変更しない。
 
-## Failure / recovery
+## 失敗 / 復旧
 
-- cron failure: due rows は traveling のまま残り、次回 sweep が再処理
-- delivery mutation success / push failure: letter は delivered、job は failed / retry
-- R2 / attachment failure: letter send 前に attachment readiness を検証
-- stale processing job: lock timeout 後に新しい generation で reclaim
-- vendor outage: oldest due / pending age を監視し、recovery sweep を実行
+- cron 失敗: due 行は traveling のまま残り、次回 sweep が再処理する
+- 配送 mutation 成功 / push 失敗: 手紙は delivered、job は failed / retry
+- R2 / 添付失敗: 手紙送信前に添付の準備完了を検証する
+- 古くなった processing job: lock timeout 後に新しい generation で reclaim する
+- 基盤障害: 最古の due / pending 経過時間を監視し、復旧 sweep を実行する
 
-## Monitoring
+## 監視
 
-- due traveling count / oldest due age
-- delivered count / cron run
-- cron skipped / failed runs
-- notification pending / failed / retry count
-- oldest pending notification age
-- R2 authorization / upload / delete failure
+- due の traveling 件数 / 最古 due の経過時間
+- delivered 件数 / cron 実行
+- cron の skip / 失敗
+- 通知の pending / failed / retry 件数
+- 最古 pending 通知の経過時間
+- R2 認可 / upload / 削除の失敗
 
-## Required tests
+## 必須テスト
 
-- overlapping cron で二重配送しない
-- due でない letter は配送しない
-- deleted letter は配送しない
-- delivery と outbox 作成が atomic
-- push failure で delivered state を戻さない
-- stale generation completion を拒否
-- exact schedule が client result に出ない
-- batch limit を超えた残件を次回処理できる
+- 重なった cron で二重配送しない
+- 期限前の手紙は配送しない
+- 削除済み手紙は配送しない
+- 配送と outbox 作成が atomic
+- push 失敗で delivered 状態を戻さない
+- 古い generation の完了を拒否する
+- 正確な配送時刻が client の結果に出ない
+- バッチ上限を超えた残件を次回処理できる

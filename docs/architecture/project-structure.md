@@ -1,10 +1,10 @@
 # プロジェクト構成
 
-## Goal
+## 目的
 
-Frontend は feature-first、backend は Convex function boundary で整理する。Cloudflare Worker を第二の application backend にしない。
+Frontend は feature-first、backend は Convex function の境界で整理する。Cloudflare Worker を第二の application backend にしない。
 
-## Target structure
+## 目標構成
 
 ```text
 .
@@ -61,18 +61,18 @@ Frontend は feature-first、backend は Convex function boundary で整理す�
 └── pnpm-lock.yaml
 ```
 
-## App providers
+## アプリの provider
 
-`src/app/providers.tsx` に application-wide provider を集約する。
+`src/app/providers.tsx` にアプリ全体の provider を集約する。
 
 - MantineProvider
 - Auth0Provider
 - ConvexProviderWithAuth0
 - React Router
 
-Auth0 は login / logout / profile、Convex auth は backend request readiness を担当する。
+Auth0 は login / logout / プロフィール、Convex auth は backend リクエストの準備完了を担当する。
 
-## Frontend feature layout
+## フロントエンド feature の置き方
 
 ```text
 src/features/compose/
@@ -84,30 +84,30 @@ src/features/compose/
 └── pages/
 ```
 
-- feature 内だけの code は feature 内に置く
+- feature 内だけのコードは feature 内に置く
 - Convex generated API を component に大量に直書きせず、意味のある feature hook で包む
 - Convex data を TanStack Query や global store に複製しない
-- form / modal / animation state は React state / context に置く
-- authorization logic を frontend hook に置かない
+- フォーム / モーダル / アニメーション状態は React state / context に置く
+- 認可ロジックを frontend hook に置かない
 
-## Convex backend layout
+## Convex backend の置き方
 
 - `schema.ts`: tables、validators、indexes の正本
 - `auth.config.ts`: Auth0 issuer / application id
-- `letters.ts`: browser-facing query / mutation
-- `delivery.ts`: exact schedule と internal delivery transition
-- `notifications.ts`: outbox claim / completion / retry
-- `notificationActions.ts`: Web Push send (`use node`, internal only)
-- `attachments.ts`: private R2 upload / download authorization
-- `lib/authorization.ts`: current user と ownership を注入する shared wrapper
+- `letters.ts`: ブラウザ向け query / mutation
+- `delivery.ts`: 正確な配送時刻と internal な配送遷移
+- `notifications.ts`: outbox の claim / 完了 / retry
+- `notificationActions.ts`: Web Push 送信（`use node`、internal のみ）
+- `attachments.ts`: 非公開 R2 の upload / download 認可
+- `lib/authorization.ts`: 現在ユーザーと所有権を注入する共有 wrapper
 
-public function は React が直接必要なものだけにする。Cron / scheduler callback、delivery、notification completion は internal function にする。
+public function は React が直接必要なものだけにする。Cron / scheduler callback、配送、通知完了は internal function にする。
 
-## Route design
+## ルート設計
 
 ```text
 /                       -> 届いた手紙
-/login                  -> Login
+/login                  -> ログイン
 /write                  -> 手紙を書く
 /write/:letterId         -> 下書き編集
 /write/:letterId/send    -> 未来へ送る前の確認
@@ -120,23 +120,23 @@ public function は React が直接必要なものだけにする。Cron / sched
 /auth/callback           -> OAuth callback
 ```
 
-auth-required route は `useConvexAuth()` の loading / authenticated state を扱う。ただし router guard は UX 用で、データアクセスは Convex function の authorization が正本である。
+認証が必要なルートは `useConvexAuth()` の loading / authenticated 状態を扱う。ただし router ガードは UX 用で、データアクセスは Convex function の認可が正本である。
 
-## Cloudflare boundary
+## Cloudflare の境界
 
-`worker/` は SPA hosting に必要な最小 entry point のみとする。business API、R2 authorization、delivery cron、notification state machine を Worker に置かない。
+`worker/` は SPA hosting に必要な最小の入口だけにする。業務 API、R2 認可、配送 cron、通知の状態機械を Worker に置かない。
 
-edge 固有 route を将来追加する場合は、Convex と責務が重複しないこと、Auth0 token validation、retry / rollback を ADR で先に定義する。
+将来 edge 固有の route を足す場合は、Convex と責務が重複しないこと、Auth0 token 検証、retry / rollback を ADR で先に定義する。
 
-## Legacy migration boundary
+## legacy 移行の境界
 
-`supabase/migrations/` は production data migration まで残す legacy artifact である。runtime の Supabase client / Hono application API / TanStack Query は置かない。
+`supabase/migrations/` は production data の移行まで残す legacy 成果物である。runtime の Supabase client / Hono application API / TanStack Query は置かない。
 
-## Testing placement
+## テストの置き場
 
-- pure / React: feature 近傍または `tests/unit/`
-- Convex schema / functions / authorization: `tests/convex/`
-- Cloudflare asset / Worker behavior: `tests/worker/`
-- critical user journeys: `e2e/`
+- 純粋関数 / React: feature の近く、または `tests/unit/`
+- Convex schema / functions / 認可: `tests/convex/`
+- Cloudflare asset / Worker の振る舞い: `tests/worker/`
+- 重要なユーザー操作: `e2e/`
 
-Google OAuth UI を通常 E2E に含めず、Auth0 database test identity の `storageState` と少数の Google OAuth connection smoke を分離する。
+Google OAuth UI を通常 E2E に含めず、Auth0 database test identity の `storageState` と少数の Google OAuth connection smoke を分ける。

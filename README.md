@@ -86,16 +86,18 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 
 target backend の正本は `convex/schema.ts` と function validators である。`supabase/` は production data migration まで残す legacy 比較 artifact であり、runtime ではない。
 
-> 無料枠は MVP / 初期検証のために活用する。本番運用では、可用性・休止条件・容量・料金を再評価する。
+> 日常の local 開発は Convex local backend を使い、cloud の無料枠を食わない。CI E2E だけ共有 Preview の remote Convex を使う。本番運用では可用性・休止条件・容量・料金を再評価する。
 
-## Environment 方針
+## 環境方針
 
 環境ごとに provider resource を分離する。
 
-- **Local / DEV**: Auth0 DEV tenant/application + Convex developer deployment + Vite/local Worker
-- **Preview**: Auth0 DEV preview callback + Convex preview deployment + Cloudflare preview
+- **Local**: Auth0 DEV tenant/application + Convex local backend（`pnpm dev:full`）+ Vite/local Worker。cloud の個人 developer deployment は正本にしない
+- **Preview / CI E2E**: Auth0 DEV preview callback + 共有 Convex preview deployment。CI は Playwright の前に Preview へ `convex deploy` する
 - **Production**: Auth0 PROD tenant/application + Convex production deployment + Cloudflare production Worker
 - **Google OAuth**: DEV client と production client を分離する
+
+Convex の接続先・初回セットアップは [Local / Preview 環境](docs/development/preview-environment.md) と [開発セットアップ](docs/development/setup.md) を正とする。
 
 通常の自動 E2E は Google OAuth のログイン画面へ依存せず、Auth0 の database test identity で session を作る。Google OAuth の実連携は Auth0 callback から Convex authenticated query までを少数の smoke test で確認する。
 
@@ -125,10 +127,13 @@ target backend の正本は `convex/schema.ts` と function validators である
 
 ### Implementation
 
+- [開発セットアップ](docs/development/setup.md)
+- [Local / Preview 環境](docs/development/preview-environment.md)
+- [品質ゲート](docs/development/quality-gates.md)
 - [移行前 Supabase baseline](supabase/README.md)
 - [デザインリファレンス](docs/design/README.md)
 - [開発ルール](AGENTS.md)
 
 ## ステータス
 
-プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine、Auth0 + Convex の provider 骨格、DEV tenant / developer deployment の接続、E2E 用 Auth0 test identity、Convex schema / authorization harness まで入っています。production 用 Google Cloud OAuth client と production data migration は後続です。
+プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine、Auth0 + Convex の provider 骨格、DEV tenant / local Convex backend の接続、E2E 用 Auth0 test identity、Convex schema / authorization harness まで入っています。production 用 Google Cloud OAuth client と production data migration は後続です。

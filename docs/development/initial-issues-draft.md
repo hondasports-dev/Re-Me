@@ -1,62 +1,62 @@
-# Initial issues draft
+# 初期 Issue 草案
 
-## Auth0 + Convex foundation
+## Auth0 + Convex の土台
 
 - Auth0Provider + ConvexProviderWithAuth0
 - `convex/auth.config.ts`
-- developer / preview / production environment contract
+- local / preview / production の環境契約
 - Cloudflare Workers Static Assets の SPA hosting
-- Supabase / Hono / TanStack Query は migration 完了まで legacy と明示
+- Supabase / Hono / TanStack Query は移行完了まで legacy と明示する
 
-## Convex schema / authorization
+## Convex schema / 認可
 
 - users、settings、threads、letters、contents、attachments、deliveries、notification jobs、push subscriptions
-- required indexes / pagination
-- authenticated wrappers / ownership checks
-- args / return validators
-- cross-user / sealed content / exact schedule tests
+- 必須 indexes / pagination
+- 認証済み wrapper / 所有権チェック
+- args / return validator
+- 他ユーザー / 封をした本文 / 正確な配送時刻のテスト
 
-## Auth
+## 認証
 
-- Auth0 Google OAuth DEV connection
+- Auth0 Google OAuth の DEV connection
 - login / logout / callback
-- `useConvexAuth()` based route guard
-- normal E2E と Google OAuth smoke の分離
-- DEV / PROD tenant / OAuth client separation
+- `useConvexAuth()` を基準にしたルートガード
+- 通常 E2E と Google OAuth smoke の分離
+- DEV / PROD の tenant / OAuth client 分離
 
-## Legacy Supabase removal
+## legacy Supabase の撤去
 
-- Supabase session provider / client / generated DB types を Convex に置換
-- local Supabase scripts / dependency / env を撤去
-- Hono application API と TanStack Query cache を撤去
-- migration / tests は Convex coverage が green になるまで残す
-- production data inventory と rollback decision を記録
+- Supabase session provider / client / generated DB types を Convex に置き換える
+- local Supabase の script / 依存 / env を撤去する
+- Hono application API と TanStack Query cache を撤去する
+- migration / tests は Convex の coverage が通るまで残す
+- production data の棚卸しと rollback 判断を記録する
 
-## Compose / Draft
+## 作成 / 下書き
 
-Convex query / mutation で blank letter editor、autosave、delivery window、seal choice を実装する。
+Convex query / mutation で白紙の手紙エディタ、自動保存、配送レンジ、封の選択を実装する。
 
-## Private R2 photo
+## private R2 写真
 
-Convex-authorized upload / download、private bucket、short-lived capability、metadata validation、EXIF stripping、delete reconciliation を実装する。
+Convex 認可つき upload / download、非公開 bucket、短命な権限、metadata 検証、EXIF 除去、削除の復旧を実装する。
 
-## Send / Immutability
+## 送信 / 編集不可
 
-`sendLetter` mutation が ownership、draft、content、delivery window、exact schedule、reply invariant を transactionally 強制する。
+`sendLetter` mutation が所有権、下書き、本文、配送レンジ、正確な配送時刻、返信の不変条件を同一 transaction で強制する。
 
-## Delivery / Notification
+## 配送 / 通知
 
-Convex cron + due index + internal mutation + notification outbox + Web Push action + generation-token retry を実装する。
+Convex cron + due index + internal mutation + 通知 outbox + Web Push action + generation token 付き retry を実装する。
 
-## Inbox / Open / Reply
+## 受信箱 / 開封 / 返信
 
-sealed content visibility、`openLetter`、一本道 reply invariant、future send を実装する。
+封をした本文の可視性、`openLetter`、一本道の返信、未来への再送を実装する。
 
 ## CI / E2E
 
-- Convex schema push / typecheck
-- authorization / state transition tests
+- Convex schema の push / typecheck
+- 認可 / 状態遷移テスト
 - React Testing Library
 - Cloudflare SPA build
-- Playwright critical flow
-- Auth0 Google OAuth smoke は通常 E2E と分離
+- Playwright の重要フロー
+- Auth0 Google OAuth smoke は通常 E2E と分離する

@@ -1,18 +1,18 @@
 # ADR-0001: Cloudflare + Supabase を MVP 基盤にする
 
-- Status: Superseded by [ADR-0009](0009-auth0-convex-cloudflare.md)
-- Date: 2026-08-18
+- 状態: 廃止（[ADR-0009](0009-auth0-convex-cloudflare.md) に置換）
+- 日付: 2026-08-18
 
-## Context
+## 背景
 
 Re:Me はモバイルファースト Web アプリとして小さく MVP を検証したい。一方、Social Login / PostgreSQL / RLS を自前実装しすぎたくない。
 
-## Decision
+## 決定
 
-- Hosting / Workers / Cron / R2: Cloudflare
+- ホスティング / Workers / Cron / R2: Cloudflare
 - Auth / PostgreSQL / RLS: Supabase
 
-## Consequences
+## 帰結
 
 - 二つのサービスを運用する
 - 認証トークンを Worker / Browser でどう扱うか設計が必要
