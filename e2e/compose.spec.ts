@@ -119,7 +119,11 @@ test.describe('compose draft editor', () => {
       name: 're-me-e2e.jpg',
     })
 
-    await expect(page.getByRole('img', { name: '添付写真 1' })).toBeVisible({ timeout: 30_000 })
+    const uploadedPhoto = page.getByRole('img', { name: '添付写真 1' })
+    const uploadError = page.getByRole('alert')
+    await expect(uploadedPhoto.or(uploadError)).toBeVisible({ timeout: 30_000 })
+    await expect(uploadError).toHaveCount(0)
+    await expect(uploadedPhoto).toBeVisible()
     await expect(page.getByRole('button', { name: '写真を添える（1/3）' })).toBeEnabled()
 
     await page.getByRole('button', { name: '外す' }).click()

@@ -81,6 +81,7 @@ Convex の schema / function を変更する場合:
 - 封をした / 未開封 attachment URL の非公開
 - MIME / size / dimension / EXIF の扱い
 - metadata / object 削除の部分失敗からの復旧
+- CI E2E の写真 upload は Preview R2 の CORS に Playwright origin（`http://127.0.0.1:4173`）が必要。Worker origin だけだと `vite preview` からの PUT が失敗する
 
 ## 本番準備
 
