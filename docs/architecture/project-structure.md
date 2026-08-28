@@ -112,6 +112,7 @@ public function は React が直接必要なものだけにする。Cron / sched
 /write/:letterId         -> 下書き編集
 /write/:letterId/send    -> 未来へ送る前の確認
 /traveling               -> 未来を旅する手紙
+/traveling/:letterId     -> 旅の途中の手紙（読み返し / 削除）
 /letters/:letterId       -> 開封前 / 本文
 /letters/:letterId/reply -> 返信を書く
 /threads/:threadId       -> 時間をまたぐスレッド

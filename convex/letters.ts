@@ -6,9 +6,11 @@ import { canReadLetterContent } from './lib/authorization'
 import {
   assertBodyLength,
   attachmentsAreReadyForSend,
+  deleteOwnedTravelingLetter,
   getLetterContent,
   insertDraft,
   listLetterAttachments,
+  listOwnedLetterMetadata,
   loadOwnedDraft,
   loadVisibleLetter,
   sendOwnedLetter,
@@ -18,7 +20,6 @@ import {
   createdDraftValidator,
   deliveryModeValidator,
   draftEditorValidator,
-  LETTER_LIST_LIMIT,
   letterMetadataValidator,
   letterStatusValidator,
   readableContentValidator,
@@ -148,17 +149,26 @@ export const listMyLetterMetadata = query({
   returns: v.array(letterMetadataValidator),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
-    const letters = await ctx.db
-      .query('letters')
-      .withIndex('by_owner_status_and_updatedAt', (q) =>
-        q.eq('ownerId', user._id).eq('status', args.status),
-      )
-      .order('desc')
-      .take(LETTER_LIST_LIMIT)
+    return await listOwnedLetterMetadata(ctx, user._id, args.status)
+  },
+})
 
-    return letters
-      .filter((letter) => letter.deletedAt === undefined)
-      .map((letter) => toLetterMetadata(letter))
+export const listTravelingLetters = query({
+  args: {},
+  returns: v.array(letterMetadataValidator),
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx)
+    return await listOwnedLetterMetadata(ctx, user._id, 'traveling')
+  },
+})
+
+export const deleteLetter = mutation({
+  args: { letterId: v.id('letters') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    await deleteOwnedTravelingLetter(ctx, user._id, args.letterId)
+    return null
   },
 })
 
