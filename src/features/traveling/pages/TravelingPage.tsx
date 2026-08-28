@@ -1,12 +1,20 @@
-import { StatusScreen } from '../../../shared/components/StatusScreen'
+import { useQuery } from 'convex/react'
+
+import { api } from '../../../../convex/_generated/api'
+import { TravelingErrorBoundary } from '../components/TravelingErrorBoundary'
+import { TravelingLetterList } from '../components/TravelingLetterList'
 
 export function TravelingPage() {
   return (
-    <StatusScreen
-      description="未来へ向かっている手紙は、まだありません。"
-      title="旅する手紙"
-      tone="content"
-      variant="empty"
-    />
+    <TravelingErrorBoundary>
+      <TravelingList />
+    </TravelingErrorBoundary>
   )
+}
+
+function TravelingList() {
+  const letters = useQuery(api.letters.listTravelingLetters)
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+  return <TravelingLetterList letters={letters} timeZone={timeZone} />
 }
