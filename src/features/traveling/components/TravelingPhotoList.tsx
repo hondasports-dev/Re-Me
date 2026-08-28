@@ -45,12 +45,18 @@ function TravelingPhotoItem({
   useEffect(() => {
     let active = true
     const refresh = async () => {
-      const capability = await createDownloadCapability({
-        attachmentId: photo.attachmentId as Id<'letterAttachments'>,
-        generationToken: photo.generationToken,
-      })
-      if (active) {
-        setUrl(capability?.url ?? null)
+      try {
+        const capability = await createDownloadCapability({
+          attachmentId: photo.attachmentId as Id<'letterAttachments'>,
+          generationToken: photo.generationToken,
+        })
+        if (active) {
+          setUrl(capability?.url ?? null)
+        }
+      } catch {
+        if (active) {
+          setUrl(null)
+        }
       }
     }
     void refresh()

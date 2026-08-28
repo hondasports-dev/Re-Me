@@ -47,13 +47,13 @@ export async function listOwnedLetterMetadata(
 ): Promise<LetterMetadata[]> {
   const letters = await ctx.db
     .query('letters')
-    .withIndex('by_owner_status_and_updatedAt', (q) => q.eq('ownerId', userId).eq('status', status))
+    .withIndex('by_owner_status_deletedAt_and_updatedAt', (q) =>
+      q.eq('ownerId', userId).eq('status', status).eq('deletedAt', undefined),
+    )
     .order('desc')
     .take(LETTER_LIST_LIMIT)
 
-  return letters
-    .filter((letter) => letter.deletedAt === undefined)
-    .map((letter) => toLetterMetadata(letter))
+  return letters.map((letter) => toLetterMetadata(letter))
 }
 
 export function toLetterMetadata(letter: Doc<'letters'>): LetterMetadata {
