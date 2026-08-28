@@ -62,4 +62,18 @@ describe('CI and local Convex boundary', () => {
   it('ignores local Convex backend state', () => {
     expect(gitignore).toMatch(/(^|\n)\.convex\/(\n|$)/)
   })
+
+  it('lets CI Playwright upload photos to the Preview R2 bucket', () => {
+    const cors = JSON.parse(readRepoFile('ops/r2-cors-preview.json')) as {
+      rules: Array<{
+        allowed: { origins: string[]; methods: string[]; headers: string[] }
+      }>
+    }
+    const origins = cors.rules[0]?.allowed.origins ?? []
+    expect(origins).toContain('https://re-me-preview.hondasports.workers.dev')
+    expect(origins).toContain('http://127.0.0.1:4173')
+    expect(origins).toContain('http://localhost:4173')
+    expect(cors.rules[0]?.allowed.methods).toEqual(['PUT', 'GET', 'HEAD'])
+    expect(readRepoFile('playwright.config.ts')).toContain("baseURL: 'http://127.0.0.1:4173'")
+  })
 })

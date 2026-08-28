@@ -1,0 +1,17 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://re-me-preview.hondasports.workers.dev",
+          "http://127.0.0.1:4173",
+          "http://localhost:4173"
+        ],
+        "methods": ["PUT", "GET", "HEAD"],
+        "headers": ["Content-Type", "Content-Length", "If-None-Match"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

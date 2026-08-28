@@ -85,7 +85,13 @@ bucket は公開アクセスと custom domain を無効のままにし、環境�
 | Bucket | 許可する origin |
 |---|---|
 | `re-me-dev-attachments` | `http://127.0.0.1:5173`, `http://localhost:5173`, `http://127.0.0.1:4173`, `http://localhost:4173` |
-| `re-me-preview-attachments` | `https://re-me-preview.hondasports.workers.dev` |
+| `re-me-preview-attachments` | `https://re-me-preview.hondasports.workers.dev`, `http://127.0.0.1:4173`, `http://localhost:4173` |
+
+CI E2E の frontend は Playwright の `vite preview`（`http://127.0.0.1:4173`）で、backend / 写真 bucket は共有 Preview を使う。そのため Preview bucket の CORS には Worker origin だけでなく Playwright origin も入れる。正本は `ops/r2-cors-preview.json`。反映は次で行う。
+
+```text
+pnpm exec wrangler r2 bucket cors set re-me-preview-attachments --file ops/r2-cors-preview.json --force
+```
 
 CORS は両 bucket とも次だけを許可する。
 
