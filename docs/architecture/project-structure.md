@@ -20,6 +20,7 @@ Frontend は feature-first、backend は Convex function boundary で整理す�
 │   ├── attachments.ts
 │   ├── delivery.ts
 │   ├── notifications.ts
+│   ├── notificationActions.ts
 │   └── lib/
 │       ├── auth.ts
 │       ├── authorization.ts
@@ -94,7 +95,8 @@ src/features/compose/
 - `auth.config.ts`: Auth0 issuer / application id
 - `letters.ts`: browser-facing query / mutation
 - `delivery.ts`: exact schedule と internal delivery transition
-- `notifications.ts`: outbox、action、retry
+- `notifications.ts`: outbox claim / completion / retry
+- `notificationActions.ts`: Web Push send (`use node`, internal only)
 - `attachments.ts`: private R2 upload / download authorization
 - `lib/authorization.ts`: current user と ownership を注入する shared wrapper
 

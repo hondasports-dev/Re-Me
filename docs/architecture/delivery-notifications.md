@@ -38,9 +38,9 @@ Client は exact time、owner、traveling state を指定できない。
 
 ## Scheduling strategy
 
-正本は `letterDeliveries.scheduledAt` である。Convex cron が due index を bounded batch で読み、internal mutation で配送する。
+正本は `letterDeliveries.scheduledAt` である。Convex cron（1分間隔）が due index を bounded batch で読み、internal mutation で配送する。
 
-個別 `scheduler.runAt` は近距離の wake-up 最適化として利用できるが、数年後までの唯一の正本にはしない。cancel / reschedule / migration / reconciliation を database state から行えるようにする。
+個別 `scheduler.runAt` は近距離の wake-up 最適化として将来利用できるが、MVP の正本にはしない。cancel / reschedule / migration / reconciliation を database state から行えるようにする。
 
 ```text
 Convex cron

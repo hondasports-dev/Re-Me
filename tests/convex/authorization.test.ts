@@ -311,9 +311,10 @@ describe('Convex authorization harness', () => {
     expect(due).toEqual([
       expect.objectContaining({
         letterId: sent.letterId,
-        scheduledAt: sent.scheduledAt,
       }),
     ])
+    expect(JSON.stringify(due)).not.toContain('scheduledAt')
+    expect(JSON.stringify(due)).not.toContain(String(sent.scheduledAt))
   })
 
   it('rejects a second reply to the same parent letter', async () => {

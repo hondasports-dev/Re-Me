@@ -4,6 +4,8 @@ export const MAX_LETTER_BODY_LENGTH = 20_000
 export const MAX_LOCATION_LABEL_LENGTH = 80
 export const LETTER_LIST_LIMIT = 50
 export const DUE_DELIVERY_LIMIT = 100
+export const NOTIFICATION_CLAIM_LIMIT = 50
+export const NOTIFICATION_LOCK_TIMEOUT_MS = 5 * 60 * 1000
 
 export const letterStatusValidator = v.union(
   v.literal('draft'),

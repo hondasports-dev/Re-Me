@@ -16,10 +16,14 @@ import type * as health from "../health.js";
 import type * as letters from "../letters.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_authorization from "../lib/authorization.js";
+import type * as lib_deliverLetters from "../lib/deliverLetters.js";
 import type * as lib_deliveryWindow from "../lib/deliveryWindow.js";
 import type * as lib_letters from "../lib/letters.js";
+import type * as lib_notificationPolicy from "../lib/notificationPolicy.js";
 import type * as lib_photoPolicy from "../lib/photoPolicy.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as notificationActions from "../notificationActions.js";
+import type * as notifications from "../notifications.js";
 import type * as users from "../users.js";
 
 import type {
@@ -37,10 +41,14 @@ declare const fullApi: ApiFromModules<{
   letters: typeof letters;
   "lib/auth": typeof lib_auth;
   "lib/authorization": typeof lib_authorization;
+  "lib/deliverLetters": typeof lib_deliverLetters;
   "lib/deliveryWindow": typeof lib_deliveryWindow;
   "lib/letters": typeof lib_letters;
+  "lib/notificationPolicy": typeof lib_notificationPolicy;
   "lib/photoPolicy": typeof lib_photoPolicy;
   "lib/validators": typeof lib_validators;
+  notificationActions: typeof notificationActions;
+  notifications: typeof notifications;
   users: typeof users;
 }>;
 
