@@ -1,13 +1,22 @@
 import { MantineProvider } from '@mantine/core'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { TravelingErrorBoundary } from '../../src/features/traveling/components/TravelingErrorBoundary'
 import { TravelingLetterDetail } from '../../src/features/traveling/components/TravelingLetterDetail'
 import { TravelingLetterList } from '../../src/features/traveling/components/TravelingLetterList'
+import { TravelingPhotoList } from '../../src/features/traveling/components/TravelingPhotoList'
+
+const { mockCreateDownloadCapability } = vi.hoisted(() => ({
+  mockCreateDownloadCapability: vi.fn(),
+}))
+
+vi.mock('convex/react', () => ({
+  useAction: () => mockCreateDownloadCapability,
+}))
 import {
   canFetchTravelingContent,
   formatDeliveryWindow,
@@ -152,6 +161,62 @@ describe('TravelingLetterDetail', () => {
     await user.click(screen.getByRole('button', { name: 'この手紙を削除する' }))
     await user.click(screen.getByRole('button', { name: '削除する' }))
     expect(onDelete).toHaveBeenCalledOnce()
+  })
+})
+
+describe('TravelingPhotoList', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    mockCreateDownloadCapability.mockReset()
+  })
+
+  it('ignores a stale capability refresh that fails after a newer one succeeds', async () => {
+    vi.useFakeTimers()
+
+    let first!: {
+      reject: (error: Error) => void
+      resolve: (value: { url: string }) => void
+    }
+    let second!: {
+      reject: (error: Error) => void
+      resolve: (value: { url: string }) => void
+    }
+    mockCreateDownloadCapability
+      .mockReturnValueOnce(
+        new Promise<{ url: string }>((resolve, reject) => {
+          first = { reject, resolve }
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise<{ url: string }>((resolve, reject) => {
+          second = { reject, resolve }
+        }),
+      )
+
+    renderWithRouter(
+      <TravelingPhotoList photos={[{ attachmentId: 'att-photo', generationToken: 'gen-1' }]} />,
+    )
+
+    expect(screen.getByLabelText('添付写真 1を読み込み中')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(45_000)
+      second.resolve({ url: 'https://example.test/fresh.jpg' })
+    })
+
+    expect(screen.getByRole('img', { name: '添付写真 1' })).toHaveAttribute(
+      'src',
+      'https://example.test/fresh.jpg',
+    )
+
+    await act(async () => {
+      first.reject(new Error('stale capability'))
+    })
+
+    expect(screen.getByRole('img', { name: '添付写真 1' })).toHaveAttribute(
+      'src',
+      'https://example.test/fresh.jpg',
+    )
   })
 })
 
