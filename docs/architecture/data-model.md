@@ -173,6 +173,8 @@ Authenticated client:
 - `createDraft`
 - `saveDraft`
 - `getLetterMetadata`
+- `listMyLetterMetadata`
+- `listTravelingLetters`
 - `getReadableContent`
 - `sendLetter`
 - `openLetter`
