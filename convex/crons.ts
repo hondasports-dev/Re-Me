@@ -11,4 +11,11 @@ crons.interval(
   {},
 )
 
+crons.interval(
+  'deliver due letters and claim notification jobs',
+  { minutes: 1 },
+  internal.delivery.sweepDueDeliveries,
+  {},
+)
+
 export default crons
