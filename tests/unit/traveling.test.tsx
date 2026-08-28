@@ -146,6 +146,10 @@ describe('TravelingLetterDetail', () => {
 
     await user.click(screen.getByRole('button', { name: 'この手紙を削除する' }))
     expect(screen.getByRole('alertdialog', { name: 'この手紙を削除しますか' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '削除する' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'やめる' }))
+    expect(screen.getByRole('button', { name: 'この手紙を削除する' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'この手紙を削除する' }))
     await user.click(screen.getByRole('button', { name: '削除する' }))
     expect(onDelete).toHaveBeenCalledOnce()
   })

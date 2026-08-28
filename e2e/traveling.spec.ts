@@ -16,6 +16,10 @@ test.describe('traveling letters', () => {
     test.setTimeout(60_000)
     await openAuthenticatedInbox(page)
 
+    await page.getByRole('link', { name: '旅する手紙' }).click()
+    await expect(page).toHaveURL(/\/traveling$/)
+    const existingHrefs = await readableLetterHrefs(page)
+
     await page.getByRole('link', { name: '書く' }).click()
     await expect(page).toHaveURL(/\/write\/[^/]+$/, { timeout: 20_000 })
 
@@ -31,31 +35,38 @@ test.describe('traveling letters', () => {
 
     await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
     await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
-    await expect(page.getByRole('link', { name: /読み返せる/ }).first()).toBeVisible()
-    await expect(page.getByText('数週間後くらい').first()).toBeVisible()
     await expect(page.getByText(letterBody)).toHaveCount(0)
+
+    const createdHref = (await readableLetterHrefs(page)).find(
+      (href) => href !== null && !existingHrefs.includes(href),
+    )
+    expect(createdHref).toBeTruthy()
 
     const overflowing = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     )
     expect(overflowing).toBe(false)
 
-    await page
-      .getByRole('link', { name: /読み返せる/ })
-      .first()
-      .click()
-    await expect(page).toHaveURL(/\/traveling\/[^/]+$/, { timeout: 20_000 })
+    await page.locator(`a[href="${createdHref}"]`).click()
+    await expect(page).toHaveURL(/\/traveling\/[^/]+$/)
     await expect(page.getByText(letterBody)).toBeVisible()
     await expect(page.getByRole('textbox', { name: '本文' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'この手紙を削除する' }).click()
     await expect(page.getByRole('alertdialog', { name: 'この手紙を削除しますか' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '削除する' })).toBeFocused()
     await page.getByRole('button', { name: '削除する' }).click()
 
     await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
-    await expect(page.getByText(letterBody)).toHaveCount(0)
+    await expect(page.locator(`a[href="${createdHref}"]`)).toHaveCount(0)
   })
 })
+
+async function readableLetterHrefs(page: Page): Promise<Array<string | null>> {
+  return await page
+    .getByRole('link', { name: /読み返せる/ })
+    .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
+}
 
 async function openAuthenticatedInbox(page: Page): Promise<void> {
   await page.goto('/')

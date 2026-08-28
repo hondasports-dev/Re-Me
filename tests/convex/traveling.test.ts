@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { api, internal } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
+import { LETTER_LIST_LIMIT } from '../../convex/lib/validators'
 import { testConvex } from './harness'
 
 const alice = { name: 'Alice', subject: 'alice' }
@@ -128,6 +129,45 @@ describe('traveling letters', () => {
       limit: 10,
     })
     expect(due.find((item) => item.letterId === sent.letterId)).toBeUndefined()
+  })
+
+  it('lists a live traveling letter even when many newer letters are deleted', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const user = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    const live = await sendDraft(asAlice, {
+      body: '残る手紙',
+      sealed: false,
+      deliveryMode: 'few_weeks',
+    })
+
+    await t.run(async (ctx) => {
+      const now = Date.now()
+      for (let index = 0; index < LETTER_LIST_LIMIT; index += 1) {
+        const threadId = await ctx.db.insert('threads', {
+          ownerId: user.userId,
+          createdAt: now,
+          updatedAt: now + index,
+        })
+        await ctx.db.insert('letters', {
+          threadId,
+          ownerId: user.userId,
+          status: 'traveling',
+          sealed: true,
+          deliveryMode: 'few_days',
+          deliveryWindowStart: now,
+          deliveryWindowEnd: now,
+          sentAt: now,
+          createdAt: now,
+          updatedAt: now + index + 1,
+          deletedAt: now + index + 1,
+        })
+      }
+    })
+
+    const listed = await asAlice.query(api.letters.listTravelingLetters, {})
+    expect(listed.map((letter) => letter.letterId)).toContain(live.letterId)
+    expect(listed).toHaveLength(1)
   })
 
   it('rejects deleting a draft and keeps sent letters immutable', async () => {

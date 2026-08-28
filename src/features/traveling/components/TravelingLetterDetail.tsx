@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
 import { StatusScreen } from '../../../shared/components/StatusScreen'
@@ -123,6 +123,21 @@ function DeleteTravelingLetter({ onDelete }: { onDelete: () => Promise<void> }) 
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null)
+  const confirmButtonRef = useRef<HTMLButtonElement>(null)
+  const didOpenConfirmRef = useRef(false)
+
+  useEffect(() => {
+    if (confirming) {
+      didOpenConfirmRef.current = true
+      confirmButtonRef.current?.focus()
+      return
+    }
+
+    if (didOpenConfirmRef.current) {
+      deleteTriggerRef.current?.focus()
+    }
+  }, [confirming])
 
   async function confirmDelete(): Promise<void> {
     if (deleting) {
@@ -145,6 +160,7 @@ function DeleteTravelingLetter({ onDelete }: { onDelete: () => Promise<void> }) 
       <Button
         className="traveling-letter__delete"
         onClick={() => setConfirming(true)}
+        ref={deleteTriggerRef}
         type="button"
         variant="subtle"
       >
@@ -168,7 +184,12 @@ function DeleteTravelingLetter({ onDelete }: { onDelete: () => Promise<void> }) 
         </p>
       ) : null}
       <div className="traveling-letter__confirm-actions">
-        <Button disabled={deleting} onClick={() => void confirmDelete()} type="button">
+        <Button
+          disabled={deleting}
+          onClick={() => void confirmDelete()}
+          ref={confirmButtonRef}
+          type="button"
+        >
           削除する
         </Button>
         <Button
