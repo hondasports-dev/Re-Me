@@ -24,7 +24,8 @@ Frontend は feature-first、backend は Convex function boundary で整理す�
 │   └── lib/
 │       ├── auth.ts
 │       ├── authorization.ts
-│       └── errors.ts
+│       ├── deliverLetters.ts
+│       └── notificationPolicy.ts
 ├── docs/
 ├── public/
 ├── src/

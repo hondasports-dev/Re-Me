@@ -141,18 +141,18 @@ export const getNotificationSendTarget = internalQuery({
 
     const subscriptions = await ctx.db
       .query('pushSubscriptions')
-      .withIndex('by_ownerId', (q) => q.eq('ownerId', job.ownerId))
+      .withIndex('by_ownerId_and_disabledAt', (q) =>
+        q.eq('ownerId', job.ownerId).eq('disabledAt', undefined),
+      )
       .take(20)
 
     return {
       ownerId: job.ownerId,
-      subscriptions: subscriptions
-        .filter((subscription) => subscription.disabledAt === undefined)
-        .map((subscription) => ({
-          auth: subscription.auth,
-          endpoint: subscription.endpoint,
-          p256dh: subscription.p256dh,
-        })),
+      subscriptions: subscriptions.map((subscription) => ({
+        auth: subscription.auth,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+      })),
     }
   },
 })
