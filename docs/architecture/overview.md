@@ -6,7 +6,7 @@ Re:Me は Auth0 を identity provider、Convex を application backend、Cloudfl
 
 ```mermaid
 flowchart TB
-    U[Mobile Web / PWA]
+    U[モバイル Web / PWA]
     CF[Cloudflare Workers Static Assets]
     A0[Auth0 Universal Login]
     G[Google OAuth 2.0]
@@ -14,8 +14,8 @@ flowchart TB
     FN[Convex Functions]
     DB[Convex Database]
     CRON[Convex Cron / Scheduler]
-    OUTBOX[Notification Outbox]
-    R2[Private Cloudflare R2]
+    OUTBOX[通知 Outbox]
+    R2[非公開 Cloudflare R2]
     PUSH[Web Push Provider]
 
     U --> CF
@@ -31,33 +31,33 @@ flowchart TB
     OUTBOX --> PUSH
 ```
 
-## Responsibility map
+## 責務の分担
 
-| Platform | Owns | Does not own |
+| 基盤 | 持つもの | 持たないもの |
 |---|---|---|
-| Auth0 | Google OAuth、Universal Login、token / session、account security | letter authorization、domain data |
-| Convex | schema、authorization、queries / mutations / actions、realtime、scheduler、outbox | frontend hosting、identity credential storage |
-| Cloudflare | React SPA / PWA 配信、CDN、custom domain、edge protection、private R2 | application database、delivery state machine |
+| Auth0 | Google OAuth、Universal Login、token / session、アカウントセキュリティ | 手紙の認可、ドメインデータ |
+| Convex | schema、認可、query / mutation / action、realtime、scheduler、outbox | frontend hosting、identity credential の保管 |
+| Cloudflare | React SPA / PWA 配信、CDN、custom domain、edge 保護、非公開 R2 | application database、配送の状態機械 |
 
-## Frontend
+## フロントエンド
 
 - React + TypeScript + Vite
 - React Router
-- Mantine + Re:Me custom design tokens / components
+- Mantine + Re:Me 独自の design token / component
 - `@auth0/auth0-react`
 - `convex/react` + `convex/react-auth0`
 
-React Router の guard は未認証 user を login へ案内する UX 境界に限る。ログイン済みかつ backend token が利用可能かは `useConvexAuth()` を基準にし、domain authorization は必ず Convex function 内で行う。
+React Router のガードは、未認証ユーザーを login へ案内する UX 境界に限る。ログイン済みかつ backend token が使えるかは `useConvexAuth()` を基準にし、ドメインの認可は必ず Convex function 内で行う。
 
-Convex query は reactive cache を持つため、Convex data に TanStack Query を重ねない。非 Convex API が必要になった場合だけ、その API の責務を限定して再検討する。
+Convex query は reactive cache を持つため、Convex data に TanStack Query を重ねない。Convex 以外の API が必要になった場合だけ、その API の責務を限定して再検討する。
 
 ## Auth0
 
-- Google OAuth connection を MVP の login method とする
-- Universal Login を使い、password / Google OAuth credential を Re:Me が保持しない
-- DEV の E2E だけ Username-Password connection を使い、public signup は disable する
-- SPA callback / logout / web origin を environment ごとに allowlist する
-- Auth0 が発行する token を Convex が issuer / audience / signature まで検証する
+- Google OAuth connection を MVP の login 手段とする
+- Universal Login を使い、password / Google OAuth の credential を Re:Me が持たない
+- DEV の E2E だけ Username-Password connection を使い、公開サインアップは無効にする
+- SPA の callback / logout / web origin を環境ごとに許可リストする
+- Auth0 が発行する token を Convex が issuer / audience / 署名まで検証する
 - custom domain は DEV の必須条件にしない
 
 ## Convex
@@ -65,81 +65,91 @@ Convex query は reactive cache を持つため、Convex data に TanStack Query
 Convex は Re:Me の唯一の application backend とする。
 
 - document schema と indexes
-- public / internal query、mutation、action
-- user ownership と sealed content の authorization
-- realtime subscriptions
-- exact delivery time と delivery state
+- public / internal の query、mutation、action
+- ユーザー所有権と封をした本文の認可
+- realtime 購読
+- 正確な配送時刻と配送状態
 - cron / scheduled functions
-- notification outbox と retry state
-- R2 object metadata / access intent
+- 通知 outbox と retry 状態
+- R2 object の metadata / アクセス意図
 
 汎用 application API を Cloudflare Worker / Hono に複製しない。
 
 ## Cloudflare
 
-Cloudflare Workers Static Assets で React SPA / PWA を配信する。SPA fallback、hashed asset cache、custom domain、CDN / WAF 等の edge 機能を担当する。
+Cloudflare Workers Static Assets で React SPA / PWA を配信する。SPA fallback、ハッシュ付き asset の cache、custom domain、CDN / WAF などの edge 機能を担当する。
 
-写真本体は private R2 に置く。`@convex-dev/r2` を認可境界として使い、bucket を public にしない。Worker に独自 upload API を追加するのは target architecture に含めない。
+写真本体は非公開 R2 に置く。`@convex-dev/r2` を認可境界として使い、bucket を公開しない。Worker に独自 upload API を足すのは target architecture に含めない。
 
-## Trust boundary
+## 信頼境界
 
-### Browser
+### ブラウザ
 
-- Auth0 login / logout
+- Auth0 の login / logout
 - Convex public functions の呼び出し
-- 認可後に発行された短命な R2 upload / download capability の利用
+- 認可後に発行された短命な R2 upload / download 権限の利用
 
-Browser は以下を決定できない。
+ブラウザは以下を決定できない。
 
-- owner user id
-- exact `scheduledAt`
-- delivery / opened state
-- notification job state
-- sealed content の可視性
+- 所有者の user id
+- 正確な `scheduledAt`
+- 配送 / 開封状態
+- 通知 job の状態
+- 封をした本文の可視性
 
-### Convex public functions
+### Convex の public functions
 
-すべての public function は args / return validator を持つ。ログイン必須 function は Auth0 identity を internal user id に解決し、対象 document の ownership と現在 state を検証する。
+すべての public function は args / return validator を持つ。ログイン必須 function は Auth0 identity を内部 user id に解決し、対象 document の所有権と現在状態を検証する。
 
-### Convex internal functions
+### Convex の internal functions
 
-- due letter delivery
-- notification claim / completion / retry
-- cleanup / reconciliation
-- external side effect 前後の state transition
+- 期限到来した手紙の配送
+- 通知の claim / 完了 / retry
+- 掃除 / 復旧
+- 外部副作用の前後の状態遷移
 
-scheduled function には browser の auth context が伝播しないため、internal id と expected state を引数にし、実行時に再検証する。
+scheduled function にはブラウザの認証文脈が伝わらない。internal id と期待する状態を引数にし、実行時に再検証する。
 
-## Data privacy boundary
+## データのプライバシー境界
 
 ```text
-letters              metadata / window / lifecycle
-letterContents       body
-letterAttachments    R2 storage id / safe metadata
-letterDeliveries     exact scheduledAt（client return から除外）
+letters              metadata / 配送レンジ / ライフサイクル
+letterContents       本文
+letterAttachments    R2 storage id / 安全な metadata
+letterDeliveries     正確な scheduledAt（client の返り値から除外）
 notificationJobs     push outbox / retry
 ```
 
-sealed letter の本文と添付は、到着後に本人が明示的に開封するまで public query から返さない。これは E2EE ではなく application-level access control である。
+封をした手紙の本文と添付は、到着後に本人が明示的に開封するまで public query から返さない。これは E2EE ではなく、アプリケーション層のアクセス制御である。
 
-## Environment model
+## 環境モデル
 
-| Environment | Auth0 | Convex | Cloudflare |
+| 環境 | Auth0 | Convex | Cloudflare |
 |---|---|---|---|
-| Local / developer | DEV tenant / SPA / Google OAuth client | developer deployment | Vite + local Worker runtime |
-| Preview | DEV tenant の preview callback | preview deployment | preview URL |
+| Local | DEV tenant / SPA / Google OAuth client | マシン上の local backend | Vite + local Worker runtime |
+| Preview / CI E2E | DEV tenant の Preview callback | 共有 preview deployment | preview URL（E2E 自体は CI 上の Vite preview） |
 | Production | PROD tenant / SPA / Google OAuth client | production deployment | production Worker / domain |
 
 環境間で secret、deployment URL、OAuth client を共有しない。Production 操作や data migration は別 task と Human Gate を必要とする。
 
-## Migration status
+Convex の接続先は次で固定する。詳細手順は [Local / Preview 環境](../development/preview-environment.md) を正とする。
 
-この文書は target architecture の正本である。repository の runtime は Auth0 + Convex + Cloudflare Workers Static Assets。通常 E2E は Auth0 database test identity を使い、人間の login 入口は Google のままにする。legacy `supabase/migrations/` は production data migration まで比較用に残す。production 用 Google Cloud OAuth client と data migration は後続 Issue である。移行順序は [Implementation order](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
+| 場所 | Convex | 無料枠 |
+|---|---|---|
+| 日常の local 開発 | マシン上の local backend（`pnpm convex:dev` / `pnpm dev:full`） | 乗らない |
+| `pnpm test:convex` / CI 品質ゲート | in-memory の `convex-test` | 乗らない |
+| CI E2E | 共有 Preview へ `convex deploy` してから Playwright | Preview の remote を使う |
+| 共有 Preview Worker | 同じ Preview deployment（手動 `preview.yml`） | Preview の remote を使う |
+| Production | production deployment。local / PR CI からは触らない | 本番課金 |
 
-## References
+## 移行状況
+
+この文書は target architecture の正本である。repository の runtime は Auth0 + Convex + Cloudflare Workers Static Assets。通常 E2E は Auth0 の database test identity を使い、人が触る login 入口は Google のままにする。legacy `supabase/migrations/` は production data の移行まで比較用に残す。production 用 Google Cloud OAuth client と data migration は後続 Issue である。移行順は [実装順](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
+
+## 参照
 
 - [ADR-0009](decisions/0009-auth0-convex-cloudflare.md)
-- [Tech stack](tech-stack.md)
-- [Auth / security](auth-security.md)
-- [Data model](data-model.md)
-- [Delivery / notifications](delivery-notifications.md)
+- [技術スタック](tech-stack.md)
+- [認証・セキュリティ](auth-security.md)
+- [データモデル](data-model.md)
+- [手紙の配送・通知](delivery-notifications.md)

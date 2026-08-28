@@ -201,7 +201,7 @@ Convex reactive data を別の query cache や global store に複製しない�
 
 ## Environment / auth rules
 
-- Auth0 DEV / PROD tenant/application、Convex developer / production deployment、Cloudflare preview / production environment を分離する。
+- Auth0 DEV / PROD tenant/application、Convex local / preview / production deployment、Cloudflare preview / production environment を分離する。日常の local 開発は Convex local backend を使い、CI E2E は共有 Preview の remote Convex を参照する。cloud developer deployment を local の正本にしない。
 - Google OAuth の DEV client と production client を分離する。
 - 通常の automated E2E は Google OAuth の UI に依存させず、Auth0 test identity / session または backend test harness を使う。
 - Google OAuth の実連携は少数の smoke test で検証する。
@@ -244,7 +244,7 @@ pnpm test:loop
 ```
 
 critical user flow を変更する場合は該当 Playwright E2E も実行する。
-Convex schema / authorization を変更する場合は schema push verification / access-control test を必須にする。
+Convex schema / authorization を変更する場合は access-control test（`pnpm test:convex`）を必須にする。local の schema push 検証は `pnpm convex:check`（local backend）。CI E2E は共有 Preview へ `convex deploy` してから Playwright する。個人の cloud developer deployment を CI / 日常 local の正本にしない。手順は `docs/development/preview-environment.md`。
 
 最低限の critical E2E（draft→send / 開封 / 返信）は MVP の下限であり、E2E 対象の上限ではない。
 新しい user-visible 画面を足したら、その画面を踏む Playwright が mandatory である。

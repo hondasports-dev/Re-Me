@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: shared-preview
-  cancel-in-progress: true
+  group: shared-preview-backend
+  cancel-in-progress: false
 
 jobs:
   deploy:
