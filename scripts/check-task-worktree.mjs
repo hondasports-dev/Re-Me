@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { formatE2eEnvReport, syncWorktreeE2eEnv } from './sync-worktree-e2e-env.mjs'
+
 const PROTECTED_BRANCHES = new Set(['main'])
 
 function normalizePath(value) {
@@ -154,6 +156,10 @@ export function runWorkspacePreflight({
     })
 
     printResult({ result, branch, currentPath, canonicalPath })
+    if (result.ok) {
+      const envPlan = syncWorktreeE2eEnv({ currentPath, canonicalPath })
+      console.log(`E2E_ENV: ${formatE2eEnvReport(envPlan)}`)
+    }
     return result.ok ? 0 : 1
   } catch (error) {
     console.error('WORKSPACE_PREFLIGHT status: FAIL')

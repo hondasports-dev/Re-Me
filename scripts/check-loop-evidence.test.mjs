@@ -136,6 +136,22 @@ describe('check-loop-evidence', () => {
     expect(result).toEqual({ ok: true, errors: [] })
   })
 
+  it('does not throw when affected_scope is not an array', () => {
+    expect(() =>
+      evaluateVerificationEvidence({
+        evidence: {
+          status: 'PASS',
+          evidence_snapshot: 'tree def',
+          affected_scope: 'src/features/inbox/pages/InboxPage.tsx',
+          checks: [
+            { name: 'loop unit tests', authority: 'local', scope: 'targeted', status: 'PASS' },
+          ],
+          reruns: [],
+        },
+      }),
+    ).not.toThrow()
+  })
+
   it('rejects duplicate full checks without a reason', () => {
     const result = evaluateVerificationEvidence({
       evidence: {
@@ -150,6 +166,92 @@ describe('check-loop-evidence', () => {
       },
     })
     expect(result.ok).toBe(false)
+  })
+
+  it('rejects functional_e2e NOT_REQUIRED for missing credentials', () => {
+    const result = evaluateVerificationEvidence({
+      evidence: {
+        status: 'PASS',
+        evidence_snapshot: 'tree def',
+        affected_scope: ['src/features/inbox/pages/InboxPage.tsx'],
+        checks: [
+          {
+            name: 'inbox e2e',
+            authority: 'local',
+            scope: 'functional_e2e',
+            status: 'NOT_REQUIRED',
+            not_required_reason: 'E2E_AUTH0 credentials missing in this worktree',
+          },
+        ],
+        reruns: [],
+      },
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((error) => error.includes('must be BLOCKED, not NOT_REQUIRED'))).toBe(
+      true,
+    )
+  })
+
+  it('rejects BLOCKED checks when claiming verification PASS', () => {
+    const result = evaluateVerificationEvidence({
+      evidence: {
+        status: 'PASS',
+        evidence_snapshot: 'tree def',
+        affected_scope: ['src/features/inbox/pages/InboxPage.tsx'],
+        checks: [
+          {
+            name: 'inbox e2e',
+            authority: 'local',
+            scope: 'functional_e2e',
+            status: 'BLOCKED',
+          },
+        ],
+        reruns: [],
+      },
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((error) => error.includes('CI Aftercare shortcut'))).toBe(true)
+  })
+
+  it('rejects CI-only functional_e2e for changed screens', () => {
+    const result = evaluateVerificationEvidence({
+      evidence: {
+        status: 'PASS',
+        evidence_snapshot: 'tree def',
+        affected_scope: ['src/features/inbox/pages/InboxPage.tsx'],
+        checks: [
+          {
+            name: 'End-to-end',
+            authority: 'ci',
+            scope: 'functional_e2e',
+            status: 'PASS',
+          },
+        ],
+        reruns: [],
+      },
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((error) => error.includes('local functional_e2e PASS'))).toBe(true)
+  })
+
+  it('accepts local functional_e2e PASS for changed screens', () => {
+    const result = evaluateVerificationEvidence({
+      evidence: {
+        status: 'PASS',
+        evidence_snapshot: 'tree def',
+        affected_scope: ['src/features/inbox/pages/InboxPage.tsx'],
+        checks: [
+          {
+            name: 'inbox e2e',
+            authority: 'local',
+            scope: 'functional_e2e',
+            status: 'PASS',
+          },
+        ],
+        reruns: [],
+      },
+    })
+    expect(result).toEqual({ ok: true, errors: [] })
   })
 
   it('allows review NOT_REQUIRED when controls do not require review', () => {

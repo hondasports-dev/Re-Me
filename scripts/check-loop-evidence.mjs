@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { isCredentialOmissionReason, pathsRequireBrowserE2e } from './check-local-e2e-gate.mjs'
+
 const RESULT_STATUSES = new Set(['PASS', 'FAIL', 'NOT_REQUIRED', 'BLOCKED'])
 const VERIFICATION_AUTHORITIES = new Set(['local', 'ci', 'runtime'])
 const VERIFICATION_SCOPES = new Set([
@@ -198,11 +200,25 @@ export function evaluateVerificationEvidence({ evidence }) {
     }
     if (!VERIFICATION_SCOPES.has(check.scope)) errors.push(`check[${index}].scope is invalid`)
     if (!RESULT_STATUSES.has(check.status)) errors.push(`check[${index}].status is invalid`)
-    if (check.status !== 'PASS' && check.status !== 'NOT_REQUIRED') {
-      errors.push(`check[${index}].status must be PASS or NOT_REQUIRED`)
+    if (check.status === 'FAIL') {
+      errors.push(`check[${index}] is FAIL; verification.status cannot be PASS`)
+    }
+    if (check.status === 'BLOCKED') {
+      errors.push(
+        `check[${index}] is BLOCKED; verification.status cannot be PASS. Missing local E2E credentials are not a CI Aftercare shortcut.`,
+      )
     }
     if (check.status === 'NOT_REQUIRED' && isEmptyText(check.not_required_reason)) {
       errors.push(`check[${index}].NOT_REQUIRED requires not_required_reason`)
+    }
+    if (
+      check.status === 'NOT_REQUIRED' &&
+      (check.scope === 'functional_e2e' || check.scope === 'regression_e2e') &&
+      isCredentialOmissionReason(check.not_required_reason)
+    ) {
+      errors.push(
+        `check[${index}] missing credentials must be BLOCKED, not NOT_REQUIRED, and CI is not a substitute`,
+      )
     }
 
     if (check.scope === 'full_repository' && check.status === 'PASS') {
@@ -218,6 +234,24 @@ export function evaluateVerificationEvidence({ evidence }) {
     errors.push(
       `duplicate full checks require duplicate_full_check_reason: ${duplicates.map(([name]) => name).join(', ')}`,
     )
+  }
+
+  const browserE2eRequired =
+    evidence.browser_e2e_required === true ||
+    pathsRequireBrowserE2e(Array.isArray(evidence.affected_scope) ? evidence.affected_scope : [])
+  if (browserE2eRequired) {
+    const e2eChecks = checks.filter(
+      (check) => check !== null && typeof check === 'object' && check.scope === 'functional_e2e',
+    )
+    if (e2eChecks.length === 0) {
+      errors.push(
+        'changed user-visible screens require a local functional_e2e check; CI End-to-end is not a substitute',
+      )
+    } else if (!e2eChecks.some((check) => check.authority === 'local' && check.status === 'PASS')) {
+      errors.push(
+        'changed user-visible screens require a local functional_e2e PASS; CI End-to-end is not a substitute',
+      )
+    }
   }
 
   if (!Array.isArray(evidence.reruns)) {

@@ -20,6 +20,7 @@ description: Verified / reviewed content を publish し、Finding Ledger と re
 
 - intended diff のみ
 - untracked / secret / local-only artifact なし
+- `pnpm loop:e2e-gate` PASS。画面変更で資格情報が無いなら publish しない。CI 待ちに逃げない
 - `revision.verified` が current content に対して有効
 - required REVIEW がある場合 `revision.reviewed` が current content に対して有効
 - current task の Delivery PR は原則1つ
@@ -36,7 +37,7 @@ PR には最低限:
 - unresolved ではない residual decision がある場合だけ Finding disposition / follow-up
 - related Issue / task source
 
-Publish 後に `revision.published` を記録して PR Aftercare へ進む。
+Publish 後は `pnpm loop:aftercare` が PASS するまで Aftercare を終えない。local E2E の成功を CI / CodeRabbit の代替にしない。
 
 ## Content changed after publish
 

@@ -19,6 +19,8 @@ pnpm loop:preflight
 node scripts/check-task-worktree.mjs --require-clean
 ```
 
+canonical `.env.local` から `E2E_AUTH0_*` を現在の worktree へ同期する。値は表示・commit しない。既存キーは上書きしない。資格情報不足は PREPARE では止めず、画面変更時は `pnpm loop:e2e-gate` で BLOCK する。
+
 PASS 条件:
 
 - branch が `main` ではない
