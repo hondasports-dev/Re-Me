@@ -87,12 +87,14 @@ Convex の schema / function を変更する場合:
 
 ## 本番準備
 
-本番切り替え前に以下を別ゲートとする。
+本番切り替え前のチェックリストは [production-readiness.md](production-readiness.md) を正とする。Production の作成は Issue #38。data cutover は [legacy-migration.md](legacy-migration.md) の Human Gate。
 
 - Auth0 DEV / PROD の分離
 - Convex deployment / 環境の分離
 - Cloudflare preview / production の分離
-- backup / export / restore のリハーサル（[legacy-migration.md](legacy-migration.md)）
+- backup / export / restore のリハーサル
 - legacy Supabase データの棚卸しと移行判断
 - rollback 計画
 - 枠 / 課金 / アラートの確認
+
+CI の End-to-end は失敗時に Playwright trace / screenshot を artifact として残す。`retries` は 0 のままにして flaky を隠さない。

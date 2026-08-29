@@ -106,4 +106,23 @@ describe('CI and local Convex boundary', () => {
     ])
     expect(readRepoFile('playwright.config.ts')).toContain("baseURL: 'http://127.0.0.1:4173'")
   })
+
+  it('keeps failed E2E evidence without hiding flakes behind retries', () => {
+    const e2e = ci.slice(ci.indexOf('name: End-to-end'))
+    const playwright = readRepoFile('playwright.config.ts')
+
+    expect(playwright).toMatch(/retries:\s*0/)
+    expect(playwright).toContain("trace: 'retain-on-failure'")
+    expect(playwright).toContain("screenshot: 'only-on-failure'")
+    expect(e2e).toContain('actions/upload-artifact@v4')
+    expect(e2e).toContain('if: failure()')
+    expect(e2e).toContain('playwright-report/')
+    expect(e2e).toContain('test-results/')
+  })
+
+  it('does not send production Convex deploy through PR CI or Preview', () => {
+    expect(ci).not.toContain('convex deploy --prod')
+    expect(preview).not.toContain('convex deploy --prod')
+    expect(preview).toContain('environment: preview')
+  })
 })

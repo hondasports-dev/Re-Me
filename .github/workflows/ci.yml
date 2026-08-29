@@ -142,3 +142,14 @@ jobs:
           E2E_AUTH0_PASSWORD: ${{ secrets.E2E_AUTH0_PASSWORD }}
           E2E_AUTH0_CONNECTION: Username-Password-Authentication
         run: pnpm test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

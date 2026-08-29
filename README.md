@@ -130,6 +130,8 @@ Convex の接続先・初回セットアップは [Local / Preview 環境](docs/
 - [開発セットアップ](docs/development/setup.md)
 - [Local / Preview 環境](docs/development/preview-environment.md)
 - [品質ゲート](docs/development/quality-gates.md)
+- [本番準備](docs/development/production-readiness.md)
+- [Legacy data migration](docs/development/legacy-migration.md)
 - [移行前 Supabase baseline](supabase/README.md)
 - [デザインリファレンス](docs/design/README.md)
 - [開発ルール](AGENTS.md)
