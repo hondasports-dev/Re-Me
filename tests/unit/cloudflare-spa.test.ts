@@ -12,7 +12,7 @@ describe('Cloudflare SPA hosting', () => {
     expect(wrangler).toContain('/api/*')
   })
 
-  it('keeps local and Preview Workers separate and requires an explicit Preview target', () => {
+  it('keeps local, Preview, and Production Worker names separate', () => {
     const wrangler = readFileSync(resolve('wrangler.jsonc'), 'utf8')
 
     expect(wrangler).toContain('"name": "re-me-local"')
@@ -20,7 +20,9 @@ describe('Cloudflare SPA hosting', () => {
     expect(wrangler).toContain('"name": "re-me-preview"')
     expect(wrangler).toContain('"workers_dev": true')
     expect(wrangler).toContain('"preview_urls": true')
-    expect(wrangler).not.toContain('"production"')
+    expect(wrangler).toMatch(/"production"\s*:\s*\{/)
+    expect(wrangler).toContain('"name": "re-me"')
+    expect(wrangler).toContain('"preview_urls": false')
   })
 
   it('exposes Preview deploy secrets only after workflow steps begin', () => {

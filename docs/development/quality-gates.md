@@ -87,7 +87,7 @@ Convex の schema / function を変更する場合:
 
 ## 本番準備
 
-本番切り替え前のチェックリストは [production-readiness.md](production-readiness.md) を正とする。Production の作成は Issue #38。data cutover は [legacy-migration.md](legacy-migration.md) の Human Gate。
+本番切り替え前のチェックリストは [production-readiness.md](production-readiness.md) を正とする。Production の構成手順は [production-environment.md](production-environment.md)。作成は Issue #38 の Human Gate。data cutover は [legacy-migration.md](legacy-migration.md) の Human Gate。
 
 - Auth0 DEV / PROD の分離
 - Convex deployment / 環境の分離

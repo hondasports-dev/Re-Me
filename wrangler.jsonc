@@ -17,5 +17,10 @@
       "workers_dev": true,
       "preview_urls": true,
     },
+    "production": {
+      "name": "re-me",
+      "workers_dev": true,
+      "preview_urls": false,
+    },
   },
 }
