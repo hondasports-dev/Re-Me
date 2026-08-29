@@ -10,6 +10,7 @@ import { InboxLetterPage } from '../features/inbox/pages/InboxLetterPage'
 import { InboxPage } from '../features/inbox/pages/InboxPage'
 import { ReplyPage } from '../features/compose/pages/ReplyPage'
 import { ReplySendPage } from '../features/compose/pages/ReplySendPage'
+import { SettingsPage } from '../features/settings/pages/SettingsPage'
 import { ThreadPage } from '../features/thread/pages/ThreadPage'
 import { TravelingLetterPage } from '../features/traveling/pages/TravelingLetterPage'
 import { TravelingPage } from '../features/traveling/pages/TravelingPage'
@@ -65,6 +66,10 @@ export function createAppRoutes(): RouteObject[] {
             {
               path: 'traveling/:letterId',
               element: <TravelingLetterPage />,
+            },
+            {
+              path: 'settings',
+              element: <SettingsPage />,
             },
           ],
         },

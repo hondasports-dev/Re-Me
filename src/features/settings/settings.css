@@ -1,0 +1,32 @@
+.settings-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--re-me-space-4);
+  width: min(100%, 36rem);
+  margin: 0 auto;
+}
+
+.settings-page__eyebrow {
+  margin: 0;
+  color: var(--re-me-color-sky-deep);
+  font-size: var(--re-me-font-size-xs);
+  letter-spacing: var(--re-me-letter-spacing-label);
+}
+
+.settings-page h1 {
+  margin: 0;
+  font-family: var(--re-me-font-serif);
+  font-weight: 400;
+  font-size: var(--re-me-font-size-lg);
+}
+
+.settings-page__copy {
+  margin: 0;
+  color: var(--re-me-color-ink-muted);
+}
+
+.settings-page__alert {
+  margin: 0;
+  color: var(--re-me-color-danger);
+}

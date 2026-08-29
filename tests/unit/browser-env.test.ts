@@ -69,6 +69,12 @@ describe('assertBrowserSafeViteEnv', () => {
         VITE_AUTH0_CLIENT_SECRET: 'oauth-client-secret',
       }),
     ).toThrowError('privileged_browser_credential_rejected')
+
+    expect(() =>
+      assertBrowserSafeViteEnv({
+        VITE_WEB_PUSH_VAPID_PRIVATE_KEY: 'vapid-private-must-not-bundle',
+      }),
+    ).toThrowError('privileged_browser_credential_rejected')
   })
 
   it('allows public SPA configuration', () => {
@@ -77,6 +83,7 @@ describe('assertBrowserSafeViteEnv', () => {
         VITE_AUTH0_CLIENT_ID: 'spa-client-id',
         VITE_AUTH0_DOMAIN: 're-me-dev.auth0.com',
         VITE_CONVEX_URL: 'https://happy-animal-123.convex.cloud',
+        VITE_WEB_PUSH_VAPID_PUBLIC_KEY: 'vapid-public',
       }),
     ).not.toThrow()
   })

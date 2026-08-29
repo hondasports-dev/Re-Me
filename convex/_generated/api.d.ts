@@ -21,10 +21,12 @@ import type * as lib_deliveryWindow from "../lib/deliveryWindow.js";
 import type * as lib_letters from "../lib/letters.js";
 import type * as lib_notificationPolicy from "../lib/notificationPolicy.js";
 import type * as lib_photoPolicy from "../lib/photoPolicy.js";
+import type * as lib_pushSubscriptions from "../lib/pushSubscriptions.js";
 import type * as lib_threads from "../lib/threads.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as notificationActions from "../notificationActions.js";
 import type * as notifications from "../notifications.js";
+import type * as pushSubscriptions from "../pushSubscriptions.js";
 import type * as threads from "../threads.js";
 import type * as users from "../users.js";
 
@@ -48,10 +50,12 @@ declare const fullApi: ApiFromModules<{
   "lib/letters": typeof lib_letters;
   "lib/notificationPolicy": typeof lib_notificationPolicy;
   "lib/photoPolicy": typeof lib_photoPolicy;
+  "lib/pushSubscriptions": typeof lib_pushSubscriptions;
   "lib/threads": typeof lib_threads;
   "lib/validators": typeof lib_validators;
   notificationActions: typeof notificationActions;
   notifications: typeof notifications;
+  pushSubscriptions: typeof pushSubscriptions;
   threads: typeof threads;
   users: typeof users;
 }>;

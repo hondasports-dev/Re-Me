@@ -1,7 +1,7 @@
 import { AppShell, Button } from '@mantine/core'
 import { useReducedMotion } from '@mantine/hooks'
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router'
+import { Link, Outlet, useLocation } from 'react-router'
 
 import { useAuthRuntime } from '../features/auth/AuthRuntimeProvider'
 import { BottomNav } from './BottomNav'
@@ -51,16 +51,21 @@ export function App() {
               <span className="brand-mark__tagline">未来のあなたへ</span>
             </div>
 
-            <Button
-              className="re-me-shell__logout"
-              disabled={isLoggingOut}
-              onClick={() => {
-                void handleLogout()
-              }}
-              variant="subtle"
-            >
-              ログアウト
-            </Button>
+            <div className="re-me-shell__actions">
+              <Link className="re-me-shell__settings" to="/settings">
+                設定
+              </Link>
+              <Button
+                className="re-me-shell__logout"
+                disabled={isLoggingOut}
+                onClick={() => {
+                  void handleLogout()
+                }}
+                variant="subtle"
+              >
+                ログアウト
+              </Button>
+            </div>
           </div>
         </AppShell.Header>
       ) : null}

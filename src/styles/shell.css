@@ -29,8 +29,21 @@
   padding-left: calc(var(--re-me-spacing-page) + var(--re-me-safe-left));
 }
 
-.re-me-shell__logout {
+.re-me-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--re-me-space-2);
   margin-left: auto;
+}
+
+.re-me-shell__settings {
+  color: var(--re-me-color-ink-muted);
+  font-size: var(--re-me-font-size-sm);
+  text-decoration: none;
+}
+
+.re-me-shell__logout {
+  margin-left: 0;
 }
 
 .re-me-shell__alert {

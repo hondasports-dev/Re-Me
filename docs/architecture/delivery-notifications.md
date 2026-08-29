@@ -79,7 +79,7 @@ Action は at-most-once の失敗を前提とし、一時エラーは mutation �
 
 > Re:Me — あなた宛ての手紙が届いています。
 
-通知タップ後に、認証済みアプリが metadata / 読める本文を取得する。
+通知タップは `/`（届いた手紙）を開く。payload に `letterId` / 本文 / 写真 / `scheduledAt` を含めない。タップ後に、認証済みアプリが metadata / 読める本文を取得する。
 
 ## タイムゾーン
 

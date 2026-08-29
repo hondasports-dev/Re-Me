@@ -140,3 +140,12 @@ export const threadViewValidator = v.object({
   threadId: v.id('threads'),
   letters: v.array(threadSegmentValidator),
 })
+
+export const pushStatusValidator = v.object({
+  enabled: v.boolean(),
+})
+
+export const pushDisableResultValidator = v.object({
+  enabled: v.literal(false),
+  owned: v.boolean(),
+})
