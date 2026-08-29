@@ -112,6 +112,8 @@ R2 API token は対象 bucket の Object Read & Write に限定する。DEV cred
 
 CI の End-to-end job は GitHub environment `preview` の `VITE_CONVEX_URL` と `CONVEX_PREVIEW_DEPLOY_KEY` を使い、Playwright の前に PR の Convex functions を共有 Preview へ `convex deploy` する。品質ゲート job は live Convex に触れず `pnpm test:convex` だけを使う。repository 変数の `VITE_CONVEX_URL`（個人 developer deployment）は CI の正本にしない。
 
+`main` へ merge するには ruleset `protectmain` の required checks `Quality gates` と `End-to-end` が両方 SUCCESS である必要がある。workflow に job を足したら ruleset の context 名も同じものを足す。
+
 共有 Preview Convex は1つなので、CI E2E と手動 Preview deploy は `shared-preview-backend` concurrency で直列化する。E2E 実行中は Preview backend が当該 PR の functions になる。Cloudflare Preview Worker の frontend は手動 `preview.yml` まで古いままになり得る。
 
 `.github/workflows/preview.yml` は Cloudflare Worker への手動実行だけに限定する。GitHub environment `preview` に以下を設定する。
