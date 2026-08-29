@@ -114,19 +114,26 @@ describe('CI and local Convex boundary', () => {
   it('keeps failed E2E evidence without hiding flakes behind retries', () => {
     const e2e = ci.slice(ci.indexOf('name: End-to-end'))
     const playwright = readRepoFile('playwright.config.ts')
+    const uploadSteps = e2e
+      .split(/\n      - name: /)
+      .filter((step) => step.includes('actions/upload-artifact@v4'))
 
     expect(playwright).toMatch(/retries:\s*0/)
     expect(playwright).toContain("trace: 'retain-on-failure'")
     expect(playwright).toContain("screenshot: 'only-on-failure'")
-    expect(e2e).toContain('actions/upload-artifact@v4')
-    expect(e2e).toContain('if: failure()')
-    expect(e2e).toContain('playwright-report/')
-    expect(e2e).toContain('test-results/')
+    expect(uploadSteps).toHaveLength(1)
+    expect(uploadSteps[0]).toMatch(/^Upload Playwright failure artifacts\n        if: failure\(\)/)
+    expect(uploadSteps[0]).toContain('test-results/')
+    expect(uploadSteps[0]).toContain('playwright-report/')
   })
 
   it('does not send production Convex deploy through PR CI or Preview', () => {
     expect(ci).not.toContain('convex deploy --prod')
     expect(preview).not.toContain('convex deploy --prod')
     expect(preview).toContain('environment: preview')
+    expect(preview).toContain('secrets.CONVEX_PREVIEW_DEPLOY_KEY')
+    expect(ci).toContain('secrets.CONVEX_PREVIEW_DEPLOY_KEY')
+    expect(ci).not.toMatch(/\$\{\{\s*secrets\.CONVEX_DEPLOY_KEY\s*}}/)
+    expect(preview).not.toMatch(/\$\{\{\s*secrets\.CONVEX_DEPLOY_KEY\s*}}/)
   })
 })

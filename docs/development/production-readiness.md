@@ -64,9 +64,9 @@ Restore は production への書き込みなので Human Gate。Preview へ prod
 運用者が Convex Dashboard / internal query で見る。public function に exact `scheduledAt` や本文を出さない。
 
 - 最古の `letterDeliveries.status = pending` かつ due
-- 最古の `notificationJobs.status` が `pending` / `failed` / `processing` の `availableAt`
+- `notificationJobs` は status ごとに最古の `availableAt`（`pending` / `failed` / `processing`）
 - 同じ letter の job が複数ないこと（delivery test が回帰を止める）
-- claim は `availableAt` の古い順。retry は `nextNotificationAvailableAt` の backoff
+- claim は `pending` → `failed` → `processing` の順で、各 status 内だけ `availableAt` の古い順。全 status 横断の最古順は保証しない。retry は `nextNotificationAvailableAt` の backoff
 
 ## アカウント復旧 / provider 継続
 

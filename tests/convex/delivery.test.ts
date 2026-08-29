@@ -377,6 +377,46 @@ describe('deliverDueLetters', () => {
     expect(claimedJob?.letterId).toBe(older.letterId)
     expect(claimedJob?.letterId).not.toBe(newer.letterId)
   })
+
+  it('claims a newer pending job before an older failed job', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const user = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    const failedLetter = await seedTravelingLetter(t, user.userId, {
+      due: true,
+      scheduledAt: 1_000,
+    })
+    const pendingLetter = await seedTravelingLetter(t, user.userId, {
+      due: true,
+      scheduledAt: 2_000,
+    })
+
+    await t.mutation(internal.delivery.deliverDueLetters, { now: 3_000, limit: 10 })
+
+    await t.run(async (ctx) => {
+      const jobs = await ctx.db.query('notificationJobs').collect()
+      for (const job of jobs) {
+        if (job.letterId === failedLetter.letterId) {
+          await ctx.db.patch(job._id, { availableAt: 1, status: 'failed' })
+        } else if (job.letterId === pendingLetter.letterId) {
+          await ctx.db.patch(job._id, { availableAt: 100, status: 'pending' })
+        }
+      }
+    })
+
+    const claimed = await t.mutation(internal.notifications.claimNotificationJobs, {
+      now: 1_000_000,
+      limit: 1,
+    })
+    const firstClaim = claimed[0]
+    const claimedJob = firstClaim
+      ? await t.run(async (ctx) => await ctx.db.get(firstClaim.jobId))
+      : null
+
+    expect(claimed).toHaveLength(1)
+    expect(claimedJob?.letterId).toBe(pendingLetter.letterId)
+    expect(claimedJob?.letterId).not.toBe(failedLetter.letterId)
+  })
 })
 
 async function seedTravelingLetter(
