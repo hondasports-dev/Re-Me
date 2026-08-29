@@ -8,6 +8,8 @@ dist/
 !.env.example
 !.env.preview.example
 !.env.convex-preview.example
+!.env.production.example
+!.env.convex-production.example
 .dev.vars
 .dev.vars.*
 !.dev.vars.example

@@ -14,5 +14,6 @@
 12. PWA / Push
 13. データ移行 / legacy 片付け / rollback リハーサル（手順は [legacy-migration.md](legacy-migration.md)。Production write は Human Gate）
 14. CI / E2E / 本番準備の強化（[production-readiness.md](production-readiness.md)）
+15. Production 環境の構成（手順は [production-environment.md](production-environment.md)。作成は Human Gate）
 
 Production data がある場合、13 は Human Gate なしに実行しない。

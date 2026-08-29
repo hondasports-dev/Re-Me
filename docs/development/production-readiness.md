@@ -1,6 +1,6 @@
 # Production readiness
 
-この文書は [Issue #13](https://github.com/hondasports-dev/Re-Me/issues/13) の本番準備チェックリストである。Production Auth0 / Convex / Cloudflare の **作成そのもの** は [Issue #38](https://github.com/hondasports-dev/Re-Me/issues/38) の Human Gate。ここを読んでも production を作らない・書き込まない。
+この文書は [Issue #13](https://github.com/hondasports-dev/Re-Me/issues/13) の本番準備チェックリストである。Production の **構成手順** は [production-environment.md](production-environment.md)。Auth0 / Convex / Cloudflare の作成そのものは [Issue #38](https://github.com/hondasports-dev/Re-Me/issues/38) の Human Gate。ここを読んでも production を作らない・書き込まない。
 
 Local / Preview の接続先は [preview-environment.md](preview-environment.md)。legacy の棚卸し / dry-run / rollback は [legacy-migration.md](legacy-migration.md)。
 
@@ -13,7 +13,7 @@ Local / Preview の接続先は [preview-environment.md](preview-environment.md)
 | Convex | local backend | 共有 Preview | production deployment（#38） |
 | Cloudflare Worker | Vite / local Worker | `re-me-preview` | production Worker（#38） |
 | R2 | DEV bucket | Preview bucket | production bucket（#38） |
-| GitHub | なし | environment `preview` | production environment（#38 後） |
+| GitHub | なし | environment `preview` | environment `production`（値は Human Gate 後） |
 
 - Preview の `CONVEX_PREVIEW_DEPLOY_KEY` を production に使わない
 - production deploy key / Auth0 PROD secret を Local / Preview / PR CI に入れない
