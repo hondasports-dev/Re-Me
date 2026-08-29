@@ -1,4 +1,6 @@
+import { Button } from '@mantine/core'
 import { useMutation, useQuery } from 'convex/react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
 import { api } from '../../../../convex/_generated/api'
@@ -29,19 +31,51 @@ function TravelingLetterRoute() {
   const attachments = useQuery(api.attachments.listReadableAttachments, contentArgs)
 
   return (
-    <TravelingLetterDetail
-      attachments={attachments === null ? [] : attachments}
-      content={content}
-      metadata={typedLetterId ? metadata : null}
-      onDelete={async () => {
-        if (!typedLetterId) {
-          return
-        }
+    <>
+      <TravelingLetterDetail
+        attachments={attachments === null ? [] : attachments}
+        content={content}
+        metadata={typedLetterId ? metadata : null}
+        onDelete={async () => {
+          if (!typedLetterId) {
+            return
+          }
 
-        await deleteLetter({ letterId: typedLetterId })
-        void navigate('/traveling', { replace: true })
+          await deleteLetter({ letterId: typedLetterId })
+          void navigate('/traveling', { replace: true })
+        }}
+        timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+      />
+      {import.meta.env.VITE_ALLOW_E2E_DB_LOGIN === '1' && typedLetterId ? (
+        <E2EForceDeliverButton letterId={typedLetterId} />
+      ) : null}
+    </>
+  )
+}
+
+function E2EForceDeliverButton({ letterId }: { letterId: Id<'letters'> }) {
+  const forceDeliver = useMutation(api.letters.forceDeliverOwnLetter)
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <Button
+      disabled={busy}
+      onClick={() => {
+        void (async () => {
+          setBusy(true)
+          try {
+            await forceDeliver({ letterId })
+            void navigate(`/letters/${letterId}`, { replace: true })
+          } catch {
+            setBusy(false)
+          }
+        })()
       }}
-      timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
-    />
+      type="button"
+      variant="subtle"
+    >
+      E2E: 今すぐ届ける
+    </Button>
   )
 }

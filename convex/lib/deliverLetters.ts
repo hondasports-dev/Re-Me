@@ -32,6 +32,50 @@ export async function deliverDueLetterDocuments(
   return result
 }
 
+export async function deliverOwnedTravelingLetterNow(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  letterId: Id<'letters'>,
+  now: number,
+): Promise<{ deliveredAt: number; letterId: Id<'letters'> }> {
+  const letter = await ctx.db.get(letterId)
+
+  if (!letter || letter.ownerId !== userId || letter.deletedAt !== undefined) {
+    throw new Error('letter not found')
+  }
+
+  if (letter.status === 'delivered' && letter.deliveredAt !== undefined) {
+    return { letterId: letter._id, deliveredAt: letter.deliveredAt }
+  }
+
+  if (letter.status !== 'traveling') {
+    throw new Error('letter is not traveling')
+  }
+
+  const delivery = await ctx.db
+    .query('letterDeliveries')
+    .withIndex('by_letterId', (q) => q.eq('letterId', letterId))
+    .unique()
+
+  if (!delivery) {
+    throw new Error('delivery not found')
+  }
+
+  const outcome = await deliverOrCancelPendingDelivery(ctx, delivery, now)
+
+  if (outcome !== 'delivered') {
+    throw new Error('letter could not be delivered')
+  }
+
+  const delivered = await ctx.db.get(letterId)
+
+  if (!delivered || delivered.deliveredAt === undefined) {
+    throw new Error('letter could not be delivered')
+  }
+
+  return { letterId: letter._id, deliveredAt: delivered.deliveredAt }
+}
+
 async function deliverOrCancelPendingDelivery(
   ctx: MutationCtx,
   delivery: Doc<'letterDeliveries'>,

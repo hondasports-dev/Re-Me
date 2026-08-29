@@ -41,6 +41,12 @@ describe('Convex authorization harness', () => {
     await expect(
       t.mutation(api.letters.openLetter, { letterId: created.letterId }),
     ).rejects.toThrow(/authentication required/)
+    await expect(t.query(api.letters.listDeliveredLetters, {})).rejects.toThrow(
+      /authentication required/,
+    )
+    await expect(
+      t.mutation(api.letters.forceDeliverOwnLetter, { letterId: created.letterId }),
+    ).rejects.toThrow(/authentication required/)
     await expect(
       t.query(api.attachments.listReadableAttachments, { letterId: created.letterId }),
     ).rejects.toThrow(/authentication required/)

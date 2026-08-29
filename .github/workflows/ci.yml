@@ -118,6 +118,11 @@ jobs:
           test -n "$CONVEX_DEPLOY_KEY"
           pnpm exec convex deploy --message "CI E2E ${{ github.sha }}"
 
+      - name: Enable E2E force delivery on Preview Convex
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+        run: pnpm exec convex env set E2E_FORCE_DELIVERY 1
+
       - name: Smoke test Convex Preview
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}

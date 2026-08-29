@@ -2,6 +2,7 @@
 @import './shell.css';
 @import './status.css';
 @import '../features/compose/compose.css';
+@import '../features/inbox/inbox.css';
 @import '../features/traveling/traveling.css';
 
 :root {

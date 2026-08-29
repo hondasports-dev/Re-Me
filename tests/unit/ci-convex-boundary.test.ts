@@ -34,6 +34,7 @@ describe('CI and local Convex boundary', () => {
     expect(e2e).toContain('cancel-in-progress: false')
     expect(e2e).toContain('CONVEX_PREVIEW_DEPLOY_KEY')
     expect(e2e).toContain('pnpm exec convex deploy')
+    expect(e2e).toContain('pnpm exec convex env set E2E_FORCE_DELIVERY 1')
     expect(e2e).toContain('pnpm test:e2e')
     expect(e2e).toMatch(/VITE_CONVEX_URL: \$\{{\s*vars\.VITE_CONVEX_URL\s*}}/)
   })

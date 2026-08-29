@@ -2,11 +2,16 @@ import { render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { RouterProvider } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { AppProviders } from '../../src/app/providers'
 import { createTestAuthRuntime, type AuthRuntime } from '../../src/features/auth/auth-runtime'
 import { createTestRouter } from '../../src/router'
+
+vi.mock('convex/react', () => ({
+  useMutation: () => vi.fn(() => new Promise(() => undefined)),
+  useQuery: () => undefined,
+}))
 
 function renderAt(path: string, runtime: AuthRuntime) {
   const router = createTestRouter([path])
