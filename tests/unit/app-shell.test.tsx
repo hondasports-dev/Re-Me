@@ -70,6 +70,7 @@ describe('AppShell', () => {
       screen.getByRole('heading', { name: '届いた手紙' }).closest('[data-status]'),
     ).toHaveAttribute('data-status', 'content-loading')
     expect(screen.getByRole('button', { name: 'ログアウト' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '設定' })).toHaveAttribute('href', '/settings')
 
     inbox.focus()
     expect(inbox).toHaveFocus()

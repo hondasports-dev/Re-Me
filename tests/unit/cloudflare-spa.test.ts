@@ -55,5 +55,7 @@ describe('Cloudflare SPA hosting', () => {
 
     expect(headers).toContain('/assets/*')
     expect(headers).toContain('Cache-Control: public, max-age=31536000, immutable')
+    expect(headers).toContain('/sw.js')
+    expect(headers).toContain('Cache-Control: no-cache')
   })
 })

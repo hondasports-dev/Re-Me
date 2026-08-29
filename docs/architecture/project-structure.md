@@ -22,11 +22,13 @@ Frontend は feature-first、backend は Convex function の境界で整理す�
 │   ├── delivery.ts
 │   ├── notifications.ts
 │   ├── notificationActions.ts
+│   ├── pushSubscriptions.ts
 │   └── lib/
 │       ├── auth.ts
 │       ├── authorization.ts
 │       ├── deliverLetters.ts
-│       └── notificationPolicy.ts
+│       ├── notificationPolicy.ts
+│       └── pushSubscriptions.ts
 ├── docs/
 ├── public/
 ├── src/
@@ -99,6 +101,8 @@ src/features/compose/
 - `delivery.ts`: 正確な配送時刻と internal な配送遷移
 - `notifications.ts`: outbox の claim / 完了 / retry
 - `notificationActions.ts`: Web Push 送信（`use node`、internal のみ）
+- `pushSubscriptions.ts`: ブラウザ向け subscription upsert / disable
+- `lib/pushSubscriptions.ts`: endpoint 検証と owner 限定 upsert
 - `attachments.ts`: 非公開 R2 の upload / download 認可
 - `lib/authorization.ts`: 現在ユーザーと所有権を注入する共有 wrapper
 
