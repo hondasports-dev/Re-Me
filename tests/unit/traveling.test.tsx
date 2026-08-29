@@ -127,6 +127,23 @@ describe('TravelingLetterDetail', () => {
     expect(screen.queryByText('秘密の本文')).not.toBeInTheDocument()
   })
 
+  it('renders the E2E deliver control inside the letter article', () => {
+    renderWithRouter(
+      <TravelingLetterDetail
+        attachments={undefined}
+        content={undefined}
+        e2eAction={<button type="button">E2E: 今すぐ届ける</button>}
+        metadata={sealedLetter}
+        onDelete={async () => undefined}
+        timeZone="UTC"
+      />,
+    )
+
+    expect(
+      screen.getByRole('heading', { name: '封をしている' }).closest('article'),
+    ).toContainElement(screen.getByRole('button', { name: 'E2E: 今すぐ届ける' }))
+  })
+
   it('shows unsealed body as read-only and deletes after confirmation', async () => {
     const user = userEvent.setup()
     const onDelete = vi.fn(async () => undefined)

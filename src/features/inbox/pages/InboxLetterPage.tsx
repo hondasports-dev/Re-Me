@@ -7,6 +7,7 @@ import type { Id } from '../../../../convex/_generated/dataModel'
 import { InboxErrorBoundary } from '../components/InboxErrorBoundary'
 import { InboxLetterDetail } from '../components/InboxLetterDetail'
 import { inboxContentQueryArgs } from '../model/inbox'
+import { useCalendarClock } from '../model/useCalendarClock'
 
 export function InboxLetterPage() {
   return (
@@ -29,13 +30,15 @@ function InboxLetterRoute() {
   const contentArgs = inboxContentQueryArgs(typedLetterId, metadata)
   const content = useQuery(api.letters.getReadableContent, contentArgs)
   const attachments = useQuery(api.attachments.listReadableAttachments, contentArgs)
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const now = useCalendarClock(timeZone)
 
   return (
     <InboxLetterDetail
       attachments={attachments === null ? [] : attachments}
       content={content}
       metadata={typedLetterId ? metadata : null}
-      now={Date.now()}
+      now={now}
       onOpen={async () => {
         if (!typedLetterId || opening) {
           return
@@ -54,7 +57,7 @@ function InboxLetterRoute() {
       }}
       openError={openError}
       opening={opening}
-      timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+      timeZone={timeZone}
     />
   )
 }

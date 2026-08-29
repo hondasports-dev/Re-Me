@@ -19,7 +19,7 @@ test.describe('inbox letters', () => {
     await expect(page.getByRole('heading', { name: '封をしている' })).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByRole('button', { name: 'E2E: 今すぐ届ける' }).click()
+    await clickForceDeliver(page)
 
     await expect(page).toHaveURL(new RegExp(`/letters/${letterId}$`), { timeout: 20_000 })
     await expect(page.getByRole('heading', { name: '開封する' })).toBeVisible()
@@ -57,7 +57,7 @@ test.describe('inbox letters', () => {
     await expect(page.getByRole('heading', { name: '読み返せる' })).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByRole('button', { name: 'E2E: 今すぐ届ける' }).click()
+    await clickForceDeliver(page)
 
     await expect(page).toHaveURL(new RegExp(`/letters/${letterId}$`), { timeout: 20_000 })
     await expect(page.getByRole('heading', { name: '開封する' })).toHaveCount(0)
@@ -70,6 +70,13 @@ test.describe('inbox letters', () => {
     await expect(page.locator(`a[href="/letters/${letterId}"]`)).toContainText('開封済み')
   })
 })
+
+async function clickForceDeliver(page: Page): Promise<void> {
+  const button = page.getByRole('button', { name: 'E2E: 今すぐ届ける' })
+  await expect(button).toBeVisible()
+  await button.scrollIntoViewIfNeeded()
+  await button.click()
+}
 
 async function sendTravelingLetter(
   page: Page,

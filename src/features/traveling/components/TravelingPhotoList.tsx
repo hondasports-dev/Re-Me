@@ -1,8 +1,4 @@
-import { useAction } from 'convex/react'
-import { useEffect, useState } from 'react'
-
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
+import { useAttachmentDownloadUrl } from '../../../shared/hooks/useAttachmentDownloadUrl'
 
 export function TravelingPhotoList({
   photos,
@@ -39,35 +35,7 @@ function TravelingPhotoItem({
     generationToken: string
   }
 }) {
-  const createDownloadCapability = useAction(api.attachments.createAttachmentDownloadCapability)
-  const [url, setUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    let requestId = 0
-    const refresh = async () => {
-      const currentRequestId = ++requestId
-      try {
-        const capability = await createDownloadCapability({
-          attachmentId: photo.attachmentId as Id<'letterAttachments'>,
-          generationToken: photo.generationToken,
-        })
-        if (active && currentRequestId === requestId) {
-          setUrl(capability?.url ?? null)
-        }
-      } catch {
-        if (active && currentRequestId === requestId) {
-          setUrl(null)
-        }
-      }
-    }
-    void refresh()
-    const timer = window.setInterval(() => void refresh(), 45_000)
-    return () => {
-      active = false
-      window.clearInterval(timer)
-    }
-  }, [createDownloadCapability, photo.attachmentId, photo.generationToken])
+  const url = useAttachmentDownloadUrl(photo.attachmentId, photo.generationToken)
 
   return (
     <li className="traveling-letter__photo">

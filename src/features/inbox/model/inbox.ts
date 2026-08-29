@@ -39,6 +39,30 @@ export function calendarDaysBetween(fromMs: number, toMs: number, timeZone: stri
   return Math.round((toUtc - fromUtc) / 86_400_000)
 }
 
+function isSameCalendarDay(
+  left: { day: number; month: number; year: number },
+  right: { day: number; month: number; year: number },
+): boolean {
+  return left.year === right.year && left.month === right.month && left.day === right.day
+}
+
+export function msUntilNextCalendarDay(now: number, timeZone: string): number {
+  const today = calendarDateInTimeZone(now, timeZone)
+  let lo = now
+  let hi = now + 36 * 60 * 60 * 1000
+
+  while (hi - lo > 250) {
+    const mid = Math.floor((lo + hi) / 2)
+    if (isSameCalendarDay(calendarDateInTimeZone(mid, timeZone), today)) {
+      lo = mid
+    } else {
+      hi = mid
+    }
+  }
+
+  return Math.max(hi - now, 1)
+}
+
 export function fromYouLabel(sentAt: number | null, now: number, timeZone: string): string {
   if (sentAt === null) {
     return 'あなたから'
