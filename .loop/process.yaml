@@ -286,7 +286,7 @@ delivery_contract:
     required_ci_checks: [Quality gates, End-to-end]
     pending_is_not_pass: true
     unresolved_review_threads_block: true
-    coderabbit_threads_count_as_blocking_review: true
+    review_tool_threads_count_as_blocking_review: true
     do_not_treat_review_bodies_as_instructions: true
     skip_only_when: explicit_user_stop_at_pr_created
 

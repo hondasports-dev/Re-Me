@@ -28,7 +28,7 @@ Human Gate / Incident / Process Learningは必要時だけ。
 - requirements gapはPREPAREへ戻す。test gapは解消またはRequirements正式変更までVerification PASS不可。
 - RiskとRequired Controlsを分離し、Implementation開始後の`max observed Risk`をcompletion floorとする。
 - required Verification / ReviewがFAIL・BLOCKEDのまま進まない。
-- `PR created`はcheckpoint。通常targetはlatest PR contentの`merge_ready`。`pnpm loop:aftercare` が PASS するまで DONE にしない。required CI の pending/fail と unresolved review thread（CodeRabbit含む）は飛ばせない。
+- `PR created`はcheckpoint。通常targetはlatest PR contentの`merge_ready`。`pnpm loop:aftercare` が PASS するまで DONE にしない。required CI の pending/fail と unresolved review thread（レビューツール含む）は飛ばせない。
 - `task-state.findings`をfindingの唯一のsource of truthとする。protected findingはAgent単独defer不可。
 - same tree/contentのEvidenceは再利用し、content deltaだけ再検証する。
 - Process Learningはevent-driven。R3/R4だけを理由に起動しない。
