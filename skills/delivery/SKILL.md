@@ -37,7 +37,7 @@ PR には最低限:
 - unresolved ではない residual decision がある場合だけ Finding disposition / follow-up
 - related Issue / task source
 
-Publish 後は `pnpm loop:aftercare` が PASS するまで Aftercare を終えない。local E2E の成功を CI / CodeRabbit の代替にしない。
+Publish 後は `pnpm loop:aftercare` が PASS するまで Aftercare を終えない。local E2E の成功を CI / レビューツールの代替にしない。
 
 ## Content changed after publish
 

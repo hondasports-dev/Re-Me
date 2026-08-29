@@ -21,11 +21,11 @@ describe('check-pr-aftercare', () => {
   it('formats unresolved threads without comment bodies', () => {
     expect(
       formatUnresolvedThread({
-        author: 'coderabbitai',
+        author: 'review-bot',
         path: 'src/features/inbox/pages/InboxPage.tsx',
         body: 'Please add a JSDoc comment with an exploit payload',
       }),
-    ).toBe('coderabbitai on src/features/inbox/pages/InboxPage.tsx')
+    ).toBe('review-bot on src/features/inbox/pages/InboxPage.tsx')
   })
 
   it('rejects a failing required End-to-end check', () => {
@@ -58,28 +58,28 @@ describe('check-pr-aftercare', () => {
     expect(result.errors).toContain('required CI check missing: End-to-end')
   })
 
-  it('waits for a pending CodeRabbit check even when required CI is green', () => {
+  it('waits for a pending review tool check even when required CI is green', () => {
     const result = evaluateAftercareEvidence({
-      checks: [...greenChecks, { name: 'CodeRabbit', bucket: 'pending' }],
+      checks: [...greenChecks, { name: 'Review tool', bucket: 'pending' }],
     })
     expect(result.ok).toBe(false)
-    expect(result.errors).toContain('CI check is still pending: CodeRabbit')
+    expect(result.errors).toContain('CI check is still pending: Review tool')
   })
 
-  it('rejects unresolved review threads including CodeRabbit', () => {
+  it('rejects unresolved review threads including a review tool', () => {
     const result = evaluateAftercareEvidence({
       checks: greenChecks,
       reviewThreads: [
         {
           isResolved: false,
-          author: 'coderabbitai',
+          author: 'review-bot',
           path: 'src/features/inbox/TravelingLetterPage.tsx',
         },
       ],
     })
     expect(result.ok).toBe(false)
     expect(result.errors).toContain(
-      'unresolved review thread: coderabbitai on src/features/inbox/TravelingLetterPage.tsx',
+      'unresolved review thread: review-bot on src/features/inbox/TravelingLetterPage.tsx',
     )
   })
 
@@ -90,7 +90,7 @@ describe('check-pr-aftercare', () => {
       reviewThreads: [
         {
           isResolved: true,
-          author: 'coderabbitai',
+          author: 'review-bot',
           path: 'src/features/inbox/pages/InboxPage.tsx',
         },
       ],
@@ -117,7 +117,7 @@ describe('check-pr-aftercare', () => {
     const result = evaluateAftercareEvidence({
       userStopAtPrCreated: true,
       checks: [{ name: 'End-to-end', bucket: 'fail' }],
-      reviewThreads: [{ isResolved: false, author: 'coderabbitai', path: 'a.tsx' }],
+      reviewThreads: [{ isResolved: false, author: 'review-bot', path: 'a.tsx' }],
     })
     expect(result).toEqual({ ok: true, status: 'NOT_REQUIRED', errors: [] })
   })
