@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { getCurrentUser, getOrCreateUser } from './lib/auth'
 import { canReadLetterContent } from './lib/authorization'
+import { deliverOwnedTravelingLetterNow } from './lib/deliverLetters'
 import {
   assertBodyLength,
   attachmentsAreReadyForSend,
@@ -162,6 +163,15 @@ export const listTravelingLetters = query({
   },
 })
 
+export const listDeliveredLetters = query({
+  args: {},
+  returns: v.array(letterMetadataValidator),
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx)
+    return await listOwnedLetterMetadata(ctx, user._id, 'delivered')
+  },
+})
+
 export const deleteLetter = mutation({
   args: { letterId: v.id('letters') },
   returns: v.null(),
@@ -228,5 +238,22 @@ export const openLetter = mutation({
       letterId: letter._id,
       openedAt,
     }
+  },
+})
+
+export const forceDeliverOwnLetter = mutation({
+  args: { letterId: v.id('letters') },
+  returns: v.object({
+    letterId: v.id('letters'),
+    deliveredAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+
+    if (process.env.E2E_FORCE_DELIVERY !== '1') {
+      throw new Error('force delivery is disabled')
+    }
+
+    return await deliverOwnedTravelingLetterNow(ctx, user._id, args.letterId, Date.now())
   },
 })

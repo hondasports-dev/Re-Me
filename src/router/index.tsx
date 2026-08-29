@@ -6,6 +6,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage'
 import { ComposeEditorPage } from '../features/compose/pages/ComposeEditorPage'
 import { ComposePage } from '../features/compose/pages/ComposePage'
 import { ComposeSendPage } from '../features/compose/pages/ComposeSendPage'
+import { InboxLetterPage } from '../features/inbox/pages/InboxLetterPage'
 import { InboxPage } from '../features/inbox/pages/InboxPage'
 import { TravelingLetterPage } from '../features/traveling/pages/TravelingLetterPage'
 import { TravelingPage } from '../features/traveling/pages/TravelingPage'
@@ -25,6 +26,10 @@ export function createAppRoutes(): RouteObject[] {
             {
               index: true,
               element: <InboxPage />,
+            },
+            {
+              path: 'letters/:letterId',
+              element: <InboxLetterPage />,
             },
             {
               path: 'write',

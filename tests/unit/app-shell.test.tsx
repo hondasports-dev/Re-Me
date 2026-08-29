@@ -68,7 +68,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('heading', { name: '届いた手紙' })).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '届いた手紙' }).closest('[data-status]'),
-    ).toHaveAttribute('data-status', 'content-empty')
+    ).toHaveAttribute('data-status', 'content-loading')
     expect(screen.getByRole('button', { name: 'ログアウト' })).toBeInTheDocument()
 
     inbox.focus()

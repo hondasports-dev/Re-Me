@@ -1,28 +1,20 @@
-import { Button } from '@mantine/core'
-import { useNavigate } from 'react-router'
+import { useQuery } from 'convex/react'
 
-import { StatusScreen } from '../../../shared/components/StatusScreen'
+import { api } from '../../../../convex/_generated/api'
+import { InboxErrorBoundary } from '../components/InboxErrorBoundary'
+import { InboxLetterList } from '../components/InboxLetterList'
 
 export function InboxPage() {
-  const navigate = useNavigate()
-
   return (
-    <StatusScreen
-      action={
-        <Button
-          onClick={() => {
-            void navigate('/write')
-          }}
-          type="button"
-          variant="light"
-        >
-          手紙を書く
-        </Button>
-      }
-      description="まだ、あなた宛ての手紙は届いていません。今の気持ちを書いて、未来の自分へ届けよう。"
-      title="届いた手紙"
-      tone="content"
-      variant="empty"
-    />
+    <InboxErrorBoundary>
+      <InboxList />
+    </InboxErrorBoundary>
   )
+}
+
+function InboxList() {
+  const letters = useQuery(api.letters.listDeliveredLetters)
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+  return <InboxLetterList letters={letters} now={Date.now()} timeZone={timeZone} />
 }
