@@ -145,7 +145,7 @@ Push subscription の endpoint / key は本人だけが管理できる。ログ�
 
 ## 削除 / 長期利用
 
-送信後も削除は可能。client からのアクセスと配送対象から即時除外する論理削除を基本とし、Convex document、R2 object、backup の物理削除・保持期間はプライバシーポリシーと移行 Issue で確定する。
+送信後も削除は可能。client からのアクセスと配送対象から即時除外する論理削除を基本とし、Convex document、R2 object、backup の物理削除・保持期間はプライバシーポリシーと [legacy data migration](../development/legacy-migration.md) で確定する。
 
 Re:Me は数年後の利用を正常系とするため、Auth0 のアカウント復旧、provider 紐づけ、data の export / 削除、Convex の export / backup、基盤移行を本番準備の必須検討にする。
 

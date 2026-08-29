@@ -92,7 +92,7 @@ Convex の schema / function を変更する場合:
 - Auth0 DEV / PROD の分離
 - Convex deployment / 環境の分離
 - Cloudflare preview / production の分離
-- backup / export / restore のリハーサル
+- backup / export / restore のリハーサル（[legacy-migration.md](legacy-migration.md)）
 - legacy Supabase データの棚卸しと移行判断
 - rollback 計画
 - 枠 / 課金 / アラートの確認
