@@ -9,6 +9,7 @@ import { reMeTheme } from '../../src/styles/theme'
 
 vi.mock('convex/react', () => ({
   useMutation: () => vi.fn(),
+  useQuery: () => undefined,
 }))
 
 describe('settings page', () => {

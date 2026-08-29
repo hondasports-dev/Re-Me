@@ -144,3 +144,8 @@ export const threadViewValidator = v.object({
 export const pushStatusValidator = v.object({
   enabled: v.boolean(),
 })
+
+export const pushDisableResultValidator = v.object({
+  enabled: v.literal(false),
+  owned: v.boolean(),
+})

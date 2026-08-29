@@ -11,17 +11,38 @@ test.describe('pwa and quiet notifications', () => {
   test('installable manifest and settings explain notifications without prompting on inbox', async ({
     page,
   }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, '__reMeNotificationPermissionCalls', {
+        configurable: true,
+        writable: true,
+        value: 0,
+      })
+      const NotificationApi = window.Notification
+      if (!NotificationApi?.requestPermission) {
+        return
+      }
+      const original = NotificationApi.requestPermission.bind(NotificationApi)
+      NotificationApi.requestPermission = ((...args: Parameters<typeof original>) => {
+        const current = window as Window & { __reMeNotificationPermissionCalls?: number }
+        current.__reMeNotificationPermissionCalls =
+          (current.__reMeNotificationPermissionCalls ?? 0) + 1
+        return original(...args)
+      }) as typeof NotificationApi.requestPermission
+    })
+
     await page.goto('/')
     await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
       timeout: 20_000,
     })
     await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
 
-    const permissionProbe = page.waitForEvent('dialog', { timeout: 1_000 }).then(
-      () => 'prompted',
-      () => 'quiet',
-    )
-    expect(await permissionProbe).toBe('quiet')
+    expect(
+      await page.evaluate(
+        () =>
+          (window as Window & { __reMeNotificationPermissionCalls?: number })
+            .__reMeNotificationPermissionCalls ?? 0,
+      ),
+    ).toBe(0)
 
     const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href')
     expect(manifestHref).toBe('/manifest.webmanifest')
@@ -47,5 +68,12 @@ test.describe('pwa and quiet notifications', () => {
       ),
     ).toBeVisible()
     await expect(page.getByRole('heading', { name: '届いた手紙' })).toHaveCount(0)
+    expect(
+      await page.evaluate(
+        () =>
+          (window as Window & { __reMeNotificationPermissionCalls?: number })
+            .__reMeNotificationPermissionCalls ?? 0,
+      ),
+    ).toBe(0)
   })
 })

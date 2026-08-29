@@ -3,13 +3,31 @@ import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { getCurrentUser } from './lib/auth'
 import { upsertOwnedPushSubscription } from './lib/pushSubscriptions'
-import { pushStatusValidator } from './lib/validators'
+import { pushDisableResultValidator, pushStatusValidator } from './lib/validators'
 
 export const getMyPushStatus = query({
-  args: {},
+  args: {
+    endpoint: v.optional(v.string()),
+  },
   returns: pushStatusValidator,
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
+
+    if (args.endpoint !== undefined) {
+      const endpoint = args.endpoint
+      const subscription = await ctx.db
+        .query('pushSubscriptions')
+        .withIndex('by_endpoint', (q) => q.eq('endpoint', endpoint))
+        .first()
+
+      return {
+        enabled:
+          subscription !== null &&
+          subscription.ownerId === user._id &&
+          subscription.disabledAt === undefined,
+      }
+    }
+
     const active = await ctx.db
       .query('pushSubscriptions')
       .withIndex('by_ownerId_and_disabledAt', (q) =>
@@ -39,7 +57,7 @@ export const disableMine = mutation({
   args: {
     endpoint: v.string(),
   },
-  returns: pushStatusValidator,
+  returns: pushDisableResultValidator,
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     const subscription = await ctx.db
@@ -48,7 +66,7 @@ export const disableMine = mutation({
       .first()
 
     if (!subscription || subscription.ownerId !== user._id) {
-      return { enabled: false }
+      return { enabled: false as const, owned: false }
     }
 
     const now = Date.now()
@@ -60,6 +78,6 @@ export const disableMine = mutation({
       })
     }
 
-    return { enabled: false }
+    return { enabled: false as const, owned: true }
   },
 })

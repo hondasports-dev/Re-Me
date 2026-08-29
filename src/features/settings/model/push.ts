@@ -4,7 +4,10 @@ export const PUSH_PERMISSION_COPY =
   '届いた手紙を忘れないよう、静かな通知だけ送ります。本文や写真は通知に出しません。'
 
 export type PushClientCapability =
-  | { kind: 'unsupported'; reason: 'no_service_worker' | 'no_push_manager' | 'no_vapid_key' }
+  | {
+      kind: 'unsupported'
+      reason: 'no_service_worker' | 'no_push_manager' | 'no_vapid_key' | 'no_notification'
+    }
   | { kind: 'supported'; permission: NotificationPermission }
 
 export function readPushVapidPublicKey(
@@ -41,14 +44,22 @@ export function readPushClientCapability(
     return { kind: 'unsupported', reason: 'no_vapid_key' }
   }
 
+  if (!globals.notification) {
+    return { kind: 'unsupported', reason: 'no_notification' }
+  }
+
   return {
     kind: 'supported',
-    permission: globals.notification?.permission ?? 'denied',
+    permission: globals.notification.permission,
   }
 }
 
 export function notificationTapPath(): string {
   return NOTIFICATION_TAP_PATH
+}
+
+export function shouldReleaseBrowserPush(owned: boolean): boolean {
+  return owned
 }
 
 export function registerQuietServiceWorker(
@@ -60,7 +71,7 @@ export function registerQuietServiceWorker(
     return
   }
 
-  void serviceWorker.register('/sw.js')
+  void serviceWorker.register('/sw.js').catch(() => undefined)
 }
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {

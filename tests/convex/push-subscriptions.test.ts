@@ -41,7 +41,7 @@ describe('pushSubscriptions', () => {
     const aliceDisabled = await asAlice.mutation(api.pushSubscriptions.disableMine, {
       endpoint: aliceEndpoint,
     })
-    expect(aliceDisabled).toEqual({ enabled: false })
+    expect(aliceDisabled).toEqual({ enabled: false, owned: true })
     expect(await asAlice.query(api.pushSubscriptions.getMyPushStatus, {})).toEqual({
       enabled: false,
     })
@@ -49,7 +49,7 @@ describe('pushSubscriptions', () => {
     const bobDisable = await asBob.mutation(api.pushSubscriptions.disableMine, {
       endpoint: aliceEndpoint,
     })
-    expect(bobDisable).toEqual({ enabled: false })
+    expect(bobDisable).toEqual({ enabled: false, owned: false })
     expect(JSON.stringify(bobDisable)).not.toContain(aliceEndpoint)
   })
 
@@ -67,10 +67,16 @@ describe('pushSubscriptions', () => {
 
     expect(
       await asBob.mutation(api.pushSubscriptions.disableMine, { endpoint: aliceEndpoint }),
-    ).toEqual({ enabled: false })
+    ).toEqual({ enabled: false, owned: false })
     expect(await asAlice.query(api.pushSubscriptions.getMyPushStatus, {})).toEqual({
       enabled: true,
     })
+    expect(
+      await asAlice.query(api.pushSubscriptions.getMyPushStatus, { endpoint: aliceEndpoint }),
+    ).toEqual({ enabled: true })
+    expect(
+      await asBob.query(api.pushSubscriptions.getMyPushStatus, { endpoint: aliceEndpoint }),
+    ).toEqual({ enabled: false })
   })
 
   it('re-enables a previously disabled own endpoint and keeps internal disable for gone endpoints', async () => {

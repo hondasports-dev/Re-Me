@@ -8,6 +8,7 @@ import {
   readPushClientCapability,
   readPushVapidPublicKey,
   registerQuietServiceWorker,
+  shouldReleaseBrowserPush,
 } from '../../src/features/settings/model/push'
 
 describe('push client model', () => {
@@ -38,7 +39,16 @@ describe('push client model', () => {
         vapidPublicKey: null,
       }),
     ).toEqual({ kind: 'unsupported', reason: 'no_vapid_key' })
+    expect(
+      readPushClientCapability({
+        serviceWorker: {},
+        pushManager: {},
+        vapidPublicKey: 'key',
+      }),
+    ).toEqual({ kind: 'unsupported', reason: 'no_notification' })
     expect(readPushVapidPublicKey({})).toBeNull()
+    expect(shouldReleaseBrowserPush(false)).toBe(false)
+    expect(shouldReleaseBrowserPush(true)).toBe(true)
   })
 
   it('opens inbox from the service worker notification click', () => {

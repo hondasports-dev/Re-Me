@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { useEffect, useState } from 'react'
 
 import { api } from '../../../../convex/_generated/api'
@@ -8,6 +8,7 @@ import {
   PUSH_PERMISSION_COPY,
   readPushClientCapability,
   readPushVapidPublicKey,
+  shouldReleaseBrowserPush,
   urlBase64ToUint8Array,
 } from '../model/push'
 
@@ -19,12 +20,16 @@ export function SettingsPage() {
   const [permission, setPermission] = useState<NotificationPermission | 'unknown'>(() =>
     typeof Notification === 'undefined' ? 'unknown' : Notification.permission,
   )
-  const [localEnabled, setLocalEnabled] = useState<boolean | null>(null)
+  const [localEndpoint, setLocalEndpoint] = useState<string | null | undefined>(undefined)
   const capability = readPushClientCapability()
+  const status = useQuery(
+    api.pushSubscriptions.getMyPushStatus,
+    capability.kind !== 'supported' || !localEndpoint ? 'skip' : { endpoint: localEndpoint },
+  )
 
   useEffect(() => {
     if (capability.kind !== 'supported') {
-      setLocalEnabled(false)
+      setLocalEndpoint(null)
       return
     }
 
@@ -35,11 +40,11 @@ export function SettingsPage() {
         const registration = await navigator.serviceWorker.getRegistration('/sw.js')
         const subscription = await registration?.pushManager.getSubscription()
         if (!cancelled) {
-          setLocalEnabled(Boolean(subscription))
+          setLocalEndpoint(subscription?.endpoint ?? null)
         }
       } catch {
         if (!cancelled) {
-          setLocalEnabled(false)
+          setLocalEndpoint(null)
         }
       }
     })()
@@ -63,7 +68,7 @@ export function SettingsPage() {
       setPermission(nextPermission)
 
       if (nextPermission !== 'granted') {
-        setLocalEnabled(false)
+        setLocalEndpoint(null)
         return
       }
 
@@ -92,7 +97,7 @@ export function SettingsPage() {
         auth,
         userAgent: navigator.userAgent.slice(0, 256),
       })
-      setLocalEnabled(true)
+      setLocalEndpoint(endpoint)
     } catch {
       setError('通知の準備ができませんでした。あとでもう一度お試しください。')
     } finally {
@@ -112,10 +117,12 @@ export function SettingsPage() {
       const registration = await navigator.serviceWorker.getRegistration('/sw.js')
       const subscription = await registration?.pushManager.getSubscription()
       if (subscription) {
-        await disableMine({ endpoint: subscription.endpoint })
-        await subscription.unsubscribe()
+        const result = await disableMine({ endpoint: subscription.endpoint })
+        if (shouldReleaseBrowserPush(result.owned)) {
+          await subscription.unsubscribe()
+        }
       }
-      setLocalEnabled(false)
+      setLocalEndpoint(null)
     } catch {
       setError('通知の停止に失敗しました。あとでもう一度お試しください。')
     } finally {
@@ -123,7 +130,14 @@ export function SettingsPage() {
     }
   }
 
-  if (localEnabled === null) {
+  const thisDeviceEnabled = Boolean(localEndpoint && status?.enabled)
+  const waitingForStatus =
+    capability.kind === 'supported' &&
+    localEndpoint !== undefined &&
+    localEndpoint !== null &&
+    status === undefined
+
+  if (localEndpoint === undefined || waitingForStatus) {
     return (
       <StatusScreen
         description="通知の設定をひらいています。"
@@ -153,7 +167,7 @@ export function SettingsPage() {
         </p>
       ) : null}
       {capability.kind === 'supported' && permission !== 'denied' ? (
-        localEnabled ? (
+        thisDeviceEnabled ? (
           <Button disabled={busy} onClick={() => void disablePush()} type="button" variant="subtle">
             到着通知を止める
           </Button>
