@@ -1,5 +1,6 @@
 node_modules/
 .convex/
+.config/
 dist/
 .wrangler/
 .env

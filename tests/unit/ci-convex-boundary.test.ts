@@ -88,6 +88,10 @@ describe('CI and local Convex boundary', () => {
     expect(gitignore).toMatch(/(^|\n)\.convex\/(\n|$)/)
   })
 
+  it('ignores Auth0 CLI config written into the worktree', () => {
+    expect(gitignore).toMatch(/(^|\n)\.config\/(\n|$)/)
+  })
+
   it('lets CI Playwright upload photos to the Preview R2 bucket', () => {
     const cors = JSON.parse(readRepoFile('ops/r2-cors-preview.json')) as {
       rules: Array<{
