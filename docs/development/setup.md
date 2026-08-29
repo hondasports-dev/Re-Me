@@ -142,7 +142,7 @@ Workers Static Assets を SPA mode で配信する。application backend secret 
 5. Auth0 issuer / client id を Convex developer deployment と Vite env に設定する。browser へは `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` / `VITE_CONVEX_URL` だけを出す
 6. Universal Login から Google OAuth login を確認する
 7. DEV の Username-Password connection を SPA に enable し、public signup は disable する
-8. E2E 用 database user を Management API で作成し、`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は `.env.local` にだけ置く
+8. E2E 用 database user を Management API で作成し、`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は canonical checkout の `.env.local` にだけ置く。task worktree は `pnpm loop:preflight` / `pnpm loop:e2e-env` が同じキーを正本からコピーする。値を chat / CI log / commit に出さない。
 
 production 前に Google Cloud の専用 OAuth 2.0 Web client を作り、Authorized redirect URI に `https://<auth0-domain>/login/callback` を登録して Auth0 Google connection へ差し替える。Auth0 の共有 developer key に本番を載せない。
 

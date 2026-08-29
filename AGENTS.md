@@ -6,7 +6,7 @@
 - Loop overview: `.loop/README.md`
 - Current task: `.loop/templates/task-state.yaml`
 - Current state / conditional helper: `skills/*/SKILL.md`
-- Deterministic enforcement: `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs`
+- Deterministic enforcement: `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs` / `scripts/check-local-e2e-gate.mjs` / `scripts/check-pr-aftercare.mjs`
 
 ## Agent loop
 
@@ -28,9 +28,9 @@ Human Gate / Incident / Process Learningは必要時だけ。
 - requirements gapはPREPAREへ戻す。test gapは解消またはRequirements正式変更までVerification PASS不可。
 - RiskとRequired Controlsを分離し、Implementation開始後の`max observed Risk`をcompletion floorとする。
 - required Verification / ReviewがFAIL・BLOCKEDのまま進まない。
+- `PR created`はcheckpoint。通常targetはlatest PR contentの`merge_ready`。`pnpm loop:aftercare` が PASS するまで DONE にしない。required CI の pending/fail と unresolved review thread（CodeRabbit含む）は飛ばせない。
 - `task-state.findings`をfindingの唯一のsource of truthとする。protected findingはAgent単独defer不可。
 - same tree/contentのEvidenceは再利用し、content deltaだけ再検証する。
-- `PR created`はcheckpoint。通常targetはlatest PR contentの`merge_ready`。
 - Process Learningはevent-driven。R3/R4だけを理由に起動しない。
 - scope外改善を勝手に同じPRへ混ぜない。
 
@@ -104,7 +104,9 @@ DONE時にSpec Confidence / Risk / task sizeと一緒にstage別時間・externa
 
 ```bash
 pnpm loop:preflight
+pnpm loop:e2e-gate
 pnpm test:loop
+pnpm loop:aftercare
 ```
 
 Scriptと正本contractが矛盾した場合は、文書をScriptへ合わせて曲げず、`.loop/process.yaml` / Requirementsを確認してenforcement側を修正する。

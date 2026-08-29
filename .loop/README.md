@@ -13,7 +13,7 @@ Re:Me Agent Loop v4 は、v3 の Risk-based / deterministic enforcement 方針�
 - `.loop/process.yaml` — compactな機械可読contract
 - `.loop/templates/task-state.yaml` — Coverage Map / Finding / telemetry
 - `skills/*/SKILL.md` — current stateの詳細
-- `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs` — deterministic enforcement
+- `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs` / `scripts/check-local-e2e-gate.mjs` / `scripts/sync-worktree-e2e-env.mjs` / `scripts/check-pr-aftercare.mjs` — deterministic enforcement
 
 ## Design principle
 
@@ -205,7 +205,9 @@ Telemetryだけを理由にProcess Learningを起動しない。Learning Event�
 
 ```bash
 pnpm loop:preflight
+pnpm loop:e2e-gate
 pnpm test:loop
+pnpm loop:aftercare
 ```
 
 機械判定可能なルールはdocumentだけに依存しない。

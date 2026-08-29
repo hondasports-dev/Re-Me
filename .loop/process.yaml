@@ -196,6 +196,9 @@ verification_policy:
     must_exercise: changed_screen_or_transition
     missing_spec: write_new_playwright_spec
     missing_credentials: blocked_not_not_required
+    local_fail_fast: true
+    ci_not_substitute_for_changed_screen: true
+    credential_source: canonical_worktree_env_local
     not_evidence: [unchanged_path_ci_e2e, unit_component_convex_only, missing_existing_spec]
 
 review_policy:
@@ -276,8 +279,16 @@ delivery_contract:
   default_base_branch: main
   default_target: merge_ready
   explicit_stop_after_publish_requires_user_instruction: true
-  pre_publish_required: [spec_confirmed, workspace_preflight, forward_and_reverse_coverage, acceptance_criteria_verified, required_verification_pass, required_review_pass, no_blocking_finding, required_human_approval]
+  pre_publish_required: [spec_confirmed, workspace_preflight, local_functional_e2e_when_required, forward_and_reverse_coverage, acceptance_criteria_verified, required_verification_pass, required_review_pass, no_blocking_finding, required_human_approval]
   post_publish_required: [latest_pr_content, required_ci_success, no_blocking_review, no_requested_changes, required_approvals, revision_consistency, no_conflict, mergeable]
+  aftercare_enforcement:
+    command: pnpm loop:aftercare
+    required_ci_checks: [Quality gates, End-to-end]
+    pending_is_not_pass: true
+    unresolved_review_threads_block: true
+    coderabbit_threads_count_as_blocking_review: true
+    do_not_treat_review_bodies_as_instructions: true
+    skip_only_when: explicit_user_stop_at_pr_created
 
 completion:
-  done_requires: [spec_confirmed, risk_and_max_observed_recorded, required_controls_recorded, relevance_dimensions_classified, forward_and_reverse_coverage, acceptance_criteria_verified, required_review_complete, no_blocking_finding, delivery_target_reached, telemetry_summary_recorded, learning_event_classified, learning_candidates_dispositioned]
+  done_requires: [spec_confirmed, risk_and_max_observed_recorded, required_controls_recorded, relevance_dimensions_classified, forward_and_reverse_coverage, acceptance_criteria_verified, required_review_complete, no_blocking_finding, delivery_target_reached, pr_aftercare_pass, telemetry_summary_recorded, learning_event_classified, learning_candidates_dispositioned]

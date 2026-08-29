@@ -112,6 +112,8 @@ user-visible画面・遷移・操作を変更した場合、**その画面・遷
 - 該当Playwright specが既存に無いこと
 
 required credential / environment不足はNOT_REQUIREDにせずBLOCKED / Incident。
+`pnpm loop:e2e-gate` が FAIL なら Verification は PASS にしない。
+CI End-to-end を、変更した画面の local functional E2E の代替にしない。
 
 Google OAuth UIをcritical E2Eへ毎回含めず、Auth0 test identity/sessionまたはbackend harnessを基本とする。
 
