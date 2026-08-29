@@ -27,6 +27,15 @@ export function sanitizeNotificationErrorCode(code: string | undefined): Notific
   return 'push_failed'
 }
 
+export function isPermanentlyInvalidPushEndpoint(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('statusCode' in error)) {
+    return false
+  }
+
+  const statusCode = error.statusCode
+  return statusCode === 404 || statusCode === 410
+}
+
 export function isStaleNotificationLock(
   lockedAt: number | undefined,
   now: number,

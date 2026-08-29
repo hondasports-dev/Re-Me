@@ -38,7 +38,7 @@ GitHub environment: preview
 | 手動 Preview Worker | 同じ共有 Preview | `preview.yml`。E2E と `shared-preview-backend` で直列 |
 | Production | production deployment | PR CI と local からは実行しない |
 
-どうしても cloud の developer deployment を触る場合だけ `CONVEX_ALLOW_CLOUD_DEV=1` を付ける。CI の repository 変数 `VITE_CONVEX_URL`（個人 DEV）は正本にしない。GitHub environment `preview` の URL と deploy key を使う。
+どうしても cloud の developer deployment を触る場合だけ `CONVEX_ALLOW_CLOUD_DEV=1` を付ける。wrapper は先に `deployment select dev` するので、直前の local 選択は残らない。CI の repository 変数 `VITE_CONVEX_URL`（個人 DEV）は正本にしない。GitHub environment `preview` の URL と deploy key を使う。
 
 ## Local
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   convexDevArgs,
+  convexSelectDevArgs,
   convexSelectLocalArgs,
   isCloudDevOverrideEnabled,
   runConvexDevTarget,
@@ -19,7 +20,7 @@ describe('convex-dev-target', () => {
     expect(calls).toEqual([convexSelectLocalArgs(), convexDevArgs(['--once'])])
   })
 
-  it('skips local select when CONVEX_ALLOW_CLOUD_DEV=1', () => {
+  it('selects the cloud development deployment when CONVEX_ALLOW_CLOUD_DEV=1', () => {
     const calls = []
     runConvexDevTarget(['--start', 'vite dev'], {
       env: { CONVEX_ALLOW_CLOUD_DEV: '1' },
@@ -28,6 +29,6 @@ describe('convex-dev-target', () => {
       },
     })
     expect(isCloudDevOverrideEnabled({ CONVEX_ALLOW_CLOUD_DEV: '1' })).toBe(true)
-    expect(calls).toEqual([convexDevArgs(['--start', 'vite dev'])])
+    expect(calls).toEqual([convexSelectDevArgs(), convexDevArgs(['--start', 'vite dev'])])
   })
 })

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ARRIVAL_NOTIFICATION_BODY,
   arrivalNotificationPayload,
+  isPermanentlyInvalidPushEndpoint,
   nextNotificationAvailableAt,
   sanitizeNotificationErrorCode,
 } from '../../convex/lib/notificationPolicy'
@@ -24,5 +25,12 @@ describe('notificationPolicy', () => {
     expect(nextNotificationAvailableAt(now, 6) - now).toBe(60 * 60_000)
     expect(sanitizeNotificationErrorCode('push_config_missing')).toBe('push_config_missing')
     expect(sanitizeNotificationErrorCode('ENOENT /tmp/secret')).toBe('push_failed')
+  })
+
+  it('treats gone push endpoints as permanently invalid', () => {
+    expect(isPermanentlyInvalidPushEndpoint({ statusCode: 404 })).toBe(true)
+    expect(isPermanentlyInvalidPushEndpoint({ statusCode: 410 })).toBe(true)
+    expect(isPermanentlyInvalidPushEndpoint({ statusCode: 500 })).toBe(false)
+    expect(isPermanentlyInvalidPushEndpoint(new Error('push_failed'))).toBe(false)
   })
 })

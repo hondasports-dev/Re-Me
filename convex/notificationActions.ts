@@ -5,7 +5,10 @@ import webpush from 'web-push'
 
 import { internal } from './_generated/api'
 import { internalAction } from './_generated/server'
-import { arrivalNotificationPayload } from './lib/notificationPolicy'
+import {
+  arrivalNotificationPayload,
+  isPermanentlyInvalidPushEndpoint,
+} from './lib/notificationPolicy'
 
 export const sendNotificationJob = internalAction({
   args: {
@@ -60,6 +63,12 @@ export const sendNotificationJob = internalAction({
         )
         delivered += 1
       } catch (error) {
+        if (isPermanentlyInvalidPushEndpoint(error)) {
+          await ctx.runMutation(internal.notifications.disablePushSubscription, {
+            ownerId: target.ownerId,
+            endpoint: subscription.endpoint,
+          })
+        }
         console.error(
           JSON.stringify({
             event: 'notification_push_failed',

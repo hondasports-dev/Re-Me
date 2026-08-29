@@ -2,7 +2,7 @@
 
 - 状態: 採用
 - 日付: 2026-08-22
-- 改訂: 2026-08-29
+- 改訂: 2026-08-29（JST）
 - 置換対象: [ADR-0001](0001-cloudflare-supabase.md)
 - 改訂対象: [ADR-0006](0006-private-exact-delivery-time.md), [ADR-0007](0007-react-frontend-toolchain.md)
 
