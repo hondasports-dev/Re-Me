@@ -1,10 +1,10 @@
 # ADR-0004: Vue + Vite + pnpm + Oxc をフロントエンド基盤にする
 
-- Status: Superseded
-- Date: 2026-08-18
-- Superseded by: [ADR-0007: React + Vite + React Router + TanStack Query をフロントエンド基盤にする](0007-react-frontend-toolchain.md)
+- 状態: 廃止
+- 日付: 2026-08-18
+- 後継: [ADR-0007: React + Vite + React Router + TanStack Query をフロントエンド基盤にする](0007-react-frontend-toolchain.md)
 
-## Context
+## 背景
 
 Re:Me はモバイルファースト Web App / PWA として開始するにあたり、当初は Vue 3 を中心としたフロントエンド基盤を採用した。
 
@@ -17,7 +17,7 @@ Re:Me はモバイルファースト Web App / PWA として開始するにあ�
 - Cloudflare Worker と開発体験を統合したい
 - TypeScript の型安全性は維持したい
 
-## Original Decision
+## 当時の決定
 
 以下を標準としていた。
 
@@ -31,7 +31,7 @@ Re:Me はモバイルファースト Web App / PWA として開始するにあ�
 - Vue Router
 - Hono on Cloudflare Worker
 
-## Why it was superseded
+## 廃止した理由
 
 本格的な feature 実装へ入る前にフロントエンド基盤を再評価し、React ecosystem を採用する方針へ変更した。
 
@@ -43,7 +43,7 @@ Re:Me はモバイルファースト Web App / PWA として開始するにあ�
 - 既存 Vue 実装がまだ薄く、移行コストが低い段階で切り替えられる
 - Cloudflare Worker / Hono / Supabase / R2 の backend architecture は変更せず、frontend layer だけを置き換えられる
 
-## Historical Consequences
+## 当時の帰結
 
 この ADR の Vue 固有の決定は新規実装へ適用しない。
 
@@ -56,4 +56,4 @@ Re:Me はモバイルファースト Web App / PWA として開始するにあ�
 - Hono on Cloudflare Worker
 - `pnpm-lock.yaml` を唯一の lockfile とする
 
-現在の frontend decision は ADR-0007 を正とする。
+現在のフロントエンド判断は ADR-0007 を正とする。

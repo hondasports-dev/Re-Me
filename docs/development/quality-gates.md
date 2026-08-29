@@ -1,4 +1,4 @@
-# Quality gates
+# 品質ゲート
 
 実装 Issue の Done 条件として、変更内容に応じて以下を通す。
 
@@ -10,81 +10,89 @@ pnpm test
 pnpm build
 ```
 
-Critical flow を変更する場合は `pnpm test:e2e` を実行する。user-visible な画面 / 遷移を足す・変える場合は、**変更した画面そのもの** を踏む Playwright が mandatory である。未実装の critical 3本や、変更していない login E2E の成功を省略理由・代替 evidence にしない。credential 不足は `NOT_REQUIRED` ではなく BLOCKED とする。
+重要なユーザー操作を変える場合は `pnpm test:e2e` を実行する。ユーザーが見える画面 / 遷移を足す・変える場合は、**変更した画面そのもの** を踏む Playwright が必須である。未実装の critical 3本や、変更していない login E2E の成功を省略理由・代替証拠にしない。credential 不足は `NOT_REQUIRED` ではなく BLOCKED とする。
 
-通常の Quality gates / `pnpm test` は local Supabase を起動しない。authorization / schema は `pnpm test:convex` で検証する。
+通常の品質ゲート / `pnpm test` は local Supabase を起動しない。認可 / schema は `pnpm test:convex` で検証する。
 
-## Convex gates
+## Convex のゲート
 
-CI の Quality gates は `pnpm test:convex` を必須 step にする。`convex-test` の in-memory harness で authorization / schema を検証し、live Convex deployment は使わない。
+CI の品質ゲートは `pnpm test:convex` を必須 step にする。`convex-test` の in-memory harness で認可 / schema を検証し、live Convex deployment は使わない。
 
-Convex schema / function を変更する場合:
+CI の End-to-end job は GitHub environment `preview` の共有 Preview Convex を使う。Playwright の前に PR checkout を `convex deploy` し、frontend と backend の revision を揃える。個人の cloud developer deployment は CI から参照しない。接続先の表は [Local / Preview 環境](./preview-environment.md) を正とする。
 
-- `convex dev --once` 相当で target deployment へ push / validation
+`main` の ruleset `protectmain` は job 名 `Quality gates` と `End-to-end` の両方を required status check にする。CI に job を足したら、同じ名前を ruleset へも足す。`Quality gates` だけの成功では merge できない。
+
+Local の `pnpm convex:check` / `pnpm convex:dev` は local backend が対象。cloud developer deployment へ push しない。
+
+Convex の schema / function を変更する場合:
+
+- local では `convex dev --once` 相当（`pnpm convex:check`）で local backend へ push / 検証する
+- CI E2E では共有 Preview へ `convex deploy`
 - generated API / TypeScript typecheck
-- args / return validators
-- index-backed bounded reads
-- public / internal surface review
-- changed authorization / state transition tests（`pnpm test:convex`）
+- args / return validator
+- index を使った件数上限つき読み取り
+- public / internal の境界確認
+- 変更した認可 / 状態遷移テスト（`pnpm test:convex`）
 
-## Required authorization tests
+## 必須の認可テスト
 
-- unauthenticated denial
-- User A / User B isolation
-- sealed traveling / delivered-unopened content denial
-- open 後の content access
-- sent content immutability
-- exact schedule non-exposure
-- internal delivery / notification function non-public
-- R2 upload / download capability ownership and expiry
+- 未認証の拒否
+- ユーザー A / ユーザー B の分離
+- 封をした traveling / 到着済み未開封の本文拒否
+- 開封後の本文アクセス
+- 送信後コンテンツの変更不可
+- 正確な配送時刻が漏れないこと
+- 配送 / 通知の internal function を public にしない
+- R2 の upload / download 権限の所有権と期限切れ
 
 ## 今回変えた画面の E2E
 
-user-visible な画面 / 遷移 / 操作を変えたら、その path を踏む Playwright を実行する。既存 spec が無いなら追加する。
+ユーザーが見える画面 / 遷移 / 操作を変えたら、その path を踏む Playwright を実行する。既存 spec が無いなら追加する。
 
 ## MVP までに揃える critical E2E
 
-通常 E2E は Google OAuth UI を経由せず、Auth0 database test identity で session を作り `e2e/.auth/` に保存して使う。以下は MVP の下限であり、これ以外の画面の E2E を省略する根拠にはしない。
+通常 E2E は Google OAuth UI を経由せず、Auth0 の database test identity で session を作り `e2e/.auth/` に保存して使う。以下は MVP の下限であり、これ以外の画面の E2E を省略する根拠にはしない。
 
-1. authenticated session → draft → send
-2. sealed letter delivered → open → content visible
-3. open → reply → send to future
+1. 認証済み session → 下書き → 送信
+2. 封をした手紙が到着 → 開封 → 本文が見える
+3. 開封 → 返信 → 未来へ送る
 
 ## Google OAuth / Auth0 smoke
 
 少数の smoke test で以下を確認し、外部 credential のない通常 CI では明示的に skip する。
 
-1. Google OAuth login starts
-2. Auth0 callback succeeds
-3. token is issued
-4. Convex validates issuer / audience / signature
-5. authenticated query succeeds
+1. Google OAuth login が始まる
+2. Auth0 callback が成功する
+3. token が発行される
+4. Convex が issuer / audience / 署名を検証する
+5. 認証済み query が成功する
 
-## Delivery / notification
+## 配送 / 通知
 
-- overlapping cron で二重配送しない
-- due / deleted / current state を再検証する
-- delivery と outbox creation が atomic
-- push failure は delivered state を戻さない
-- stale generation completion を拒否
-- retry / backoff / oldest pending monitoring を検証
+- 重なった cron で二重配送しない
+- due / 削除済み / 現在状態を再検証する
+- 配送と outbox 作成が atomic
+- push 失敗で delivered 状態を戻さない
+- 古い generation の完了を拒否する
+- retry / backoff / 最古の pending 監視を検証する
 
 ## Cloudflare / R2
 
 - SPA fallback と static asset build
 - bucket 非公開
-- sealed / unopened attachment URL の非公開
-- MIME / size / dimension / EXIF handling
-- metadata / object delete の partial failure reconciliation
+- 封をした / 未開封 attachment URL の非公開
+- MIME / size / dimension / EXIF の扱い
+- metadata / object 削除の部分失敗からの復旧
+- CI E2E の写真 upload は Preview R2 の CORS に Playwright origin（`http://127.0.0.1:4173`）が必要。Worker origin だけだと `vite preview` からの PUT が失敗する
 
-## Production readiness
+## 本番準備
 
-Production cutover 前に以下を別 gate とする。
+本番切り替え前に以下を別ゲートとする。
 
-- Auth0 DEV / PROD separation
-- Convex deployment / env separation
-- Cloudflare preview / production separation
-- backup / export / restore rehearsal
-- legacy Supabase data inventory and migration decision
-- rollback plan
-- quota / billing / alerting review
+- Auth0 DEV / PROD の分離
+- Convex deployment / 環境の分離
+- Cloudflare preview / production の分離
+- backup / export / restore のリハーサル
+- legacy Supabase データの棚卸しと移行判断
+- rollback 計画
+- 枠 / 課金 / アラートの確認

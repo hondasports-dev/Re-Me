@@ -56,6 +56,12 @@ export default defineSchema({
   })
     .index('by_owner_and_status', ['ownerId', 'status'])
     .index('by_owner_status_and_updatedAt', ['ownerId', 'status', 'updatedAt'])
+    .index('by_owner_status_deletedAt_and_updatedAt', [
+      'ownerId',
+      'status',
+      'deletedAt',
+      'updatedAt',
+    ])
     .index('by_thread_and_sentAt', ['threadId', 'sentAt'])
     .index('by_parentLetterId', ['parentLetterId']),
 
@@ -149,5 +155,6 @@ export default defineSchema({
     disabledAt: v.optional(v.number()),
   })
     .index('by_ownerId', ['ownerId'])
-    .index('by_endpoint', ['endpoint']),
+    .index('by_endpoint', ['endpoint'])
+    .index('by_ownerId_and_disabledAt', ['ownerId', 'disabledAt']),
 })

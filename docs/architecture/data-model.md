@@ -1,8 +1,8 @@
 # データモデル
 
-実装上の正本は `convex/schema.ts` と function validators とする。この文書は target model の設計意図を説明する。現行 `supabase/migrations/` は移行完了までの legacy source である。
+実装上の正本は `convex/schema.ts` と function validators とする。この文書は target model の設計意図を説明する。現行 `supabase/migrations/` は移行完了までの legacy ソースである。
 
-## Model
+## モデル
 
 ```mermaid
 erDiagram
@@ -17,16 +17,16 @@ erDiagram
     LETTER ||--o| NOTIFICATION_JOB : creates
 ```
 
-## Core entities
+## 中核エンティティ
 
 ### users
 
 - `_id`
-- `tokenIdentifier`（unique external identity lookup）
-- safe profile fields
+- `tokenIdentifier`（一意な外部 identity 検索キー）
+- 安全なプロフィール field
 - `createdAt` / `updatedAt`
 
-Domain ownership は `_id` を使い、Auth0 subject を各 table に直接保存しない。
+ドメインの所有権は `_id` を使い、Auth0 subject を各 table に直接保存しない。
 
 ### userSettings
 
@@ -63,7 +63,7 @@ Domain ownership は `_id` を使い、Auth0 subject を各 table に直接保�
 - `ownerId`
 - `body`
 
-metadata と body を分け、一覧 query が sealed body を読み込まない return shape を作る。
+metadata と本文を分け、一覧 query が封をした本文を読み込まない返り値にする。
 
 ### letterAttachments
 
@@ -71,29 +71,29 @@ metadata と body を分け、一覧 query が sealed body を読み込まない
 - `ownerId`
 - `kind`: `photo | location`
 - `status`: `pending | ready | deleting`
-- private R2 object id
-- safe MIME / byte size / width / height
-- display-only location label
+- 非公開 R2 object id
+- 安全な MIME / byte size / width / height
+- 表示専用の場所ラベル
 
 正確な緯度経度と EXIF は恒久保存しない。
 
 ### attachmentFinalizationAttempts
 
 - `attachmentId` / `generationToken`
-- copy前に確定する一意なprivate R2 object key
+- copy 前に確定する一意な非公開 R2 object key
 - `state`: `claimed | winner | deleting`
-- delete attempt / next reconciliation / sanitized error metadata
+- 削除試行 / 次回復旧 / 伏せたエラー metadata
 
-external copy直後のprocess停止でも候補keyを見失わず、winner以外を削除成功まで追跡する。
+外部 copy 直後に処理が止まっても候補 key を見失わず、winner 以外を削除成功まで追跡する。
 
 ### letterDeliveries
 
 - `letterId`
 - `ownerId`
 - `scheduledAt`
-- delivery attempt / reconciliation metadata
+- 配送試行 / 復旧 metadata
 
-`scheduledAt` は due index に使うが browser-facing query から返さない。
+`scheduledAt` は due index に使うが、ブラウザ向け query からは返さない。
 
 ### notificationJobs
 
@@ -103,36 +103,37 @@ external copy直後のprocess停止でも候補keyを見失わず、winner以外
 - `attemptCount`
 - `generationToken`
 - `availableAt` / `lockedAt` / `sentAt`
-- sanitized `lastErrorCode`
+- 伏せた `lastErrorCode`
 
-Delivery と external notification を分離する outbox。
+配送と外部通知を分ける outbox。
 
 ### pushSubscriptions
 
 - `ownerId`
 - endpoint / p256dh / auth
-- created / updated / disabled metadata
+- 作成 / 更新 / 無効化 metadata
 
-## Required indexes
+## 必須 indexes
 
-少なくとも以下の read path を index で支える。
+少なくとも以下の読み取り経路を index で支える。
 
-- users by tokenIdentifier
-- threads by ownerId and updatedAt
-- letters by ownerId and status
-- letters by threadId and sentAt
-- letters by parentLetterId
-- letterContents by letterId
-- letterAttachments by letterId
-- attachmentFinalizationAttempts by attachmentId
-- attachmentFinalizationAttempts by state and nextReconcileAt
-- letterDeliveries by delivery state and scheduledAt
-- notificationJobs by status and availableAt
-- pushSubscriptions by ownerId
+- users: tokenIdentifier
+- threads: ownerId と updatedAt
+- letters: ownerId と status
+- letters: threadId と sentAt
+- letters: parentLetterId
+- letterContents: letterId
+- letterAttachments: letterId
+- attachmentFinalizationAttempts: attachmentId
+- attachmentFinalizationAttempts: state と nextReconcileAt
+- letterDeliveries: 配送状態と scheduledAt
+- notificationJobs: status と availableAt
+- pushSubscriptions: ownerId
+- pushSubscriptions: ownerId と disabledAt
 
-Growing table を unbounded `.collect()` や `.filter()` で走査しない。list query は paginate / bounded `take` を使う。
+増える table を件数無制限の `.collect()` や `.filter()` で走査しない。一覧 query は paginate / 件数上限つき `take` を使う。
 
-## State transitions
+## 状態遷移
 
 ```text
 draft
@@ -151,28 +152,30 @@ delivered
   │ openLetter
   ▼
 openedAt != null
-  │ reply を未来へ送信
+  │ 返信を未来へ送信
   ▼
 repliedAt != null
 ```
 
-## Thread invariant
+## スレッドの不変条件
 
-返信は同じ `threadId` に所属し、`parentLetterId` で直前の手紙を指す。MVP は一つの非削除 letter に次の非削除 letter を最大一通とする。
+返信は同じ `threadId` に所属し、`parentLetterId` で直前の手紙を指す。MVP は一つの未削除手紙に次の未削除手紙を最大一通とする。
 
-Convex に SQL partial unique index はないため、reply creation mutation 内で parent state を transactionally 検証し、parent に next letter id / `repliedAt` を記録して競合を OCC で拒否する。
+Convex に SQL の partial unique index はない。返信作成 mutation 内で親の状態を transaction で検証し、親に次の手紙 id / `repliedAt` を記録して競合を OCC で拒否する。
 
-## Immutable boundary
+## 編集不可の境界
 
-送信後は content / attachment / relationship / delivery setting を更新する public function を持たない。lifecycle metadata は専用 mutation / internal mutation だけが変更する。
+送信後は本文 / 添付 / 関係 / 配送設定を更新する public function を持たない。ライフサイクル metadata は専用 mutation / internal mutation だけが変更する。
 
-## Public function surface
+## public function の面
 
-Authenticated client:
+認証済み client:
 
 - `createDraft`
 - `saveDraft`
 - `getLetterMetadata`
+- `listMyLetterMetadata`
+- `listTravelingLetters`
 - `getReadableContent`
 - `sendLetter`
 - `openLetter`
@@ -180,7 +183,7 @@ Authenticated client:
 - `createAttachmentIntent`
 - `attachmentActions.finalizeAttachment`
 
-Internal only:
+internal のみ:
 
 - `deliverDueLetters`
 - `claimNotificationJobs`
@@ -189,6 +192,6 @@ Internal only:
 
 すべて args / return validator を持ち、private field を document ごと返さず明示的に map する。
 
-## Schema evolution / migration
+## schema 進化 / 移行
 
-Convex schema change は populated deployment を前提に、optional field → backfill → required の順で行う。DEV → PROD の data copy を通常 workflow にせず、Production data migration は inventory、export、dry-run、rollback を別 task で設計する。
+Convex の schema 変更はデータが入った deployment を前提に、optional field → backfill → required の順で行う。DEV → PROD の data コピーを通常作業にしない。Production data の移行は棚卸し、export、dry-run、rollback を別 task で設計する。

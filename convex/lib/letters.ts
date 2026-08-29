@@ -1,8 +1,13 @@
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
-import { canReadLetterContent, canReadLetterMetadata, isReplyableParent } from './authorization'
+import {
+  canReadLetterContent,
+  canReadLetterMetadata,
+  isOwnedBy,
+  isReplyableParent,
+} from './authorization'
 import { resolveDeliveryWindow } from './deliveryWindow'
-import { MAX_LETTER_BODY_LENGTH, MAX_LOCATION_LABEL_LENGTH } from './validators'
+import { LETTER_LIST_LIMIT, MAX_LETTER_BODY_LENGTH, MAX_LOCATION_LABEL_LENGTH } from './validators'
 
 type LetterCtx = QueryCtx | MutationCtx
 
@@ -33,6 +38,22 @@ export type LetterMetadata = {
   repliedAt: number | null
   createdAt: number
   updatedAt: number
+}
+
+export async function listOwnedLetterMetadata(
+  ctx: QueryCtx,
+  userId: Id<'users'>,
+  status: Doc<'letters'>['status'],
+): Promise<LetterMetadata[]> {
+  const letters = await ctx.db
+    .query('letters')
+    .withIndex('by_owner_status_deletedAt_and_updatedAt', (q) =>
+      q.eq('ownerId', userId).eq('status', status).eq('deletedAt', undefined),
+    )
+    .order('desc')
+    .take(LETTER_LIST_LIMIT)
+
+  return letters.map((letter) => toLetterMetadata(letter))
 }
 
 export function toLetterMetadata(letter: Doc<'letters'>): LetterMetadata {
@@ -339,6 +360,41 @@ function toSentLetter(letter: Doc<'letters'>): SentLetter {
     deliveryWindowStart: letter.deliveryWindowStart,
     deliveryWindowEnd: letter.deliveryWindowEnd,
     sentAt: letter.sentAt,
+  }
+}
+
+export async function deleteOwnedTravelingLetter(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  letterId: Id<'letters'>,
+): Promise<void> {
+  const letter = await ctx.db.get(letterId)
+
+  if (!letter || !isOwnedBy(letter.ownerId, userId)) {
+    throw new Error('letter not found')
+  }
+
+  if (letter.deletedAt !== undefined) {
+    return
+  }
+
+  if (letter.status !== 'traveling') {
+    throw new Error('letter is not traveling')
+  }
+
+  const now = Date.now()
+  await ctx.db.patch(letter._id, { deletedAt: now, updatedAt: now })
+  await ctx.db.patch(letter.threadId, { updatedAt: now })
+
+  const deliveries = await ctx.db
+    .query('letterDeliveries')
+    .withIndex('by_letterId', (q) => q.eq('letterId', letter._id))
+    .take(5)
+
+  for (const delivery of deliveries) {
+    if (delivery.status === 'pending') {
+      await ctx.db.patch(delivery._id, { status: 'canceled' })
+    }
   }
 }
 

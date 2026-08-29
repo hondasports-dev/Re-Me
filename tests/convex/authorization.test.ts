@@ -41,6 +41,12 @@ describe('Convex authorization harness', () => {
     await expect(
       t.mutation(api.letters.openLetter, { letterId: created.letterId }),
     ).rejects.toThrow(/authentication required/)
+    await expect(t.query(api.letters.listDeliveredLetters, {})).rejects.toThrow(
+      /authentication required/,
+    )
+    await expect(
+      t.mutation(api.letters.forceDeliverOwnLetter, { letterId: created.letterId }),
+    ).rejects.toThrow(/authentication required/)
     await expect(
       t.query(api.attachments.listReadableAttachments, { letterId: created.letterId }),
     ).rejects.toThrow(/authentication required/)
@@ -311,9 +317,10 @@ describe('Convex authorization harness', () => {
     expect(due).toEqual([
       expect.objectContaining({
         letterId: sent.letterId,
-        scheduledAt: sent.scheduledAt,
       }),
     ])
+    expect(JSON.stringify(due)).not.toContain('scheduledAt')
+    expect(JSON.stringify(due)).not.toContain(String(sent.scheduledAt))
   })
 
   it('rejects a second reply to the same parent letter', async () => {

@@ -35,15 +35,6 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
           install: false
 
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -71,6 +62,73 @@ jobs:
       - name: Build
         run: pnpm build
 
+  e2e:
+    name: End-to-end
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: preview
+    concurrency:
+      group: shared-preview-backend
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v1
+        with:
+          version: 11.1.2
+          runtime: node@24
+          cache: true
+          cache-dependency-path: pnpm-lock.yaml
+          install: false
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Preview E2E configuration
+        env:
+          VITE_AUTH0_CLIENT_ID: ${{ vars.VITE_AUTH0_CLIENT_ID }}
+          VITE_AUTH0_DOMAIN: ${{ vars.VITE_AUTH0_DOMAIN }}
+          VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+          E2E_AUTH0_EMAIL: ${{ secrets.E2E_AUTH0_EMAIL }}
+          E2E_AUTH0_PASSWORD: ${{ secrets.E2E_AUTH0_PASSWORD }}
+        run: |
+          test -n "$VITE_AUTH0_CLIENT_ID"
+          test -n "$VITE_AUTH0_DOMAIN"
+          test -n "$VITE_CONVEX_URL"
+          test -n "$E2E_AUTH0_EMAIL"
+          test -n "$E2E_AUTH0_PASSWORD"
+
+      - name: Deploy Convex Preview
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+        run: |
+          test -n "$CONVEX_DEPLOY_KEY"
+          pnpm exec convex deploy --message "CI E2E ${{ github.sha }}"
+
+      - name: Enable E2E force delivery on Preview Convex
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+        run: pnpm exec convex env set E2E_FORCE_DELIVERY 1
+
+      - name: Smoke test Convex Preview
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+        run: |
+          pnpm exec convex run health:get | grep -q '"ok": true'
+
       - name: Install Playwright browser
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
@@ -83,10 +141,4 @@ jobs:
           E2E_AUTH0_EMAIL: ${{ secrets.E2E_AUTH0_EMAIL }}
           E2E_AUTH0_PASSWORD: ${{ secrets.E2E_AUTH0_PASSWORD }}
           E2E_AUTH0_CONNECTION: Username-Password-Authentication
-        run: |
-          test -n "$VITE_AUTH0_CLIENT_ID"
-          test -n "$VITE_AUTH0_DOMAIN"
-          test -n "$VITE_CONVEX_URL"
-          test -n "$E2E_AUTH0_EMAIL"
-          test -n "$E2E_AUTH0_PASSWORD"
-          pnpm test:e2e
+        run: pnpm test:e2e

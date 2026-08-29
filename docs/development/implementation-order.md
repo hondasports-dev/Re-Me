@@ -1,18 +1,18 @@
-# Implementation order
+# 実装順
 
-1. Auth0 / Convex / Cloudflare foundation
-2. Convex schema / authorization test harness
-3. Auth0 Google OAuth + Convex auth integration
-4. Supabase auth / query layer removal
-5. Compose / Draft
-6. Private R2 photo via Convex authorization
-7. Send / Immutability
-8. Traveling letters
-9. Convex Cron delivery / Notification outbox
-10. Inbox / Open
-11. Reply / Thread
+1. Auth0 / Convex / Cloudflare の土台
+2. Convex schema / 認可テストの harness
+3. Auth0 Google OAuth + Convex 認証の接続
+4. Supabase の auth / query 層の撤去
+5. 作成 / 下書き
+6. Convex 認可経由の private R2 写真
+7. 送信 / 編集不可
+8. 旅する手紙
+9. Convex Cron 配送 / 通知 outbox
+10. 受信箱 / 開封
+11. 返信 / スレッド
 12. PWA / Push
-13. Data migration / legacy cleanup / rollback rehearsal
-14. CI / E2E / production readiness hardening
+13. データ移行 / legacy 片付け / rollback リハーサル
+14. CI / E2E / 本番準備の強化
 
-Production data が存在する場合、13 は Human Gate なしに実行しない。
+Production data がある場合、13 は Human Gate なしに実行しない。
