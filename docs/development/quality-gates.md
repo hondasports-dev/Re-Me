@@ -20,6 +20,8 @@ CI の品質ゲートは `pnpm test:convex` を必須 step にする。`convex-t
 
 CI の End-to-end job は GitHub environment `preview` の共有 Preview Convex を使う。Playwright の前に PR checkout を `convex deploy` し、frontend と backend の revision を揃える。個人の cloud developer deployment は CI から参照しない。接続先の表は [Local / Preview 環境](./preview-environment.md) を正とする。
 
+`main` の ruleset `protectmain` は job 名 `Quality gates` と `End-to-end` の両方を required status check にする。CI に job を足したら、同じ名前を ruleset へも足す。`Quality gates` だけの成功では merge できない。
+
 Local の `pnpm convex:check` / `pnpm convex:dev` は local backend が対象。cloud developer deployment へ push しない。
 
 Convex の schema / function を変更する場合:

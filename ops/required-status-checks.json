@@ -1,0 +1,4 @@
+{
+  "ruleset": "protectmain",
+  "contexts": ["Quality gates", "End-to-end"]
+}

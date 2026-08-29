@@ -38,6 +38,23 @@ describe('CI and local Convex boundary', () => {
     expect(e2e).toMatch(/VITE_CONVEX_URL: \$\{{\s*vars\.VITE_CONVEX_URL\s*}}/)
   })
 
+  it('documents both CI jobs as required merge checks', () => {
+    const required = JSON.parse(readRepoFile('ops/required-status-checks.json')) as {
+      ruleset: string
+      contexts: string[]
+    }
+    const qualityGates = readRepoFile('docs/development/quality-gates.md')
+    const previewEnv = readRepoFile('docs/development/preview-environment.md')
+
+    expect(required.ruleset).toBe('protectmain')
+    expect(required.contexts).toEqual(['Quality gates', 'End-to-end'])
+    for (const context of required.contexts) {
+      expect(ci).toContain(`name: ${context}`)
+      expect(qualityGates).toContain(context)
+      expect(previewEnv).toContain(context)
+    }
+  })
+
   it('does not put the Preview deploy key into the Playwright step', () => {
     const e2e = ci.slice(ci.indexOf('name: End-to-end'))
     const playwright = e2e.slice(e2e.indexOf('name: End-to-end tests'))
