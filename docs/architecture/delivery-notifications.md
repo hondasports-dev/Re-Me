@@ -89,6 +89,7 @@ Convex の timestamp は UTC の epoch milliseconds。UI は `userSettings.timez
 
 - cron 失敗: due 行は traveling のまま残り、次回 sweep が再処理する
 - 配送 mutation 成功 / push 失敗: 手紙は delivered、job は failed / retry
+- Push が 404 / 410 を返した endpoint は `disabledAt` を立て、以降の claim 対象から外す
 - R2 / 添付失敗: 手紙送信前に添付の準備完了を検証する
 - 古くなった processing job: lock timeout 後に新しい generation で reclaim する
 - 基盤障害: 最古の due / pending 経過時間を監視し、復旧 sweep を実行する

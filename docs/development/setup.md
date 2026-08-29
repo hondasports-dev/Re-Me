@@ -164,7 +164,7 @@ Google OAuth client secret は Auth0 connection にだけ設定し、Vite / Conv
 - `convex dev` を止めると local backend も止まる。frontend だけ `pnpm dev` しても Convex には繋がらない
 - `"use node"` の action は手元の Node.js 24 で動く。local backend を使うときは同じ major を使う
 - CI / Preview は共有 Preview の remote Convex を使う。local E2E は local backend が起動している必要がある
-- どうしても cloud developer deployment を使う場合だけ `CONVEX_ALLOW_CLOUD_DEV=1` を付けて無料枠を消費することを明示する
+- どうしても cloud developer deployment を使う場合だけ `CONVEX_ALLOW_CLOUD_DEV=1` を付けて無料枠を消費することを明示する。このとき wrapper は `deployment select dev` する
 
 Production data を local へコピーする場合は個人情報の棚卸しと承認を別途必要とする。
 

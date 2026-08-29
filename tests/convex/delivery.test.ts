@@ -146,6 +146,7 @@ describe('deliverDueLetters', () => {
     const failed = await t.mutation(internal.notifications.completeNotificationJob, {
       jobId: job!.jobId,
       generationToken: job!.generationToken,
+      now: scheduledAt + 1,
       outcome: { kind: 'failed', errorCode: 'push_failed' },
     })
     expect(failed.accepted).toBe(true)
@@ -294,6 +295,55 @@ describe('deliverDueLetters', () => {
     expect(await readJobs(t, bobLetter.letterId)).toHaveLength(1)
     expect((await readJobs(t, aliceLetter.letterId))[0]?.ownerId).toBe(aliceUser.userId)
     expect((await readJobs(t, bobLetter.letterId))[0]?.ownerId).toBe(bobUser.userId)
+  })
+
+  it('disables a gone push subscription for that owner only', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const asBob = t.withIdentity(bob)
+    const aliceUser = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    const bobUser = await asBob.mutation(api.users.ensureCurrentUser, {})
+    const now = 1_700_000_000_000
+    const endpoint = 'https://push.example.test/gone'
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert('pushSubscriptions', {
+        ownerId: aliceUser.userId,
+        endpoint,
+        p256dh: 'p256dh-public',
+        auth: 'auth-secret',
+        createdAt: now,
+        updatedAt: now,
+      })
+    })
+
+    const otherOwner = await t.mutation(internal.notifications.disablePushSubscription, {
+      ownerId: bobUser.userId,
+      endpoint,
+      now: now + 1,
+    })
+    const disabled = await t.mutation(internal.notifications.disablePushSubscription, {
+      ownerId: aliceUser.userId,
+      endpoint,
+      now: now + 2,
+    })
+    const again = await t.mutation(internal.notifications.disablePushSubscription, {
+      ownerId: aliceUser.userId,
+      endpoint,
+      now: now + 3,
+    })
+
+    expect(otherOwner).toEqual({ disabled: false })
+    expect(disabled).toEqual({ disabled: true })
+    expect(again).toEqual({ disabled: true })
+
+    const stored = await t.run(async (ctx) => {
+      return await ctx.db
+        .query('pushSubscriptions')
+        .withIndex('by_endpoint', (q) => q.eq('endpoint', endpoint))
+        .first()
+    })
+    expect(stored?.disabledAt).toBe(now + 2)
   })
 })
 

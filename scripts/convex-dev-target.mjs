@@ -15,6 +15,10 @@ export function convexSelectLocalArgs() {
   return ['deployment', 'select', 'local']
 }
 
+export function convexSelectDevArgs() {
+  return ['deployment', 'select', 'dev']
+}
+
 export function convexDevArgs(extraArgs = []) {
   return ['dev', ...extraArgs]
 }
@@ -34,7 +38,9 @@ export function runConvex(
 
 export function runConvexDevTarget(extraArgs = [], options = {}) {
   const env = options.env ?? process.env
-  if (!isCloudDevOverrideEnabled(env)) {
+  if (isCloudDevOverrideEnabled(env)) {
+    runConvex(convexSelectDevArgs(), options)
+  } else {
     runConvex(convexSelectLocalArgs(), options)
   }
   runConvex(convexDevArgs(extraArgs), options)

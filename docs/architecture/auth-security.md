@@ -127,7 +127,7 @@ Debug endpoint、エラー詳細、log、analytics に正確な配送時刻を�
 - Convex は R2 object id と所有権 metadata を保持する
 - 1通あたり最大3枚。入力は JPEG / PNG / WebP、10 MiB 以下
 - client の Canvas で JPEG に再 encode し、長辺 4096 px、5 MiB 以下へ縮小して EXIF / XMP / IPTC を除去する
-- upload intent 作成時に所有者 / 下書き状態を検証し、Content-Length と `If-None-Match: *` を束縛した、5分だけ有効な staging object 単位の署名 PUT URL を発行する。同じ権限の再利用は既存 object への上書き前に失敗させ、finalize 時の HEAD と完全 JPEG 検査でも intent の byte size・5MB 上限・content type を強制する
+- upload intent 作成時に所有者 / 下書き状態を検証し、Content-Length と `If-None-Match: *` を束縛した、5分だけ有効な staging object 単位の署名 PUT URL を発行する。同じ権限の再利用は既存 object への上書き前に失敗させ、finalize 時の HEAD と完全 JPEG 検査でも intent の byte size・5 MiB 上限・content type を強制する
 - finalize 前に R2 HEAD で MIME / size、取得後に JPEG の dimension と APP1 / APP13 metadata が無いことをサーバー側で再検証する
 - finalize は attachment ごとの single-flight とし、有効な claim 中は別 runner を拒否して candidate key の並行上書きを防ぐ。外部 copy 前に候補 key を Convex へ永続登録し、検証した staging ETag を条件に一意な immutable final key へ copy する。atomic mutation に勝った key だけを採用し、負けた attempt や copy 後に止まった attempt は durable state と cron retry で削除完了まで追跡する
 - 封をした / 未開封 attachment の download URL を返さない

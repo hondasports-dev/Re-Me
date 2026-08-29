@@ -70,6 +70,7 @@ export const completeNotificationJob = internalMutation({
   args: {
     jobId: v.id('notificationJobs'),
     generationToken: v.string(),
+    now: v.optional(v.number()),
     outcome: v.union(
       v.object({ kind: v.literal('sent') }),
       v.object({
@@ -88,7 +89,7 @@ export const completeNotificationJob = internalMutation({
       return { accepted: false }
     }
 
-    const now = Date.now()
+    const now = args.now ?? Date.now()
 
     if (args.outcome.kind === 'sent') {
       await ctx.db.patch(job._id, {
@@ -154,6 +155,38 @@ export const getNotificationSendTarget = internalQuery({
         p256dh: subscription.p256dh,
       })),
     }
+  },
+})
+
+export const disablePushSubscription = internalMutation({
+  args: {
+    ownerId: v.id('users'),
+    endpoint: v.string(),
+    now: v.optional(v.number()),
+  },
+  returns: v.object({
+    disabled: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query('pushSubscriptions')
+      .withIndex('by_endpoint', (q) => q.eq('endpoint', args.endpoint))
+      .first()
+
+    if (!subscription || subscription.ownerId !== args.ownerId) {
+      return { disabled: false }
+    }
+
+    if (subscription.disabledAt !== undefined) {
+      return { disabled: true }
+    }
+
+    const now = args.now ?? Date.now()
+    await ctx.db.patch(subscription._id, {
+      disabledAt: now,
+      updatedAt: now,
+    })
+    return { disabled: true }
   },
 })
 

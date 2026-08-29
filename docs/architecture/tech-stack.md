@@ -74,7 +74,7 @@ Workers Static Assets を React SPA のデプロイ単位とする。
 - Local と Preview は別 bucket・別 credential を使う。local Convex は DEV bucket を参照する。Production は別 Issue とする
 - upload 前に JPEG / PNG / WebP、10 MiB 以下を検証し、Canvas 再 encode 後の JPEG を長辺 4096 px、5 MiB 以下にする
 - upload 権限は5分、download 権限は60秒とする
-- upload URL は5分だけ有効な staging key、Content-Length、`If-None-Match: *` に限定し、同じ権限での上書きを拒否する。finalize 時の HEAD でも intent の byte size と 5MB 上限へ一致することを強制する。検証後は attempt ごとの一意な final key を copy 前に永続登録し、ETag 条件付き copy のあと Convex の atomic winner だけを attachment へ確定する。負けた attempt は最大 action 時間を超える tombstone 期間中に再削除し、cron が削除成功まで追跡する
+- upload URL は5分だけ有効な staging key、Content-Length、`If-None-Match: *` に限定し、同じ権限での上書きを拒否する。finalize 時の HEAD でも intent の byte size と 5 MiB 上限へ一致することを強制する。検証後は attempt ごとの一意な final key を copy 前に永続登録し、ETag 条件付き copy のあと Convex の atomic winner だけを attachment へ確定する。負けた attempt は最大 action 時間を超える tombstone 期間中に再削除し、cron が削除成功まで追跡する
 - finalize 時に MIME、size、dimension、EXIF / XMP / IPTC metadata が無いことをサーバー側で再検証する
 - CORS は既知の Local / Preview origin と `PUT, GET, HEAD`、`Content-Type`・`Content-Length`・`If-None-Match` header だけを許可する。Preview bucket は Worker origin に加えて CI Playwright の `http://127.0.0.1:4173` / `http://localhost:4173` を含む。正本は `ops/r2-cors-preview.json`
 - 封をした / 未開封コンテンツの URL を client query に返さない
