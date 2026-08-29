@@ -1,0 +1,65 @@
+.thread-page,
+.thread-timeline {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--re-me-space-4);
+  width: min(100%, 36rem);
+  min-height: 0;
+  margin: 0 auto;
+}
+
+.thread-page__header,
+.thread-timeline__card {
+  display: grid;
+  gap: var(--re-me-space-2);
+}
+
+.thread-page__eyebrow,
+.thread-timeline__eyebrow {
+  margin: 0;
+  color: var(--re-me-color-sky-deep);
+  font-size: var(--re-me-font-size-xs);
+  letter-spacing: var(--re-me-letter-spacing-label);
+}
+
+.thread-page h1,
+.thread-timeline h2 {
+  margin: 0;
+  font-family: var(--re-me-font-serif);
+  font-weight: 400;
+}
+
+.thread-page h1 {
+  font-size: var(--re-me-font-size-lg);
+}
+
+.thread-page__copy,
+.thread-timeline__body,
+.thread-timeline__location {
+  margin: 0;
+  color: var(--re-me-color-ink);
+  white-space: pre-wrap;
+}
+
+.thread-timeline {
+  list-style: none;
+  padding: 0;
+}
+
+.thread-timeline__card {
+  padding: var(--re-me-space-4);
+  border-radius: var(--re-me-radius-lg);
+  background: var(--re-me-color-paper);
+  box-shadow: var(--re-me-shadow-md);
+}
+
+.thread-timeline__card[data-deleted='true'] {
+  background: var(--re-me-color-mist);
+}
+
+.thread-timeline__open,
+.thread-page .inbox-letter__back {
+  color: var(--re-me-color-sky-deep);
+  font-size: var(--re-me-font-size-sm);
+}

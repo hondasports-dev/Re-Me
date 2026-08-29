@@ -4,6 +4,7 @@
 @import '../features/compose/compose.css';
 @import '../features/inbox/inbox.css';
 @import '../features/traveling/traveling.css';
+@import '../features/thread/thread.css';
 
 :root {
   color: var(--re-me-color-ink);

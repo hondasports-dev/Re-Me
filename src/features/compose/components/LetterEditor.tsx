@@ -6,6 +6,8 @@ import { PhotoAttachmentList, type PhotoAttachment } from './PhotoAttachmentList
 
 interface LetterEditorProps {
   body: string
+  eyebrow?: string
+  heading?: string
   locationDraft: string
   locationLabel: string | null
   onAddPhoto: (file: File) => void
@@ -22,6 +24,8 @@ interface LetterEditorProps {
 
 export function LetterEditor({
   body,
+  eyebrow = '今の自分から',
+  heading = '手紙を書く',
   locationDraft,
   locationLabel,
   onAddPhoto,
@@ -42,8 +46,8 @@ export function LetterEditor({
   return (
     <section aria-labelledby="compose-title" className="letter-editor">
       <header className="letter-editor__header">
-        <p className="letter-editor__eyebrow">今の自分から</p>
-        <h1 id="compose-title">手紙を書く</h1>
+        <p className="letter-editor__eyebrow">{eyebrow}</p>
+        <h1 id="compose-title">{heading}</h1>
         <p className="letter-editor__status" aria-live="polite">
           {saveLabel(saveStatus)}
         </p>

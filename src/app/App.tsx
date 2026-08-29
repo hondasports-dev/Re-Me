@@ -13,7 +13,9 @@ export function App() {
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const showAppChrome = readiness.status === 'authenticated'
-  const isCompose = location.pathname.startsWith('/write')
+  const isCompose =
+    location.pathname.startsWith('/write') ||
+    /\/letters\/[^/]+\/reply(?:\/|$)/.test(location.pathname)
 
   async function handleLogout(): Promise<void> {
     if (isLoggingOut) {

@@ -44,7 +44,7 @@ GitHub environment: preview
 
 1. `.env.example` を `.env.local` へコピーする。
 2. `VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` を DEV の値で設定する。`VITE_CONVEX_URL` は空のままでよい。
-3. 初回は `pnpm exec convex deployment create local --select`。以降の `pnpm convex:dev` / `pnpm dev:full` は local deployment を選んでから backend を起動する。
+3. 初回は `pnpm exec convex deployment create local --select`。以降の `pnpm convex:dev` / `pnpm dev:full` は local deployment を選んでから backend を起動する。新しい task worktree で anonymous mode になる場合は下の「Task worktree の local Convex」を使う。
 4. local backend が動いている間に `AUTH0_DOMAIN` と `AUTH0_CLIENT_ID` を `pnpm exec convex env set` で設定する。
 5. 非公開 DEV R2 bucket に限定した Object Read & Write credential を作り、`R2_BUCKET`、`R2_ENDPOINT`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` を同じ local deployment に設定する。
 6. `pnpm dev:full` を実行する。
@@ -56,6 +56,54 @@ Allowed Callback URLs: http://127.0.0.1:5173/auth/callback
 Allowed Logout URLs:   http://127.0.0.1:5173
 Allowed Web Origins:   http://127.0.0.1:5173
 ```
+
+## Task worktree の local Convex
+
+新しい git worktree は canonical checkout と `.convex/` も `CONVEX_DEPLOYMENT` も共有しない。`pnpm loop:preflight` がコピーするのは `E2E_AUTH0_*` だけである。Convex CLI の login（`~/.convex/config.json`）はマシン共通なので、worktree ごとに `npx convex login` し直す必要はない。
+
+worktree で素の `pnpm exec convex deployment create local --select` を叩くと、project がまだ紐づいていないため CLI が anonymous mode と判定して失敗することがある。ログイン済みでも同じ。cloud の developer deployment を worktree の正本にコピーして使わない。
+
+手順は次のとおり。値は表示・commit しない。
+
+1. `pnpm exec convex login status` で Logged in を確認する。切れていれば自分のターミナルで `pnpm exec convex login` する。
+2. canonical `.env.local` の `CONVEX_DEPLOYMENT` が `dev:` であることを確認する。`:` の後ろは空白で分割した **最初のトークンだけ** を deployment 名として使う。コメントや余分な文字列が付いている場合がある。
+3. その `dev:<name>` を **この1コマンドの環境変数としてだけ** 渡し、worktree で local を作る。作成後の向き先は local（だいたい `http://127.0.0.1:3210`）であり、canonical の cloud URL を `.env.local` に残さない。
+
+```powershell
+# task worktree で実行。$canonical は `git worktree list` の最初の worktree 行（canonical checkout）
+$canonical = (git worktree list --porcelain | Where-Object { $_ -like 'worktree *' } | Select-Object -First 1).Substring(9)
+$line = Get-Content "$canonical\.env.local" | Where-Object { $_ -match '^CONVEX_DEPLOYMENT=' } | Select-Object -First 1
+$raw = $line.Substring('CONVEX_DEPLOYMENT='.Length).Trim().Trim('"').Trim("'")
+$kind, $rest = $raw.Split(':', 2)
+$name = ($rest.Trim() -split '\s+')[0]
+if ($kind.Trim() -ne 'dev' -or [string]::IsNullOrWhiteSpace($name)) {
+  throw 'canonical CONVEX_DEPLOYMENT is not kind=dev'
+}
+$env:CONVEX_DEPLOYMENT = "dev:$name"
+pnpm exec convex deployment create local --select
+Remove-Item Env:CONVEX_DEPLOYMENT
+```
+
+```bash
+canonical=$(git worktree list --porcelain | awk '/^worktree / { print substr($0, 10); exit }')
+line=$(grep '^CONVEX_DEPLOYMENT=' "$canonical/.env.local" | head -n1)
+raw=${line#CONVEX_DEPLOYMENT=}
+raw=$(printf '%s' "$raw" | tr -d "\"'" | awk '{ print $1 }')
+kind=${raw%%:*}
+name=${raw#*:}
+[ "$kind" = "dev" ] && [ -n "$name" ] || { echo 'canonical CONVEX_DEPLOYMENT is not kind=dev' >&2; exit 1; }
+CONVEX_DEPLOYMENT="dev:$name" pnpm exec convex deployment create local --select
+```
+
+4. ブラウザ用の `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` を canonical `.env.local` から worktree `.env.local` へ入れる。`pnpm loop:preflight` はこれをコピーしない。同じ公開値を local Convex へは `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` として `pnpm exec convex env set --force --deployment local --from-file <一時ファイル>` する。一時ファイルは直後に消す。local の返信 / 開封 E2E で「E2E: 今すぐ届ける」を使うなら `pnpm exec convex env set E2E_FORCE_DELIVERY 1 --deployment local` も必要。production には置かない。R2 の4値は既存の local 手順どおり、必要なときだけ同じ local deployment へ `convex env set` する。R2 を `.env.local` へ複製しない。
+5. 親プロセスに cloud の `CONVEX_DEPLOYMENT` が残っていると `.env.local` の local 選択を上書きするので、unset してから `pnpm convex:check` する。
+
+```powershell
+Remove-Item Env:CONVEX_DEPLOYMENT -ErrorAction SilentlyContinue
+pnpm convex:check
+```
+
+Agent の非対話シェルでは step 3 が再び anonymous 扱いになりうる。その場合は人間のターミナルで同じ手順を実行する。`CONVEX_ALLOW_CLOUD_DEV=1` は付けない。
 
 ## 共有 Preview の立ち上げ
 

@@ -130,3 +130,14 @@
   color: var(--re-me-color-sky-deep);
   font-size: var(--re-me-font-size-sm);
 }
+
+.inbox-letter__actions {
+  display: grid;
+  gap: var(--re-me-space-2);
+}
+
+.inbox-letter__reply,
+.inbox-letter__thread {
+  color: var(--re-me-color-sky-deep);
+  font-size: var(--re-me-font-size-sm);
+}

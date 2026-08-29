@@ -26,7 +26,14 @@ type DraftSnapshot = {
 
 export function ComposeSendPage() {
   const { letterId } = useParams()
-  const typedLetterId = letterId as Id<'letters'> | undefined
+  return <ComposeSendSession letterId={letterId as Id<'letters'> | undefined} />
+}
+
+export function ComposeSendSession({
+  letterId: typedLetterId,
+}: {
+  letterId: Id<'letters'> | undefined
+}) {
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion() ?? false
   const [sent, setSent] = useState(false)

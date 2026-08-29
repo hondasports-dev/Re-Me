@@ -19,7 +19,7 @@ pnpm loop:preflight
 node scripts/check-task-worktree.mjs --require-clean
 ```
 
-canonical `.env.local` から `E2E_AUTH0_*` を現在の worktree へ同期する。値は表示・commit しない。既存キーは上書きしない。資格情報不足は PREPARE では止めず、画面変更時は `pnpm loop:e2e-gate` で BLOCK する。
+canonical `.env.local` から `E2E_AUTH0_*` を現在の worktree へ同期する。値は表示・commit しない。既存キーは上書きしない。資格情報不足は PREPARE では止めず、画面変更時は `pnpm loop:e2e-gate` で BLOCK する。Convex CLI login と local deployment はこの同期の対象外。新しい worktree で `pnpm convex:check` が必要なときは `docs/development/preview-environment.md` の「Task worktree の local Convex」に従う。cloud の `CONVEX_DEPLOYMENT` を worktree の正本にコピーしない。
 
 PASS 条件:
 

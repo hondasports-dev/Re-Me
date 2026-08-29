@@ -17,6 +17,7 @@ Frontend は feature-first、backend は Convex function の境界で整理す�
 │   ├── crons.ts
 │   ├── users.ts
 │   ├── letters.ts
+│   ├── threads.ts
 │   ├── attachments.ts
 │   ├── delivery.ts
 │   ├── notifications.ts

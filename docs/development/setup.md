@@ -157,6 +157,7 @@ Google OAuth client secret は Auth0 connection にだけ設定し、Vite / Conv
 日常の local 開発は cloud の developer deployment ではなく、マシン上の local Convex backend を使う。接続先の正本は [Local / Preview 環境](./preview-environment.md) の「Convex の使い分け」を見る。
 
 - 初回だけ `pnpm exec convex deployment create local --select`（既存なら `pnpm convex:dev` が `deployment select local` する）
+- 新しい task worktree は `.convex/` も `CONVEX_DEPLOYMENT` も持たない。素の `deployment create local` が anonymous mode になる場合の起こし方は [Local / Preview 環境](./preview-environment.md) の「Task worktree の local Convex」。canonical の cloud `CONVEX_DEPLOYMENT` は project 特定にだけ使い、worktree の正本にはしない
 - `convex/schema.ts` / indexes / `auth.config.ts` を local backend へ push する（`pnpm convex:dev` または `pnpm convex:check`）
 - local backend が動いている間に `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` と DEV R2 の4値を `pnpm exec convex env set` で local deployment へ設定する
 - ブラウザの `VITE_CONVEX_URL` は `http://127.0.0.1:3210` 系の local URL になる。cloud URL を `.env.local` に固定しない

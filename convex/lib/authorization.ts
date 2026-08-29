@@ -29,11 +29,5 @@ export function canReadLetterContent(letter: Doc<'letters'>, userId: Id<'users'>
 }
 
 export function isReplyableParent(letter: Doc<'letters'>, userId: Id<'users'>): boolean {
-  return (
-    canReadLetterMetadata(letter, userId) &&
-    letter.status === 'delivered' &&
-    letter.openedAt !== undefined &&
-    letter.repliedAt === undefined &&
-    letter.nextLetterId === undefined
-  )
+  return canReadLetterContent(letter, userId) && letter.status === 'delivered'
 }
