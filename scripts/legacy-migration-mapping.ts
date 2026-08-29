@@ -13,9 +13,21 @@ export type MigrationNecessity = 'no_production_import' | 'import_required'
 
 export type InventoryInput = {
   productionStackProvisioned: boolean
-  productionUserOrLetterRows: number
+  productionImportTargetRows: number
   gitHasLegacyMigrations: boolean
   gitHasProductionDump: boolean
+}
+
+export type LegacyImportTable =
+  | (typeof LEGACY_PUBLIC_TABLES)[number]
+  | (typeof LEGACY_PRIVATE_TABLES)[number]
+
+export function countImportTargetRows(counts: Partial<Record<LegacyImportTable, number>>): number {
+  let total = 0
+  for (const table of [...LEGACY_PUBLIC_TABLES, ...LEGACY_PRIVATE_TABLES]) {
+    total += counts[table] ?? 0
+  }
+  return total
 }
 
 export type IdentityMapRow = {
@@ -49,7 +61,7 @@ export function decideMigrationNecessity(input: InventoryInput): MigrationNecess
     return 'import_required'
   }
 
-  if (input.productionUserOrLetterRows > 0) {
+  if (input.productionImportTargetRows > 0) {
     return 'import_required'
   }
 
@@ -99,6 +111,29 @@ function normalizeUtcOffset(offset: string): string {
   return offset
 }
 
+function isValidCalendarDate(date: string): boolean {
+  const [yearText, monthText, dayText] = date.split('-')
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const day = Number(dayText)
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return false
+  }
+  if (month < 1 || month > 12 || day < 1) {
+    return false
+  }
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return day <= lastDay
+}
+
+function isValidClock(time: string): boolean {
+  const [hourText, minuteText, secondText] = time.split(':')
+  const hour = Number(hourText)
+  const minute = Number(minuteText)
+  const second = Number((secondText ?? '0').split('.')[0])
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 && second >= 0 && second <= 59
+}
+
 export function timestamptzToEpochMs(value: string): number {
   const match = value.trim().match(TIMESTAMP_WITH_OFFSET)
   const date = match?.[1]
@@ -106,6 +141,9 @@ export function timestamptzToEpochMs(value: string): number {
   const offset = match?.[3]
   if (!date || !time || !offset) {
     throw new Error('timestamp_missing_offset')
+  }
+  if (!isValidCalendarDate(date) || !isValidClock(time)) {
+    throw new Error('timestamp_invalid')
   }
 
   const parsed = Date.parse(`${date}T${time}${normalizeUtcOffset(offset)}`)

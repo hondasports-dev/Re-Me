@@ -5,6 +5,7 @@ import {
   buildIdentityMap,
   canReadSealedBody,
   checksumDrift,
+  countImportTargetRows,
   convexTokenIdentifier,
   decideMigrationNecessity,
   deriveNextLetterId,
@@ -18,7 +19,7 @@ describe('legacy migration mapping', () => {
     expect(
       decideMigrationNecessity({
         productionStackProvisioned: false,
-        productionUserOrLetterRows: 0,
+        productionImportTargetRows: 0,
         gitHasLegacyMigrations: true,
         gitHasProductionDump: false,
       }),
@@ -29,7 +30,7 @@ describe('legacy migration mapping', () => {
     expect(
       decideMigrationNecessity({
         productionStackProvisioned: true,
-        productionUserOrLetterRows: 3,
+        productionImportTargetRows: 3,
         gitHasLegacyMigrations: true,
         gitHasProductionDump: false,
       }),
@@ -37,7 +38,7 @@ describe('legacy migration mapping', () => {
     expect(
       decideMigrationNecessity({
         productionStackProvisioned: false,
-        productionUserOrLetterRows: 2,
+        productionImportTargetRows: 2,
         gitHasLegacyMigrations: true,
         gitHasProductionDump: false,
       }),
@@ -45,9 +46,23 @@ describe('legacy migration mapping', () => {
     expect(
       decideMigrationNecessity({
         productionStackProvisioned: false,
-        productionUserOrLetterRows: 0,
+        productionImportTargetRows: 0,
         gitHasLegacyMigrations: true,
         gitHasProductionDump: true,
+      }),
+    ).toBe('import_required')
+    expect(
+      countImportTargetRows({
+        letters: 0,
+        letter_contents: 1,
+      }),
+    ).toBe(1)
+    expect(
+      decideMigrationNecessity({
+        productionStackProvisioned: false,
+        productionImportTargetRows: countImportTargetRows({ letter_contents: 1 }),
+        gitHasLegacyMigrations: true,
+        gitHasProductionDump: false,
       }),
     ).toBe('import_required')
   })
@@ -126,6 +141,10 @@ describe('legacy migration mapping', () => {
     expect(() => timestamptzToEpochMs('2026-08-29T04:00:00')).toThrowError(
       'timestamp_missing_offset',
     )
+    expect(() => timestamptzToEpochMs('2026-02-29T00:00:00Z')).toThrowError('timestamp_invalid')
+    expect(() => timestamptzToEpochMs('2026-02-00T00:00:00Z')).toThrowError('timestamp_invalid')
+    expect(() => timestamptzToEpochMs('2026-02-32T00:00:00Z')).toThrowError('timestamp_invalid')
+    expect(timestamptzToEpochMs('2024-02-29T00:00:00Z')).toBe(Date.UTC(2024, 1, 29, 0, 0, 0))
     expect(payload).not.toHaveProperty('scheduledAt')
     expect(() => assertPublicPayloadHidesSchedule(payload)).not.toThrow()
     expect(() => assertPublicPayloadHidesSchedule({ ...payload, scheduledAt })).toThrowError(

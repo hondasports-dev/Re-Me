@@ -9,7 +9,7 @@
 
 通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` する。
 
-最終削除は [legacy data migration](../development/legacy-migration.md) と Human Gate で行う。
+最終削除は [legacy data migration](../docs/development/legacy-migration.md) と Human Gate で行う。
 
 ---
 

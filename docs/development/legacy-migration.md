@@ -9,7 +9,7 @@ Production data の export / import / 削除、credential の破棄は **Human G
 | 対象 | 状態 | 判断 |
 |---|---|---|
 | Production Auth0 / Convex / Cloudflare / R2 | [Issue #38](https://github.com/hondasports-dev/Re-Me/issues/38) が未着手 | production stack は未作成 |
-| Production user / letter / attachment | production stack が無い | **import 対象の production 行は 0** |
+| Production user / letter / contents / attachment / delivery / job | production stack が無い | **import 対象テーブルの production 行は合計 0** |
 | git の `supabase/migrations/` | schema / RLS / RPC のみ | dump はリポジトリに無い |
 | git の production dump / CSV | 無し | 秘密の dump を commit しない |
 | 共有 Preview Convex | CI E2E 用 | **移行元にしない**。E2E データは破棄してよい |
@@ -17,7 +17,7 @@ Production data の export / import / 削除、credential の破棄は **Human G
 
 **Migration necessity:** `no_production_import`。Auth0 + Convex runtime への feature 移行は完了している。残作業は (1) mapping と rollback を cutover 前に固定する (2) `#38` のあとに production 行が生まれてから、この手順で再棚卸しする (3) rollback window 後に legacy artifact を片付ける。
 
-後から production dump や live production 行が見つかったら `import_required` に切り替え、下の mapping で dry-run する。判定は **行数または dump の有無** で行う。`#38` の production stack が未作成でも、live 行が 1 件以上あれば import を省略しない。判定ヘルパーは `scripts/legacy-migration-mapping.ts` の `decideMigrationNecessity`。
+後から production dump や live production 行が見つかったら `import_required` に切り替え、下の mapping で dry-run する。判定は **dump の有無、または全 import 対象テーブル（`LEGACY_PUBLIC_TABLES` + `LEGACY_PRIVATE_TABLES`）の合計行数** で行う。user / letter が 0 でも orphan の `letter_contents` 等があれば省略しない。`#38` の production stack が未作成でも、live 行が 1 件以上あれば import を省略しない。判定ヘルパーは `countImportTargetRows` と `decideMigrationNecessity`。
 
 ## Mapping
 
@@ -62,7 +62,8 @@ legacy auth.users.id (uuid)
 | `kind = photo` かつ `r2_key is null` | orphan。import しない |
 
 - 移行先 R2 は `#38` の production bucket。DEV / Preview bucket に production 写真を入れない
-- copy は staging object → 検証 → immutable final key。既存 finalize 契約を流用する
+- copy は staging object → 検証 → cutover prefix（例: `migration/{cutoverId}/`）配下の immutable final key。既存 finalize 契約を流用する
+- コピーした key の inventory ファイル（git に入れない）を残し、rollback / 孤立 object の削除対象にする
 - EXIF なし JPEG の現行検証を再実行する。失敗行は orphan
 
 ### Schedule / notifications
@@ -124,10 +125,11 @@ dry-run / rehearsal:
 
 production（Human Gate 後のみ）:
 
-1. cutover 前に Convex export と R2 inventory を取る
+1. cutover 前に Convex export と、既存 production R2 の inventory を取る
 2. 失敗したら **新しい Convex production を捨てて、export から戻す**。部分 import の上に再実行しない
-3. Auth0 PROD のユーザー作成は rollback できないことがある。data 側を戻しても login だけ残る場合は記録する
-4. rollback window が終わるまで `supabase/` と legacy secret を消さない
+3. 同じ Human Gate で、今回 copy した cutover prefix（または copy inventory の key）だけを production bucket から削除する。import 途中失敗で Convex 参照が無くなった写真を残さない。既存 production object は消さない
+4. Auth0 PROD のユーザー作成は rollback できないことがある。data 側を戻しても login だけ残る場合は記録する
+5. rollback window が終わるまで `supabase/` と legacy secret を消さない
 
 ## Cleanup vs 保持
 

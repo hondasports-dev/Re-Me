@@ -14,9 +14,15 @@ describe('legacy migration playbook', () => {
 
   it('keeps rollback, retain/cleanup, and Human Gate separate from local compare', () => {
     expect(playbook).toContain('Rollback')
+    expect(playbook).toContain('cutover prefix')
     expect(playbook).toContain('Cleanup vs 保持')
     expect(playbook).toContain('Production export / import')
     expect(playbook).toContain('irreversible credential / project deletion')
     expect(playbook).not.toMatch(/convex deploy --prod/)
+  })
+
+  it('points the leftover supabase README at the docs runbook', () => {
+    const supabaseReadme = readFileSync(resolve('supabase/README.md'), 'utf8')
+    expect(supabaseReadme).toContain('../docs/development/legacy-migration.md')
   })
 })
