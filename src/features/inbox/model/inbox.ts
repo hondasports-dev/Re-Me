@@ -1,5 +1,8 @@
 export type InboxLetterMetadata = {
   letterId: string
+  threadId?: string
+  nextLetterId?: string | null
+  repliedAt?: number | null
   sealed: boolean
   sentAt: number | null
   deliveredAt: number | null
@@ -158,6 +161,25 @@ export function inboxContentQueryArgs<T extends string>(
   }
 
   return { letterId }
+}
+
+export function canReplyFromInbox(
+  metadata:
+    | {
+        openedAt: number | null
+        repliedAt?: number | null
+        sealed: boolean
+        status: string
+      }
+    | null
+    | undefined,
+): boolean {
+  return (
+    metadata != null &&
+    metadata.status === 'delivered' &&
+    !needsOpenRitual(metadata) &&
+    metadata.repliedAt == null
+  )
 }
 
 export function needsOpenRitual(

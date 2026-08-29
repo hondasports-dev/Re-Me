@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import {
   arrivedTodayLabel,
+  canReplyFromInbox,
   fromYouLabel,
   needsOpenRitual,
   type InboxLetterMetadata,
@@ -117,9 +118,21 @@ export function InboxLetterDetail({
           <InboxPhotoList photos={photos} />
         </>
       )}
-      <Link className="inbox-letter__back" to="/">
-        届いた手紙へ戻る
-      </Link>
+      <div className="inbox-letter__actions">
+        {canReplyFromInbox(metadata) ? (
+          <Link className="inbox-letter__reply" to={`/letters/${metadata.letterId}/reply`}>
+            未来へ返信する
+          </Link>
+        ) : null}
+        {metadata.threadId ? (
+          <Link className="inbox-letter__thread" to={`/threads/${metadata.threadId}`}>
+            時間をまたぐ手紙
+          </Link>
+        ) : null}
+        <Link className="inbox-letter__back" to="/">
+          届いた手紙へ戻る
+        </Link>
+      </div>
     </article>
   )
 }

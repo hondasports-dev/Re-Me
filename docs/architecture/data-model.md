@@ -159,9 +159,9 @@ repliedAt != null
 
 ## スレッドの不変条件
 
-返信は同じ `threadId` に所属し、`parentLetterId` で直前の手紙を指す。MVP は一つの未削除手紙に次の未削除手紙を最大一通とする。
+返信は同じ `threadId` に所属し、`parentLetterId` で直前の手紙を指す。MVP は一つの未削除手紙に次の未削除手紙を最大一通とする。削除された手紙は thread 上で本文・写真・場所を出さないプレースホルダとして残す。
 
-Convex に SQL の partial unique index はない。返信作成 mutation 内で親の状態を transaction で検証し、親に次の手紙 id / `repliedAt` を記録して競合を OCC で拒否する。
+Convex に SQL の partial unique index はない。返信下書き作成 mutation 内で親の状態を transaction で検証し、親に `nextLetterId` を記録して競合を OCC で拒否する。`repliedAt` は返信を未来へ送ったときに記録する。
 
 ## 編集不可の境界
 

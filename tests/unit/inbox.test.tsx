@@ -13,6 +13,7 @@ import {
   arrivedTodayLabel,
   calendarDaysBetween,
   canFetchInboxContent,
+  canReplyFromInbox,
   fromYouLabel,
   inboxContentQueryArgs,
   inboxListItemLabel,
@@ -44,10 +45,13 @@ const sealedUnopened = {
 
 const unsealedDelivered = {
   letterId: 'letter-open',
+  threadId: 'thread-open',
   sealed: false,
   sentAt: Date.UTC(2026, 7, 29, 1, 0, 0),
   deliveredAt: Date.UTC(2026, 7, 28, 12, 0, 0),
   openedAt: null,
+  repliedAt: null,
+  nextLetterId: null,
   status: 'delivered' as const,
 }
 
@@ -86,6 +90,9 @@ describe('inbox model', () => {
     expect(inboxOpenLabel(true, null)).toBe('未開封')
     expect(inboxOpenLabel(true, now)).toBe('開封済み')
     expect(inboxOpenLabel(false, null)).toBe('開封済み')
+    expect(canReplyFromInbox(unsealedDelivered)).toBe(true)
+    expect(canReplyFromInbox(sealedUnopened)).toBe(false)
+    expect(canReplyFromInbox({ ...unsealedDelivered, repliedAt: now })).toBe(false)
     expect(inboxListItemLabel(sealedUnopened, now, 'UTC')).toContain('未開封')
     expect(inboxListItemLabel(sealedUnopened, now, 'UTC')).toContain('3日前のあなたから')
     expect(inboxListItemLabel(sealedUnopened, now, 'UTC')).toContain('今日届きました')
@@ -168,6 +175,7 @@ describe('InboxLetterDetail', () => {
     expect(screen.getByRole('heading', { name: '開封する' })).toBeInTheDocument()
     expect(screen.queryByText('秘密の本文')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'あとで開封する' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: '未来へ返信する' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '開封する' }))
     expect(onOpen).toHaveBeenCalledOnce()
   })
@@ -199,6 +207,14 @@ describe('InboxLetterDetail', () => {
     expect(screen.getByText('場所「鴨川」')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '開封する' })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '未来へ返信する' })).toHaveAttribute(
+      'href',
+      '/letters/letter-open/reply',
+    )
+    expect(screen.getByRole('link', { name: '時間をまたぐ手紙' })).toHaveAttribute(
+      'href',
+      '/threads/thread-open',
+    )
   })
 
   it('hides traveling letters from the inbox detail route', () => {

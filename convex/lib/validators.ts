@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 export const MAX_LETTER_BODY_LENGTH = 20_000
 export const MAX_LOCATION_LABEL_LENGTH = 80
 export const LETTER_LIST_LIMIT = 50
+export const THREAD_LETTER_LIMIT = 50
 export const DUE_DELIVERY_LIMIT = 100
 export const NOTIFICATION_CLAIM_LIMIT = 50
 export const NOTIFICATION_LOCK_TIMEOUT_MS = 5 * 60 * 1000
@@ -120,4 +121,22 @@ export const draftEditorValidator = v.object({
   body: v.string(),
   locationLabel: v.union(v.string(), v.null()),
   attachmentsReady: v.boolean(),
+})
+
+export const threadSegmentValidator = v.object({
+  letterId: v.id('letters'),
+  parentLetterId: v.union(v.id('letters'), v.null()),
+  status: letterStatusValidator,
+  sealed: v.boolean(),
+  sentAt: v.union(v.number(), v.null()),
+  deliveredAt: v.union(v.number(), v.null()),
+  openedAt: v.union(v.number(), v.null()),
+  deleted: v.boolean(),
+  body: v.union(v.string(), v.null()),
+  locationLabel: v.union(v.string(), v.null()),
+})
+
+export const threadViewValidator = v.object({
+  threadId: v.id('threads'),
+  letters: v.array(threadSegmentValidator),
 })

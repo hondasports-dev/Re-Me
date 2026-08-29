@@ -8,6 +8,9 @@ import { ComposePage } from '../features/compose/pages/ComposePage'
 import { ComposeSendPage } from '../features/compose/pages/ComposeSendPage'
 import { InboxLetterPage } from '../features/inbox/pages/InboxLetterPage'
 import { InboxPage } from '../features/inbox/pages/InboxPage'
+import { ReplyPage } from '../features/compose/pages/ReplyPage'
+import { ReplySendPage } from '../features/compose/pages/ReplySendPage'
+import { ThreadPage } from '../features/thread/pages/ThreadPage'
 import { TravelingLetterPage } from '../features/traveling/pages/TravelingLetterPage'
 import { TravelingPage } from '../features/traveling/pages/TravelingPage'
 import { GuestOnly, RequireAuth } from './RequireAuth'
@@ -30,6 +33,18 @@ export function createAppRoutes(): RouteObject[] {
             {
               path: 'letters/:letterId',
               element: <InboxLetterPage />,
+            },
+            {
+              path: 'letters/:letterId/reply',
+              element: <ReplyPage />,
+            },
+            {
+              path: 'letters/:letterId/reply/send',
+              element: <ReplySendPage />,
+            },
+            {
+              path: 'threads/:threadId',
+              element: <ThreadPage />,
             },
             {
               path: 'write',

@@ -214,6 +214,10 @@ export async function insertDraft(
       throw new Error('parent letter is not replyable')
     }
 
+    if (await parentHasActiveReply(ctx, parent)) {
+      throw new Error('parent letter is not replyable')
+    }
+
     threadId = parent.threadId
     const letterId = await ctx.db.insert('letters', {
       threadId,
@@ -233,7 +237,6 @@ export async function insertDraft(
     })
     await ctx.db.patch(parent._id, {
       nextLetterId: letterId,
-      repliedAt: now,
       updatedAt: now,
     })
     await ctx.db.patch(threadId, { updatedAt: now })
@@ -385,6 +388,7 @@ export async function deleteOwnedTravelingLetter(
   const now = Date.now()
   await ctx.db.patch(letter._id, { deletedAt: now, updatedAt: now })
   await ctx.db.patch(letter.threadId, { updatedAt: now })
+  await releaseParentIfClaimed(ctx, letter, now)
 
   const deliveries = await ctx.db
     .query('letterDeliveries')
@@ -396,6 +400,37 @@ export async function deleteOwnedTravelingLetter(
       await ctx.db.patch(delivery._id, { status: 'canceled' })
     }
   }
+}
+
+async function parentHasActiveReply(ctx: MutationCtx, parent: Doc<'letters'>): Promise<boolean> {
+  if (parent.nextLetterId === undefined) {
+    return false
+  }
+
+  const next = await ctx.db.get(parent.nextLetterId)
+  return next !== null && next.deletedAt === undefined
+}
+
+async function releaseParentIfClaimed(
+  ctx: MutationCtx,
+  letter: Doc<'letters'>,
+  now: number,
+): Promise<void> {
+  if (!letter.parentLetterId) {
+    return
+  }
+
+  const parent = await ctx.db.get(letter.parentLetterId)
+
+  if (!parent || parent.nextLetterId !== letter._id) {
+    return
+  }
+
+  await ctx.db.patch(parent._id, {
+    nextLetterId: undefined,
+    repliedAt: undefined,
+    updatedAt: now,
+  })
 }
 
 async function claimParentOnSend(
@@ -410,20 +445,16 @@ async function claimParentOnSend(
 
   const parent = await ctx.db.get(letter.parentLetterId)
 
-  if (!parent || !canReadLetterMetadata(parent, userId)) {
+  if (!parent || !isReplyableParent(parent, userId)) {
     throw new Error('parent letter is not replyable')
   }
 
-  if (parent.nextLetterId !== undefined && parent.nextLetterId !== letter._id) {
+  if (
+    parent.nextLetterId !== undefined &&
+    parent.nextLetterId !== letter._id &&
+    (await parentHasActiveReply(ctx, parent))
+  ) {
     throw new Error('parent letter is already claimed')
-  }
-
-  if (parent.nextLetterId === letter._id) {
-    return
-  }
-
-  if (parent.status !== 'delivered' || parent.openedAt === undefined) {
-    throw new Error('parent letter is not replyable')
   }
 
   await ctx.db.patch(parent._id, {

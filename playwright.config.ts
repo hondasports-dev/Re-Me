@@ -50,7 +50,7 @@ export default defineConfig({
     {
       name: 'chromium-mobile',
       testIgnore: auth0E2eReady
-        ? /auth\.setup\.ts|auth-session\.spec\.ts|compose\.spec\.ts|traveling\.spec\.ts|inbox\.spec\.ts/
+        ? /auth\.setup\.ts|auth-session\.spec\.ts|compose\.spec\.ts|traveling\.spec\.ts|inbox\.spec\.ts|reply\.spec\.ts/
         : /auth\.setup\.ts/,
       use: mobileUse,
     },
@@ -60,7 +60,7 @@ export default defineConfig({
             name: 'chromium-authenticated',
             dependencies: ['auth-setup'],
             testMatch:
-              /auth-session\.spec\.ts|compose\.spec\.ts|traveling\.spec\.ts|inbox\.spec\.ts/,
+              /auth-session\.spec\.ts|compose\.spec\.ts|traveling\.spec\.ts|inbox\.spec\.ts|reply\.spec\.ts/,
             use: {
               ...mobileUse,
               storageState: authStatePath,

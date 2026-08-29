@@ -260,6 +260,36 @@ describe('sendLetter', () => {
     expect(claimed?.nextLetterId).toBe(firstReply)
     expect(claimed?.repliedAt).toEqual(expect.any(Number))
   })
+
+  it('releases a deleted traveling reply so the parent can be replied to again', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const user = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    const parent = await seedDeliveredOpenedLetter(t, user.userId)
+    const reply = await asAlice.mutation(api.letters.createDraft, {
+      parentLetterId: parent.letterId,
+    })
+    await asAlice.mutation(api.letters.saveDraft, {
+      letterId: reply.letterId,
+      body: 'いったん送る',
+    })
+    await asAlice.mutation(api.letters.saveDraftSettings, {
+      letterId: reply.letterId,
+      sealed: true,
+      deliveryMode: 'few_days',
+    })
+    await asAlice.mutation(api.letters.sendLetter, { letterId: reply.letterId })
+    await asAlice.mutation(api.letters.deleteLetter, { letterId: reply.letterId })
+
+    const released = await t.run(async (ctx) => await ctx.db.get(parent.letterId))
+    expect(released?.nextLetterId).toBeUndefined()
+    expect(released?.repliedAt).toBeUndefined()
+
+    const second = await asAlice.mutation(api.letters.createDraft, {
+      parentLetterId: parent.letterId,
+    })
+    expect(second.threadId).toBe(parent.threadId)
+  })
 })
 
 async function prepareSendableDraft(

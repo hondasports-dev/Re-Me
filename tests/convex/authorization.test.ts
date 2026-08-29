@@ -338,9 +338,45 @@ describe('Convex authorization harness', () => {
       parentLetterId: parent.letterId,
     })
     expect(first.threadId).toBe(parent.threadId)
+    const claimed = await t.run(async (ctx) => await ctx.db.get(parent.letterId))
+    expect(claimed?.nextLetterId).toBe(first.letterId)
+    expect(claimed?.repliedAt).toBeUndefined()
 
     await expect(
       asAlice.mutation(api.letters.createDraft, { parentLetterId: parent.letterId }),
+    ).rejects.toThrow(/parent letter is not replyable/)
+  })
+
+  it('rejects replies to unopened, deleted, or other-user letters', async () => {
+    const t = testConvex()
+    const asAlice = t.withIdentity(alice)
+    const asBob = t.withIdentity(bob)
+    const user = await asAlice.mutation(api.users.ensureCurrentUser, {})
+    await asBob.mutation(api.users.ensureCurrentUser, {})
+    const unopened = await seedSentLetter(t, user.userId, {
+      status: 'delivered',
+      sealed: true,
+      opened: false,
+      body: 'unopened',
+    })
+    const deletedParent = await seedSentLetter(t, user.userId, {
+      status: 'delivered',
+      sealed: false,
+      opened: false,
+      body: 'deleted',
+    })
+    await t.run(async (ctx) => {
+      await ctx.db.patch(deletedParent.letterId, { deletedAt: Date.now() })
+    })
+
+    await expect(
+      asAlice.mutation(api.letters.createDraft, { parentLetterId: unopened.letterId }),
+    ).rejects.toThrow(/parent letter is not replyable/)
+    await expect(
+      asAlice.mutation(api.letters.createDraft, { parentLetterId: deletedParent.letterId }),
+    ).rejects.toThrow(/parent letter is not replyable/)
+    await expect(
+      asBob.mutation(api.letters.createDraft, { parentLetterId: unopened.letterId }),
     ).rejects.toThrow(/parent letter is not replyable/)
   })
 

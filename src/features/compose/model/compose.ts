@@ -133,3 +133,26 @@ export async function startBlankDraft(
 export function resetBlankDraftInflight(): void {
   blankDraftInflight = null
 }
+
+const replyDraftInflight = new Map<string, Promise<{ letterId: string; threadId: string }>>()
+
+export async function startReplyDraft(
+  parentLetterId: string,
+  create: () => Promise<{ letterId: string; threadId: string }>,
+): Promise<{ letterId: string; threadId: string }> {
+  const existing = replyDraftInflight.get(parentLetterId)
+
+  if (existing) {
+    return await existing
+  }
+
+  const pending = create().finally(() => {
+    replyDraftInflight.delete(parentLetterId)
+  })
+  replyDraftInflight.set(parentLetterId, pending)
+  return await pending
+}
+
+export function resetReplyDraftInflight(): void {
+  replyDraftInflight.clear()
+}
