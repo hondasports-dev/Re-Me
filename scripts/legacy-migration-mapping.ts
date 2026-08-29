@@ -49,7 +49,7 @@ export function decideMigrationNecessity(input: InventoryInput): MigrationNecess
     return 'import_required'
   }
 
-  if (input.productionStackProvisioned && input.productionUserOrLetterRows > 0) {
+  if (input.productionUserOrLetterRows > 0) {
     return 'import_required'
   }
 
@@ -80,8 +80,35 @@ export function buildIdentityMap(rows: IdentityMapRow[]): Map<string, string> {
   return mapped
 }
 
+const TIMESTAMP_WITH_OFFSET =
+  /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2}(?:\.\d+)?)(Z|[+-]\d{2}(?::?\d{2})?)$/i
+
+function normalizeUtcOffset(offset: string): string {
+  if (offset.toUpperCase() === 'Z') {
+    return 'Z'
+  }
+
+  if (offset.length === 3) {
+    return `${offset}:00`
+  }
+
+  if (offset.length === 5) {
+    return `${offset.slice(0, 3)}:${offset.slice(3)}`
+  }
+
+  return offset
+}
+
 export function timestamptzToEpochMs(value: string): number {
-  const parsed = Date.parse(value)
+  const match = value.trim().match(TIMESTAMP_WITH_OFFSET)
+  const date = match?.[1]
+  const time = match?.[2]
+  const offset = match?.[3]
+  if (!date || !time || !offset) {
+    throw new Error('timestamp_missing_offset')
+  }
+
+  const parsed = Date.parse(`${date}T${time}${normalizeUtcOffset(offset)}`)
   if (Number.isNaN(parsed)) {
     throw new Error('timestamp_invalid')
   }

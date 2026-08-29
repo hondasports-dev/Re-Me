@@ -37,6 +37,14 @@ describe('legacy migration mapping', () => {
     expect(
       decideMigrationNecessity({
         productionStackProvisioned: false,
+        productionUserOrLetterRows: 2,
+        gitHasLegacyMigrations: true,
+        gitHasProductionDump: false,
+      }),
+    ).toBe('import_required')
+    expect(
+      decideMigrationNecessity({
+        productionStackProvisioned: false,
         productionUserOrLetterRows: 0,
         gitHasLegacyMigrations: true,
         gitHasProductionDump: true,
@@ -113,6 +121,11 @@ describe('legacy migration mapping', () => {
     })
 
     expect(scheduledAt).toBe(Date.UTC(2026, 7, 29, 4, 0, 0))
+    expect(timestamptzToEpochMs('2026-08-29 13:00:00+09')).toBe(scheduledAt)
+    expect(timestamptzToEpochMs('2026-08-29T04:00:00+00:00')).toBe(scheduledAt)
+    expect(() => timestamptzToEpochMs('2026-08-29T04:00:00')).toThrowError(
+      'timestamp_missing_offset',
+    )
     expect(payload).not.toHaveProperty('scheduledAt')
     expect(() => assertPublicPayloadHidesSchedule(payload)).not.toThrow()
     expect(() => assertPublicPayloadHidesSchedule({ ...payload, scheduledAt })).toThrowError(

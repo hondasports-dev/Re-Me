@@ -17,7 +17,7 @@ Production data の export / import / 削除、credential の破棄は **Human G
 
 **Migration necessity:** `no_production_import`。Auth0 + Convex runtime への feature 移行は完了している。残作業は (1) mapping と rollback を cutover 前に固定する (2) `#38` のあとに production 行が生まれてから、この手順で再棚卸しする (3) rollback window 後に legacy artifact を片付ける。
 
-後から production dump や live production 行が見つかったら `import_required` に切り替え、下の mapping で dry-run する。判定ヘルパーは `scripts/legacy-migration-mapping.ts` の `decideMigrationNecessity`。
+後から production dump や live production 行が見つかったら `import_required` に切り替え、下の mapping で dry-run する。判定は **行数または dump の有無** で行う。`#38` の production stack が未作成でも、live 行が 1 件以上あれば import を省略しない。判定ヘルパーは `scripts/legacy-migration-mapping.ts` の `decideMigrationNecessity`。
 
 ## Mapping
 
@@ -67,10 +67,10 @@ legacy auth.users.id (uuid)
 
 ### Schedule / notifications
 
-| legacy | Convex |
-|---|---|
-| `private.letter_delivery.scheduled_at` | `letterDeliveries.scheduledAt`（epoch ms） |
-| delivery window columns | そのまま metadata。**exact `scheduledAt` は public return に出さない** |
+| legacy | Convex | 注意 |
+|---|---|---|
+| `private.letter_delivery.scheduled_at` | `letterDeliveries.scheduledAt`（epoch ms） | export は offset 付き timestamptz。offset 無しは拒否する |
+| delivery window columns | そのまま metadata | **exact `scheduledAt` は public return に出さない** |
 | `private.notification_jobs` | `notificationJobs` | generation token は新規発行。legacy claim token を再利用しない |
 
 - 移行中に due な traveling は、import 後の cron に任せる。二重配送しないよう `letterDeliveries.status` と `letters.status` を同じ snapshot から書く
