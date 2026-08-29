@@ -36,19 +36,23 @@ function parseWorktreeList(output) {
 }
 
 export function pathsRequireBrowserE2e(paths) {
+  if (!Array.isArray(paths)) return false
   return paths.some((filePath) => {
     const normalized = String(filePath).replaceAll('\\', '/').replace(/^\.\//, '')
     if (normalized.startsWith('e2e/')) return true
     if (normalized.startsWith('src/router/')) return true
     if (normalized.startsWith('src/app/') && normalized.endsWith('.tsx')) return true
-    if (normalized.startsWith('src/features/') && /\.(tsx|css)$/.test(normalized)) return true
+    if (normalized.startsWith('src/features/')) {
+      if (/\.test\.(ts|tsx)$/.test(normalized)) return false
+      return /\.(ts|tsx|css)$/.test(normalized)
+    }
     if (normalized.startsWith('src/styles/')) return true
     return false
   })
 }
 
 export function isCredentialOmissionReason(reason) {
-  return /(credential|auth0|e2e_auth0|\.env\.local|password|資格情報|missing env|env missing|no env)/i.test(
+  return /(credential|auth0|e2e_auth0|\.env\.local|password|資格情報|認証情報|missing env|env missing|no env)/i.test(
     String(reason),
   )
 }

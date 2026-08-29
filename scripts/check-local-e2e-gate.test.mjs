@@ -88,6 +88,12 @@ describe('check-local-e2e-gate', () => {
   it('treats credential shortage wording as a forbidden NOT_REQUIRED reason', () => {
     expect(isCredentialOmissionReason('E2E_AUTH0 credentials missing')).toBe(true)
     expect(isCredentialOmissionReason('資格情報がないので CI で確認')).toBe(true)
+    expect(isCredentialOmissionReason('認証情報が不足している')).toBe(true)
     expect(isCredentialOmissionReason('no user-visible screen change')).toBe(false)
+  })
+
+  it('requires browser E2E for feature TypeScript, but not feature tests', () => {
+    expect(pathsRequireBrowserE2e(['src/features/inbox/model/inbox.ts'])).toBe(true)
+    expect(pathsRequireBrowserE2e(['src/features/inbox/model/inbox.test.ts'])).toBe(false)
   })
 })

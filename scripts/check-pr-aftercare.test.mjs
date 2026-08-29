@@ -86,6 +86,7 @@ describe('check-pr-aftercare', () => {
   it('allows resolved threads', () => {
     const result = evaluateAftercareEvidence({
       checks: greenChecks,
+      mergeable: 'MERGEABLE',
       reviewThreads: [
         {
           isResolved: true,
@@ -95,6 +96,13 @@ describe('check-pr-aftercare', () => {
       ],
     })
     expect(result).toEqual({ ok: true, status: 'PASS', errors: [] })
+  })
+
+  it('rejects missing or UNKNOWN mergeable', () => {
+    expect(evaluateAftercareEvidence({ checks: greenChecks }).ok).toBe(false)
+    expect(
+      evaluateAftercareEvidence({ checks: greenChecks, mergeable: 'UNKNOWN' }).errors,
+    ).toContain('PR mergeable is not MERGEABLE (UNKNOWN)')
   })
 
   it('rejects CHANGES_REQUESTED', () => {

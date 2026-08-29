@@ -91,7 +91,10 @@ export function evaluateAftercareEvidence({
   }
 
   const mergeState = String(mergeStateStatus).toUpperCase()
-  if (mergeState === 'DIRTY' || String(mergeable).toUpperCase() === 'CONFLICTING') {
+  if (String(mergeable).toUpperCase() !== 'MERGEABLE') {
+    errors.push(`PR mergeable is not MERGEABLE (${mergeable || 'missing'})`)
+  }
+  if (mergeState === 'DIRTY') {
     errors.push('PR has merge conflicts')
   }
 
@@ -223,7 +226,7 @@ export function runAftercareCheck(options) {
   }
 
   const result = evaluateAftercareEvidence({
-    userStopAtPrCreated: snapshot.userStopAtPrCreated === true,
+    userStopAtPrCreated: false,
     checks: snapshot.checks,
     reviewThreads: snapshot.reviewThreads,
     reviewDecision: snapshot.reviewDecision,

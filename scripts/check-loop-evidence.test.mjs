@@ -136,6 +136,22 @@ describe('check-loop-evidence', () => {
     expect(result).toEqual({ ok: true, errors: [] })
   })
 
+  it('does not throw when affected_scope is not an array', () => {
+    expect(() =>
+      evaluateVerificationEvidence({
+        evidence: {
+          status: 'PASS',
+          evidence_snapshot: 'tree def',
+          affected_scope: 'src/features/inbox/pages/InboxPage.tsx',
+          checks: [
+            { name: 'loop unit tests', authority: 'local', scope: 'targeted', status: 'PASS' },
+          ],
+          reruns: [],
+        },
+      }),
+    ).not.toThrow()
+  })
+
   it('rejects duplicate full checks without a reason', () => {
     const result = evaluateVerificationEvidence({
       evidence: {

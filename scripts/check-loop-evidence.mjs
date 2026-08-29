@@ -237,7 +237,8 @@ export function evaluateVerificationEvidence({ evidence }) {
   }
 
   const browserE2eRequired =
-    evidence.browser_e2e_required === true || pathsRequireBrowserE2e(evidence.affected_scope)
+    evidence.browser_e2e_required === true ||
+    pathsRequireBrowserE2e(Array.isArray(evidence.affected_scope) ? evidence.affected_scope : [])
   if (browserE2eRequired) {
     const e2eChecks = checks.filter(
       (check) => check !== null && typeof check === 'object' && check.scope === 'functional_e2e',
