@@ -43,9 +43,9 @@ GitHub environment: preview
 ## Local
 
 1. `.env.example` を `.env.local` へコピーする。
-2. `VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` を DEV の値で設定する。`VITE_CONVEX_URL` は空のままでよい。
+2. `VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` を DEV SPA `Re:Me DEV` の公開値で設定する。入れ方は [セットアップ](setup.md) の「`VITE_AUTH0_*` の入れ方」（Auth0 CLI または canonical `.env.local` からのコピー）。`pnpm loop:preflight` はこれをコピーしない。`VITE_CONVEX_URL` は空のままでよい。
 3. 初回は `pnpm exec convex deployment create local --select`。以降の `pnpm convex:dev` / `pnpm dev:full` は local deployment を選んでから backend を起動する。新しい task worktree で anonymous mode になる場合は下の「Task worktree の local Convex」を使う。
-4. local backend が動いている間に `AUTH0_DOMAIN` と `AUTH0_CLIENT_ID` を `pnpm exec convex env set` で設定する。
+4. 同じ公開値を local Convex の `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` として `pnpm exec convex env set --force --deployment local --from-file <一時ファイル>` する。一時ファイルは直後に消す。production には置かない。
 5. 非公開 DEV R2 bucket に限定した Object Read & Write credential を作り、`R2_BUCKET`、`R2_ENDPOINT`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` を同じ local deployment に設定する。
 6. `pnpm dev:full` を実行する。
 
@@ -95,7 +95,7 @@ name=${raw#*:}
 CONVEX_DEPLOYMENT="dev:$name" pnpm exec convex deployment create local --select
 ```
 
-4. ブラウザ用の `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` を canonical `.env.local` から worktree `.env.local` へ入れる。`pnpm loop:preflight` はこれをコピーしない。同じ公開値を local Convex へは `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` として `pnpm exec convex env set --force --deployment local --from-file <一時ファイル>` する。一時ファイルは直後に消す。local の返信 / 開封 E2E で「E2E: 今すぐ届ける」を使うなら `pnpm exec convex env set E2E_FORCE_DELIVERY 1 --deployment local` も必要。production には置かない。R2 の4値は既存の local 手順どおり、必要なときだけ同じ local deployment へ `convex env set` する。R2 を `.env.local` へ複製しない。
+4. ブラウザ用の `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` を入れる。canonical `.env.local` からコピーするか、[セットアップ](setup.md) の Auth0 CLI 手順で `Re:Me DEV` から取る。`pnpm loop:preflight` はこれをコピーしない。同じ公開値を local Convex へは `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` として `pnpm exec convex env set --force --deployment local --from-file <一時ファイル>` する。一時ファイルは直後に消す。local の返信 / 開封 E2E で「E2E: 今すぐ届ける」を使うなら `pnpm exec convex env set E2E_FORCE_DELIVERY 1 --deployment local` も必要。production には置かない。R2 の4値は既存の local 手順どおり、必要なときだけ同じ local deployment へ `convex env set` する。R2 を `.env.local` へ複製しない。
 5. 親プロセスに cloud の `CONVEX_DEPLOYMENT` が残っていると `.env.local` の local 選択を上書きするので、unset してから `pnpm convex:check` する。
 
 ```powershell

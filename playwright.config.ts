@@ -23,10 +23,12 @@ export default defineConfig({
   // Auth0 refresh-token rotation cannot be shared across parallel authenticated browsers.
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
-  reporter: 'list',
+  retries: 0,
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
   },
   webServer: {
     command: 'pnpm build && pnpm preview --host 127.0.0.1',

@@ -141,10 +141,31 @@ Workers Static Assets を SPA mode で配信する。application backend の sec
 2. Auth0 の Google OAuth connection を DEV SPA に有効化する。local の「Googleで続ける」はこれを使う
 3. Auth0 の Allowed Callback URLs に `http://127.0.0.1:5173/auth/callback`、`http://127.0.0.1:4173/auth/callback` と必要な Preview callback を登録する
 4. Allowed Logout URLs / Allowed Web Origins に `127.0.0.1` の Vite / Playwright origin と Preview origin を登録する
-5. Auth0 issuer / client id を local Convex と Vite env に設定する。ブラウザへは `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` / `VITE_CONVEX_URL` だけを出す。`VITE_CONVEX_URL` は `pnpm convex:dev` が書く local URL を使う
+5. Auth0 issuer / client id を Vite の `.env.local` と local Convex に設定する。入れ方は下の「`VITE_AUTH0_*` の入れ方」。ブラウザへは `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` / `VITE_CONVEX_URL` だけを出す。`VITE_CONVEX_URL` は `pnpm convex:dev` が書く local URL を使う
 6. Universal Login から Google OAuth login を確認する
 7. DEV の Username-Password connection を SPA に有効化し、公開サインアップは無効にする
 8. E2E 用 database user を Management API で作成し、`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は canonical checkout の `.env.local` にだけ置く。task worktree は `pnpm loop:preflight` / `pnpm loop:e2e-env` が同じキーを正本からコピーする。値を chat / CI log / commit に出さない。
+
+### `VITE_AUTH0_*` の入れ方
+
+`VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` は SPA の公開値であり secret ではない。`.env.local` に書く。git にコミットしない。chat / CI log に値を貼らない。`pnpm loop:preflight` は `E2E_AUTH0_*` だけをコピーし、この2つはコピーしない。
+
+既存の DEV SPA は Auth0 application 名 `Re:Me DEV` である。ダッシュボードで手入力してもよい。Auth0 CLI を使う場合は次のとおり。新しい SPA は作らない。
+
+1. `auth0 login`。未ログインなら device code の URL をブラウザで承認する
+2. `auth0 tenants list` で DEV tenant が active であることを確認する。違えば `auth0 tenants use <dev-tenant>.auth0.com`
+3. `auth0 apps list` から name が `Re:Me DEV` かつ type が SPA の `client_id` を取る
+4. `.env.local` に次を書く。空の `VITE_AUTH0_DOMAIN=` を残したまま末尾へ追記しない。Vite は先頭のキーを使う
+
+```text
+VITE_AUTH0_DOMAIN=<DEV tenant の domain。https:// は付けない>
+VITE_AUTH0_CLIENT_ID=<Re:Me DEV の client_id>
+```
+
+5. 同じ公開値を local Convex へは `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` として入れる。手順は [Local / Preview 環境](./preview-environment.md) の「Task worktree の local Convex」。`--deployment local` と一時ファイルを使い、production には置かない
+6. Auth0 CLI が worktree に `.config/auth0/` を書くことがある。gitignore 済み。コミットしない
+
+`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は別物である。Playwright が Auth0 のフォームへ入力するための値で、`VITE_` を付けない。domain / client id が無いとアプリは Auth0 へリダイレクトできない。
 
 本番前に Google Cloud の専用 OAuth 2.0 Web client を作り、Authorized redirect URI に `https://<auth0-domain>/login/callback` を登録して Auth0 Google connection へ差し替える。Auth0 の共有 developer key に本番を載せない。
 
