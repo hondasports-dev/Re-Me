@@ -31,25 +31,25 @@ function TravelingLetterRoute() {
   const attachments = useQuery(api.attachments.listReadableAttachments, contentArgs)
 
   return (
-    <>
-      <TravelingLetterDetail
-        attachments={attachments === null ? [] : attachments}
-        content={content}
-        metadata={typedLetterId ? metadata : null}
-        onDelete={async () => {
-          if (!typedLetterId) {
-            return
-          }
+    <TravelingLetterDetail
+      attachments={attachments === null ? [] : attachments}
+      content={content}
+      e2eAction={
+        import.meta.env.VITE_ALLOW_E2E_DB_LOGIN === '1' && typedLetterId ? (
+          <E2EForceDeliverButton letterId={typedLetterId} />
+        ) : null
+      }
+      metadata={typedLetterId ? metadata : null}
+      onDelete={async () => {
+        if (!typedLetterId) {
+          return
+        }
 
-          await deleteLetter({ letterId: typedLetterId })
-          void navigate('/traveling', { replace: true })
-        }}
-        timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
-      />
-      {import.meta.env.VITE_ALLOW_E2E_DB_LOGIN === '1' && typedLetterId ? (
-        <E2EForceDeliverButton letterId={typedLetterId} />
-      ) : null}
-    </>
+        await deleteLetter({ letterId: typedLetterId })
+        void navigate('/traveling', { replace: true })
+      }}
+      timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+    />
   )
 }
 

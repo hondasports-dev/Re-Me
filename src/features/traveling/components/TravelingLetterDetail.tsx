@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import { StatusScreen } from '../../../shared/components/StatusScreen'
@@ -31,12 +31,14 @@ export type TravelingAttachmentView = {
 export function TravelingLetterDetail({
   attachments,
   content,
+  e2eAction,
   metadata,
   onDelete,
   timeZone,
 }: {
   attachments: TravelingAttachmentView[] | undefined
   content: { body: string } | null | undefined
+  e2eAction?: ReactNode
   metadata: TravelingLetterViewModel | null | undefined
   onDelete: () => Promise<void>
   timeZone: string
@@ -82,6 +84,7 @@ export function TravelingLetterDetail({
     <article aria-labelledby="traveling-letter-title" className="traveling-letter">
       <p className="traveling-letter__eyebrow">未来を旅する手紙</p>
       <h1 id="traveling-letter-title">{travelingSealLabel(metadata.sealed)}</h1>
+      {e2eAction}
       <dl className="traveling-letter__summary">
         <div>
           <dt>届ける時期</dt>

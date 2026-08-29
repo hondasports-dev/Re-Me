@@ -18,6 +18,7 @@ import {
   inboxListItemLabel,
   inboxListPhase,
   inboxOpenLabel,
+  msUntilNextCalendarDay,
   needsOpenRitual,
 } from '../../src/features/inbox/model/inbox'
 import { reMeTheme } from '../../src/styles/theme'
@@ -70,6 +71,16 @@ describe('inbox model', () => {
     )
     expect(fromYouLabel(Date.UTC(2026, 7, 26, 12, 0, 0), now, 'UTC')).toBe('3日前のあなたから')
     expect(calendarDaysBetween(sentAt, Date.UTC(2026, 7, 28, 14, 59, 0), 'Asia/Tokyo')).toBe(0)
+    expect(msUntilNextCalendarDay(Date.UTC(2026, 7, 28, 14, 59, 0), 'Asia/Tokyo')).toBeLessThan(
+      70_000,
+    )
+    expect(msUntilNextCalendarDay(Date.UTC(2026, 7, 28, 14, 59, 0), 'Asia/Tokyo')).toBeGreaterThan(
+      50_000,
+    )
+    expect(msUntilNextCalendarDay(Date.UTC(2026, 7, 29, 23, 0, 0), 'UTC')).toBeGreaterThan(
+      3_599_000,
+    )
+    expect(msUntilNextCalendarDay(Date.UTC(2026, 7, 29, 23, 0, 0), 'UTC')).toBeLessThan(3_601_000)
     expect(arrivedTodayLabel(Date.UTC(2026, 7, 29, 1, 0, 0), now, 'UTC')).toBe('今日届きました')
     expect(arrivedTodayLabel(Date.UTC(2026, 7, 28, 12, 0, 0), now, 'UTC')).toBeNull()
     expect(inboxOpenLabel(true, null)).toBe('未開封')
