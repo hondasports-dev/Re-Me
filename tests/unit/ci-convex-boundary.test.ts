@@ -74,6 +74,11 @@ describe('CI and local Convex boundary', () => {
     expect(origins).toContain('http://127.0.0.1:4173')
     expect(origins).toContain('http://localhost:4173')
     expect(cors.rules[0]?.allowed.methods).toEqual(['PUT', 'GET', 'HEAD'])
+    expect(cors.rules[0]?.allowed.headers).toEqual([
+      'Content-Type',
+      'Content-Length',
+      'If-None-Match',
+    ])
     expect(readRepoFile('playwright.config.ts')).toContain("baseURL: 'http://127.0.0.1:4173'")
   })
 })
