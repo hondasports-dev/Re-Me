@@ -76,6 +76,19 @@ describe('CI and local Convex boundary', () => {
     expect(preview).toContain('cancel-in-progress: false')
   })
 
+  it('retries Preview smoke checks for eventual Cloudflare propagation', () => {
+    const smoke = preview.slice(preview.indexOf('name: Smoke test Cloudflare Preview'))
+
+    expect(smoke).toContain('for attempt in 1 2 3 4 5 6; do')
+    expect(smoke.match(/--connect-timeout 5 --max-time 10/g)).toHaveLength(2)
+    expect(smoke).toContain('sleep 5')
+    expect(smoke).toContain('if [ "$attempt" -lt 6 ]; then')
+    expect(smoke).toContain('Preview smoke passed on attempt')
+    expect(smoke).toContain('Preview smoke failed after 6 attempts')
+    expect(smoke.indexOf('exit 0')).toBeGreaterThan(-1)
+    expect(smoke.lastIndexOf('exit 1')).toBeGreaterThan(smoke.indexOf('exit 0'))
+  })
+
   it('points local Convex scripts at the local backend wrapper', () => {
     expect(packageJson).toContain('"convex:dev": "node scripts/convex-dev-target.mjs"')
     expect(packageJson).toContain(
