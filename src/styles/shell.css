@@ -315,6 +315,7 @@
 
 .re-me-shell[data-chrome='app'] .re-me-shell__header {
   border-bottom: 1px solid rgba(104, 145, 190, 0.12);
+
   background: rgba(248, 252, 255, 0.78);
   box-shadow: 0 0.45rem 1.4rem rgba(33, 75, 120, 0.05);
   backdrop-filter: blur(1rem);

@@ -60,9 +60,15 @@ export function App() {
           <div className="re-me-shell__header-inner">
             {compactHeader ? (
               <>
-                <Link aria-label="戻る" className="re-me-shell__back" to={backPath}>
-                  <span aria-hidden="true">‹</span>
-                </Link>
+                {backPath === location.pathname ? (
+                  <span aria-hidden="true" className="re-me-shell__back">
+                    ‹
+                  </span>
+                ) : (
+                  <Link aria-label="戻る" className="re-me-shell__back" to={backPath}>
+                    <span aria-hidden="true">‹</span>
+                  </Link>
+                )}
                 <span className="re-me-shell__screen-title">{screenTitle}</span>
                 {isDetail ? (
                   <span className="re-me-shell__header-status">

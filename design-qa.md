@@ -2,11 +2,11 @@
 
 ## Comparison target
 
-- Source visual truth: `C:\Users\tatsuya\Documents\sourcecode\Re-Me-design-alignment\docs\design\concept.png` and the documents under `docs/design/`
-- Source landing crop: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-reference-landing.png`
-- Login comparison input (kept unchanged in this iteration): `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-login-comparison.png`
-- Authenticated focused comparison inputs: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-compose-v2-comparison.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-inbox-v2-comparison.png`, and `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-traveling-v2-comparison.png`
-- Authenticated implementation captures: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-compose-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-send-v2-tight-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-inbox-v2-populated-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-traveling-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-sealed-open-v2-tight-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-read-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-reply-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-thread-v2-mobile-390.png`, and `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-settings-v2-compact-mobile-390.png`
+- Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the configured shared Preview Convex connection; the deployed check also used `https://re-me-preview.hondasports.workers.dev`
+- Source visual truth: `docs/design/concept.png` and the documents under `docs/design/`
+- Login comparison input (kept unchanged in this iteration): prior QA capture, not part of this diff
+- Authenticated focused comparison inputs: `docs/design/qa/compose-v2-comparison.png`, `docs/design/qa/inbox-v2-comparison.png`, and `docs/design/qa/traveling-v2-comparison.png`
+- Authenticated implementation captures: the v2 mobile captures used to create the committed comparison inputs above (compose, delivery, inbox, traveling, sealed opening, read, reply, thread, and settings)
 - Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the configured shared Preview Convex connection; the deployed check also used `https://re-me-preview.hondasports.workers.dev`
 - Viewport: CSS `390 x 844`, browser screenshot `390 x 844`, device scale factor `1`
 - Source pixels: full board `1672 x 941`; landing phone crop `202 x 456`
