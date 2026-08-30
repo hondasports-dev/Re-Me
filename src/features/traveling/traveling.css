@@ -178,9 +178,9 @@
   gap: var(--re-me-space-2);
   min-height: 5.25rem;
   padding: var(--re-me-space-4) var(--re-me-space-5);
-  border-color: rgba(104, 145, 190, 0.2);
+  border-color: var(--re-me-color-border-card);
   border-radius: var(--re-me-radius-lg);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(238, 246, 252, 0.8));
+  background: var(--re-me-gradient-card-traveling);
   box-shadow: var(--re-me-shadow-sm);
   transition:
     transform var(--re-me-motion-standard),
@@ -229,7 +229,7 @@
 }
 
 .traveling-list__header {
-  gap: 0.15rem;
+  gap: var(--re-me-space-compact);
   padding-inline: var(--re-me-space-2);
 }
 
@@ -239,18 +239,18 @@
 }
 
 .traveling-list__copy {
-  font-size: 0.78rem;
+  font-size: var(--re-me-font-size-compact);
 }
 
 .traveling-list__tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-bottom: 1px solid rgba(104, 145, 190, 0.18);
+  border-bottom: 1px solid var(--re-me-color-border-soft);
 }
 
 .traveling-list__tab {
   position: relative;
-  padding: 0.55rem var(--re-me-space-2) 0.7rem;
+  padding: var(--re-me-space-tab-block) var(--re-me-space-2) var(--re-me-space-3);
   color: var(--re-me-color-ink-muted);
   font-size: var(--re-me-font-size-sm);
   font-weight: 600;
@@ -277,27 +277,27 @@
 }
 
 .traveling-list__items {
-  gap: 0.65rem;
+  gap: var(--re-me-space-card-gap);
 }
 
 .traveling-list__item {
   position: relative;
   grid-template-columns: minmax(0, 1fr);
-  min-height: 6.8rem;
+  min-height: var(--re-me-size-travel-card-min-height);
   overflow: hidden;
-  padding: 0.9rem 1rem;
+  padding: var(--re-me-space-card-padding) var(--re-me-space-4);
   border-radius: var(--re-me-radius-lg);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 243, 252, 0.82));
-  box-shadow: 0 0.5rem 1.2rem rgba(33, 75, 120, 0.09);
+  background: var(--re-me-gradient-card-traveling);
+  box-shadow: var(--re-me-shadow-card);
 }
 
 .traveling-list__item-art {
   position: absolute;
-  right: -0.2rem;
-  bottom: -1.1rem;
+  right: var(--re-me-space-art-inline);
+  bottom: var(--re-me-space-art-offset);
   z-index: 0;
-  width: 8.7rem;
-  height: 8.7rem;
+  width: var(--re-me-size-travel-card-art);
+  height: var(--re-me-size-travel-card-art);
   opacity: 0.46;
   pointer-events: none;
 }
@@ -316,13 +316,13 @@
   z-index: 1;
   display: grid;
   max-width: 78%;
-  gap: 0.2rem;
+  gap: var(--re-me-space-compact);
 }
 
 .traveling-list__seal {
   overflow: hidden;
   color: var(--re-me-color-sky-deep);
-  font-size: var(--re-me-font-size-xs);
+  font-size: var(--re-me-font-size-compact);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -335,7 +335,7 @@
   display: flex;
   flex-wrap: wrap;
   color: var(--re-me-color-ink-muted);
-  font-size: var(--re-me-font-size-xs);
+  font-size: var(--re-me-font-size-compact);
 }
 
 .traveling-list__item-content > span:last-child {
@@ -345,11 +345,11 @@
 
 .traveling-list__lock {
   position: absolute;
-  top: 0.85rem;
-  right: 0.9rem;
+  top: var(--re-me-space-3);
+  right: var(--re-me-space-3);
   z-index: 1;
-  width: 1.2rem;
-  height: 1.2rem;
+  width: var(--re-me-size-icon-compact);
+  height: var(--re-me-size-icon-compact);
   color: var(--re-me-color-navy);
 }
 
