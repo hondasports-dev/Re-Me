@@ -139,7 +139,7 @@ Workers Static Assets を SPA mode で配信する。application backend の sec
 
 1. DEV tenant に Single Page Application を作成する
 2. Auth0 の Google OAuth connection を DEV SPA に有効化する。local の「Googleで続ける」はこれを使う
-3. Auth0 の Allowed Callback URLs に `http://127.0.0.1:5173/auth/callback`、`http://127.0.0.1:4173/auth/callback` と必要な Preview callback を登録する
+3. Auth0 の Allowed Callback URLs に `http://127.0.0.1:5173/auth/callback`、`http://127.0.0.1:4173/auth/callback` と固定 Preview callback を登録する。版付き Cloudflare Preview URL は使わない
 4. Allowed Logout URLs / Allowed Web Origins に `127.0.0.1` の Vite / Playwright origin と Preview origin を登録する
 5. Auth0 issuer / client id を Vite の `.env.local` と local Convex に設定する。入れ方は下の「`VITE_AUTH0_*` の入れ方」。ブラウザへは `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` / `VITE_CONVEX_URL` だけを出す。`VITE_CONVEX_URL` は `pnpm convex:dev` が書く local URL を使う
 6. Universal Login から Google OAuth login を確認する

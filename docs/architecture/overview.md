@@ -127,7 +127,7 @@ notificationJobs     push outbox / retry
 | 環境 | Auth0 | Convex | Cloudflare |
 |---|---|---|---|
 | Local | DEV tenant / SPA / Google OAuth client | マシン上の local backend | Vite + local Worker runtime |
-| Preview / CI E2E | DEV tenant の Preview callback | 共有 preview deployment | preview URL（E2E 自体は CI 上の Vite preview） |
+| Preview / CI E2E | DEV tenant の固定 Preview callback | 共有 preview deployment | 固定 `workers.dev` Preview URL（E2E 自体は CI 上の Vite preview） |
 | Production | PROD tenant / SPA / Google OAuth client | production deployment | production Worker / domain |
 
 環境間で secret、deployment URL、OAuth client を共有しない。Production 操作や data migration は別 task と Human Gate を必要とする。
