@@ -354,6 +354,6 @@
 }
 
 .traveling-letter--sealed {
-  min-height: calc(100dvh - var(--re-me-header-height) - 1.5rem);
+  min-height: calc(100dvh - var(--re-me-header-height) - 3.5rem);
   justify-content: center;
 }

@@ -46,3 +46,13 @@
   font-weight: 500;
   letter-spacing: 0.04em;
 }
+
+.settings-page {
+  flex: 0;
+  gap: var(--re-me-space-3);
+  line-height: 1.75;
+}
+
+.settings-page__copy {
+  margin: 0;
+}
