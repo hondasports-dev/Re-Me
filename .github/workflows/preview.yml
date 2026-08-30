@@ -78,5 +78,18 @@ jobs:
       - name: Smoke test Cloudflare Preview
         shell: bash
         run: |
-          curl --fail --silent --show-error "$PREVIEW_BASE_URL/api/health" | grep -q '"status":"ok"'
-          curl --fail --silent --show-error "$PREVIEW_BASE_URL/compose" | grep -q '<div id="app"></div>'
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error "$PREVIEW_BASE_URL/api/health" | grep -q '"status":"ok"' && \
+              curl --fail --silent --show-error "$PREVIEW_BASE_URL/compose" | grep -q '<div id="app"></div>'; then
+              echo "Preview smoke passed on attempt $attempt"
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 6 ]; then
+              echo "Preview smoke is not ready (attempt $attempt/6); retrying in 5 seconds"
+              sleep 5
+            fi
+          done
+
+          echo "Preview smoke failed after 6 attempts"
+          exit 1
