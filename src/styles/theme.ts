@@ -5,12 +5,12 @@ const sky: MantineColorsTuple = [
   '#deedf9',
   '#c5e0f4',
   '#9fc9e8',
-  '#7fa9ce',
-  '#668fb7',
-  '#52779b',
-  '#45617e',
-  '#3c5268',
-  '#354657',
+  '#6d9ed2',
+  '#4f86c6',
+  '#3970b1',
+  '#2f5e99',
+  '#244b7d',
+  '#1b3c67',
 ]
 
 const navy: MantineColorsTuple = [
@@ -23,7 +23,7 @@ const navy: MantineColorsTuple = [
   '#4a5a70',
   '#3a4a5e',
   '#2c3c50',
-  '#203047',
+  '#172f50',
 ]
 
 const peach: MantineColorsTuple = [
@@ -41,10 +41,10 @@ const peach: MantineColorsTuple = [
 
 export const reMeTheme = createTheme({
   primaryColor: 'sky',
-  primaryShade: 4,
+  primaryShade: 5,
   autoContrast: true,
   white: '#ffffff',
-  black: '#203047',
+  black: '#172f50',
   fontFamily: 'var(--re-me-font-sans)',
   headings: {
     fontFamily: 'var(--re-me-font-serif)',

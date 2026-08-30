@@ -14,6 +14,8 @@
   font-synthesis: none;
   line-height: var(--re-me-line-height-body);
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -31,6 +33,11 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--re-me-color-sky-deep) 24%, white);
+  color: var(--re-me-color-navy);
 }
 
 button,
@@ -75,8 +82,9 @@ select:focus-visible,
 
 .brand-mark__name {
   color: var(--re-me-color-ink);
-  font-family: var(--re-me-font-serif);
+  font-family: var(--re-me-font-sans);
   font-size: var(--re-me-font-size-lg);
+  font-weight: 400;
   letter-spacing: var(--re-me-letter-spacing-brand);
 }
 
@@ -90,57 +98,60 @@ select:focus-visible,
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(100%, 30rem);
-  padding: clamp(2.75rem, 13vw, 5rem) clamp(1.5rem, 9vw, 3.75rem);
-  border: 1px solid var(--re-me-color-border);
-  border-radius: var(--re-me-radius-panel);
-  background: color-mix(in srgb, var(--re-me-color-paper) 88%, transparent);
-  box-shadow: var(--re-me-shadow-soft);
+  width: min(100%, 24rem);
+  min-height: min(100%, 43rem);
+  justify-content: flex-end;
+  padding: clamp(4rem, 14vw, 7rem) clamp(1.5rem, 8vw, 2.5rem) clamp(2rem, 8vw, 3rem);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 2rem;
+  background: linear-gradient(180deg, rgba(9, 35, 71, 0.04), rgba(9, 35, 71, 0.55));
+  box-shadow: 0 1.5rem 4rem rgba(6, 25, 51, 0.24);
   text-align: center;
-  backdrop-filter: blur(1rem);
+  backdrop-filter: blur(0.5rem);
 }
 
 .auth-panel__brand {
-  margin: 0 0 1.4rem;
-  color: var(--re-me-color-ink);
-  font-family: var(--re-me-font-serif);
-  font-size: clamp(2.5rem, 15vw, 4rem);
-  letter-spacing: 0.05em;
+  margin: 0 0 0.85rem;
+  color: white;
+  font-family: var(--re-me-font-sans);
+  font-size: clamp(2.65rem, 15vw, 4rem);
+  font-weight: 300;
+  letter-spacing: 0.12em;
 }
 
 .auth-panel h1 {
   margin: 0;
-  color: var(--re-me-color-ink);
-  font-family: var(--re-me-font-serif);
-  font-size: clamp(1.35rem, 7vw, 2rem);
-  font-weight: 400;
-  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.94);
+  font-family: var(--re-me-font-sans);
+  font-size: clamp(1.05rem, 6vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: 0.18em;
 }
 
 .auth-panel__copy {
-  margin: 1.25rem 0 0;
-  color: var(--re-me-color-ink-muted);
+  margin: 1rem 0 0;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
-  line-height: 1.9;
+  line-height: 1.85;
 }
 
 .auth-panel__error {
   margin: 1.5rem 0 0;
-  color: var(--re-me-color-danger);
+  color: #ffd9d4;
   font-size: 0.85rem;
   line-height: 1.8;
 }
 
 .auth-panel__action {
   width: 100%;
-  margin-top: 2rem;
+  margin-top: 2.25rem;
 }
 
 .auth-panel__spinner {
   width: 1.75rem;
   height: 1.75rem;
   margin-top: 2rem;
-  border: 2px solid var(--re-me-color-sky);
-  border-top-color: var(--re-me-color-sky-deep);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
   border-radius: 50%;
 }

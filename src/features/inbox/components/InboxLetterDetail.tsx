@@ -62,9 +62,12 @@ export function InboxLetterDetail({
 
   if (needsOpenRitual(metadata)) {
     return (
-      <article aria-labelledby="inbox-open-title" className="inbox-letter">
+      <article aria-labelledby="inbox-open-title" className="inbox-letter inbox-letter--sealed">
         <p className="inbox-letter__eyebrow">封をした手紙</p>
         <h1 id="inbox-open-title">開封する</h1>
+        <div className="inbox-letter__seal-visual" aria-hidden="true">
+          <img alt="" src="/images/re-me-envelope.png" />
+        </div>
         <p className="inbox-letter__copy">
           封をした手紙が、あなたのもとに届いています。本文は、開封するまで見えません。
         </p>

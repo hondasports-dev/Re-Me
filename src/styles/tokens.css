@@ -1,28 +1,32 @@
 :root {
-  --re-me-color-ink: #203047;
-  --re-me-color-ink-muted: #617189;
+  --re-me-color-ink: #172f50;
+  --re-me-color-ink-muted: #58708f;
   --re-me-color-paper: #ffffff;
-  --re-me-color-surface: #f8fbfd;
-  --re-me-color-mist: #f4f8fc;
-  --re-me-color-sky: #d8e8f7;
-  --re-me-color-sky-deep: #7fa9ce;
-  --re-me-color-navy: #203047;
+  --re-me-color-surface: #f5f9fd;
+  --re-me-color-mist: #edf5fc;
+  --re-me-color-sky: #dcecf9;
+  --re-me-color-sky-deep: #4f86c6;
+  --re-me-color-navy: #172f50;
+  --re-me-color-deep-navy: #092347;
   --re-me-color-accent: #e7b8a5;
-  --re-me-color-border: rgba(127, 169, 206, 0.24);
+  --re-me-color-cta-start: #4f83f1;
+  --re-me-color-cta-end: #315de0;
+  --re-me-color-border: rgba(104, 145, 190, 0.24);
+  --re-me-color-glass: rgba(255, 255, 255, 0.74);
   --re-me-color-danger: #8a3f39;
   --re-me-color-focus: color-mix(in srgb, var(--re-me-color-sky-deep) 65%, white);
 
   --re-me-font-sans:
     'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', system-ui, sans-serif;
-  --re-me-font-serif: Georgia, 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --re-me-font-serif: 'Yu Mincho', 'Hiragino Mincho ProN', Georgia, serif;
   --re-me-font-size-xs: 0.7rem;
   --re-me-font-size-sm: 0.85rem;
   --re-me-font-size-md: 1rem;
-  --re-me-font-size-lg: 1.35rem;
-  --re-me-font-size-xl: clamp(1.6rem, 8vw, 2.4rem);
-  --re-me-line-height-body: 1.7;
-  --re-me-letter-spacing-brand: 0.04em;
-  --re-me-letter-spacing-label: 0.16em;
+  --re-me-font-size-lg: 1.25rem;
+  --re-me-font-size-xl: clamp(1.65rem, 8vw, 2.4rem);
+  --re-me-line-height-body: 1.75;
+  --re-me-letter-spacing-brand: 0.08em;
+  --re-me-letter-spacing-label: 0.14em;
 
   --re-me-space-1: 0.25rem;
   --re-me-space-2: 0.5rem;
@@ -32,27 +36,27 @@
   --re-me-space-6: 2rem;
   --re-me-space-7: 2.5rem;
   --re-me-space-8: 3.5rem;
-  --re-me-spacing-page: clamp(1.25rem, 5vw, 2rem);
+  --re-me-spacing-page: clamp(1rem, 5vw, 2rem);
 
   --re-me-safe-top: env(safe-area-inset-top, 0px);
   --re-me-safe-right: env(safe-area-inset-right, 0px);
   --re-me-safe-bottom: env(safe-area-inset-bottom, 0px);
   --re-me-safe-left: env(safe-area-inset-left, 0px);
-  --re-me-header-content-height: 3.5rem;
-  --re-me-nav-content-height: 4.25rem;
+  --re-me-header-content-height: 3.75rem;
+  --re-me-nav-content-height: 4.5rem;
   --re-me-header-height: calc(var(--re-me-header-content-height) + var(--re-me-safe-top));
   --re-me-nav-height: calc(var(--re-me-nav-content-height) + var(--re-me-safe-bottom));
 
-  --re-me-radius-sm: 0.5rem;
-  --re-me-radius-md: 0.75rem;
-  --re-me-radius-lg: 1rem;
-  --re-me-radius-xl: 1.75rem;
+  --re-me-radius-sm: 0.625rem;
+  --re-me-radius-md: 0.875rem;
+  --re-me-radius-lg: 1.125rem;
+  --re-me-radius-xl: 1.5rem;
   --re-me-radius-pill: 999px;
   --re-me-radius-panel: var(--re-me-radius-xl);
 
-  --re-me-shadow-sm: 0 0.4rem 1.2rem rgba(72, 102, 132, 0.08);
-  --re-me-shadow-md: 0 1rem 2rem rgba(72, 102, 132, 0.1);
-  --re-me-shadow-soft: 0 1.5rem 3rem rgba(72, 102, 132, 0.12);
+  --re-me-shadow-sm: 0 0.35rem 1.1rem rgba(33, 75, 120, 0.1);
+  --re-me-shadow-md: 0 0.8rem 1.8rem rgba(33, 75, 120, 0.12);
+  --re-me-shadow-soft: 0 1.5rem 3rem rgba(33, 75, 120, 0.16);
 
   --re-me-motion-duration-fast: 120ms;
   --re-me-motion-duration-standard: 220ms;
