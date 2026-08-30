@@ -2,37 +2,39 @@
 
 ## Comparison target
 
-- Source visual truth: `C:\Users\tatsuya\Documents\sourcecode\Re-Me-design-alignment\docs\design\concept.png`
+- Source visual truth: `C:\Users\tatsuya\Documents\sourcecode\Re-Me-design-alignment\docs\design\concept.png` and the documents under `docs/design/`
 - Source landing crop: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-reference-landing.png`
-- Side-by-side comparison input: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-login-comparison.png`
-- Implementation screenshot: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-login-mobile.png`
-- Authenticated implementation captures: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-compose-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-inbox-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-traveling-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-sealed-open-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-reply-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-thread-mobile.png`, and `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-settings-mobile.png`
-- Authenticated focused comparison inputs: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-compose-comparison.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-inbox-comparison.png`, and `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-traveling-comparison.png`
-- Implementation URL / state: `http://127.0.0.1:4174/login`, unauthenticated, light theme, idle state
+- Login comparison input (kept unchanged in this iteration): `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-login-comparison.png`
+- Authenticated focused comparison inputs: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-compose-v2-comparison.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-inbox-v2-comparison.png`, and `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-traveling-v2-comparison.png`
+- Authenticated implementation captures: `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-compose-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-send-v2-tight-mobile.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-inbox-v2-populated-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-traveling-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-sealed-open-v2-tight-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-read-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-reply-v2-mobile-390.png`, `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-thread-v2-mobile-390.png`, and `C:\Users\tatsuya\.codex\visualizations\2026\08\30\re-me-design-settings-v2-compact-mobile-390.png`
+- Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the configured shared Preview Convex connection; the deployed check also used `https://re-me-preview.hondasports.workers.dev`
 - Viewport: CSS `390 x 844`, browser screenshot `390 x 844`, device scale factor `1`
 - Source pixels: full board `1672 x 941`; landing phone crop `202 x 456`
 - Density normalization: browser chrome and source board chrome were excluded; the landing crop was scaled into the comparison canvas at the implementation viewport size. The implementation screenshot is the app viewport only.
 
 ## Evidence
 
-- Full-view comparison: the side-by-side input compares the first landing/splash panel from the source board with the rendered `/login` screen. Both preserve the quiet blue night-to-horizon atmosphere, centered Re:Me identity, subtitle/copy hierarchy, and bottom CTA placement.
-- Focused region comparison: the brand block (`Re:Me`, `未来のあなたへ`, supporting copy) and the CTA were checked at the same 390 px content width. The compose, inbox, and traveling phone crops were also compared against the authenticated captures in the three focused comparison inputs above. Settings has no corresponding source-board phone; it was checked for the same shell/card/token treatment.
-- Browser console: no `warn` or `error` entries were captured after reload.
-- Primary interactions: anonymous `/` redirect to `/login`, login CTA visibility, 320 px overflow guard, and callback error redaction were exercised by Playwright. The local Auth0 setup was attempted first and timed out because this worktree has no local `VITE_AUTH0_*` / `VITE_CONVEX_URL` runtime configuration. The same authenticated suite was then run against the configured shared Preview connection (without printing or saving those values): `13 passed`, `1 skipped` (Google OAuth smoke), including compose, inbox, traveling, sealed-open, reply, PWA, session, and thread flows.
+- Full-view comparison: the login source comparison remains the accepted baseline and was not changed. The three v2 focused inputs compare compose, inbox, and traveling source phone crops against the authenticated implementation at the same 390 x 844 viewport.
+- Focused region comparison: toolbar hierarchy, paper/row/card density, tabs, envelope/planet/plane artwork, sealed treatment, floating write action, and bottom navigation were checked. Read, reply, thread, and settings were checked for the same shell/token treatment; the source board has no dedicated settings or thread phone crop.
+- Browser console: no `warn` or `error` entries were captured after the final authenticated reload.
+- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, and delete flows were exercised by Playwright: `13 passed`, `1 skipped` (Google OAuth smoke). The deployed Preview workflow also completed successfully.
 
 ## Required fidelity surfaces
 
 - Fonts / typography: display and headings use the Re:Me sans stack with lighter brand weight, readable Japanese fallback, tightened hierarchy, and antialiasing. Existing Mantine heading token contract remains serif-compatible; feature headings opt into the visual sans treatment.
-- Spacing / layout: the guest shell is edge-to-edge on mobile; the brand block is anchored near the upper third and the CTA remains in the lower action zone without overflow. App screens receive the larger card rhythm, safe-area-aware padding, and a floating write action.
+- Spacing / layout: the guest shell remains edge-to-edge on mobile; authenticated routes use a compact iOS-style toolbar, centered screen title, source-like tab/card rhythm, safe-area-aware padding, and a floating write action. Detail/compose routes hide the footer visually while retaining the keyboard-reachable nav contract in the DOM.
 - Colors / tokens: navy, mist, sky, glass, gradient CTA, borders, radii, and shadows are centralized in `src/styles/tokens.css` and applied through the Mantine theme/shell.
-- Image quality / asset fidelity: the source's blue-white, time-spanning atmosphere is represented with generated, text-free hero and envelope assets; the envelope is blended with `screen` so its dark generation background does not become a visible rectangle. No inline SVG/CSS drawing replaces the reference imagery.
+- Image quality / asset fidelity: the source's blue-white, time-spanning atmosphere is represented with generated, text-free hero, envelope, paper-plane, and planet assets; the decorative assets are blended with `screen` so their dark generation backgrounds do not become visible rectangles. Functional icons remain semantic inline SVGs.
 - Copy / content: product-source requirements keep the login action as `Googleで続ける` (social login / Google-first MVP), while the source board's `手紙を書く` label is treated as an intentional pre-auth concept deviation.
 - Icons / controls: existing semantic icon components and Mantine controls are retained; CTA/focus states use the shared blue gradient and visible keyboard outline.
 - Responsiveness / accessibility: 320 px anonymous E2E has no horizontal overflow; focus-visible outlines, reduced-motion hooks, semantic headings/buttons, and empty image alt text are preserved.
 
 ## Findings
 
-- No actionable P0/P1/P2 findings remain after the final comparison.
+- `[P1]` Authenticated screens used a generic Re:Me header/card rhythm instead of the source toolbar and dense mobile composition. Resolved by route-aware compact chrome, tabs, cards, and art on compose/inbox/traveling/detail flows.
+- `[P2]` Delivery confirmation CTA fell below the 390 px viewport. Resolved by tightening fieldset, seal, and confirmation spacing.
+- `[P2]` Sealed opening card could introduce a page scrollbar and settings had excessive empty card height. Resolved by mobile min-height and compact settings treatment.
+- No actionable P0/P1/P2 findings remain after the final v2 comparison.
 
 ## Comparison history
 
@@ -40,6 +42,7 @@
 2. Second comparison: `[P2]` the lower hero region was too dark to preserve the source's blue-white horizon. Fixed by reducing the guest shell/panel overlay opacity; recaptured at the same viewport in `re-me-design-login-comparison.png`.
 3. Authenticated comparison: `[P2]` the fixed AppShell header/footer layering was being reset by the shell z-index helper, and compose content could sit under the header. Fixed by preserving Mantine's fixed header/footer positioning and adding header-aware main padding (including the compose override); recaptured compose/inbox/traveling/sealed-open/reply/thread/settings at the same viewport.
 4. Final comparison: no P0/P1/P2 differences requiring another iteration.
+5. User-requested authenticated design pass at `390 x 844`: `[P1]` generic authenticated chrome and sparse cards did not match the source board outside login. Resolved with compact route-aware toolbars, source-like tabs, envelope/plane/planet cards, paper controls, sealed opening treatment, and consistent detail shell. Rechecked all affected screens and recorded the v2 comparison inputs above.
 
 ## Open questions
 
@@ -51,7 +54,7 @@
 - [x] Match the mobile landing/splash atmosphere and hierarchy.
 - [x] Centralize the blue-white/glass visual tokens and Mantine control treatment.
 - [x] Apply card, sealed-opening, send-ritual, timeline, and navigation styling to the affected features.
-- [x] Capture and compare the rendered mobile screen at `390 x 844`.
+- [x] Capture and compare the rendered login and authenticated mobile screens at `390 x 844`.
 - [x] Run static/unit/worker/loop checks and anonymous mobile Playwright coverage.
 - [x] Run authenticated visual/E2E coverage with the configured Preview Auth0 + Convex runtime.
 
