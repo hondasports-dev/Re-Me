@@ -37,6 +37,16 @@ test.describe('traveling letters', () => {
     await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
     await expect(page.getByText(letterBody)).toHaveCount(0)
 
+    await expect
+      .poll(
+        async () =>
+          (await readableLetterHrefs(page)).some(
+            (href) => href !== null && !existingHrefs.includes(href),
+          ),
+        { timeout: 20_000 },
+      )
+      .toBe(true)
+
     const createdHref = (await readableLetterHrefs(page)).find(
       (href) => href !== null && !existingHrefs.includes(href),
     )
