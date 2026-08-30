@@ -14,12 +14,15 @@ describe('Cloudflare SPA hosting', () => {
 
   it('keeps local, Preview, and Production Worker names separate', () => {
     const wrangler = readFileSync(resolve('wrangler.jsonc'), 'utf8')
+    const previewStart = wrangler.indexOf('"preview"')
+    const productionStart = wrangler.indexOf('"production"')
+    const previewConfig = wrangler.slice(previewStart, productionStart)
 
     expect(wrangler).toContain('"name": "re-me-local"')
     expect(wrangler).toContain('"preview"')
     expect(wrangler).toContain('"name": "re-me-preview"')
     expect(wrangler).toContain('"workers_dev": true')
-    expect(wrangler).toContain('"preview_urls": true')
+    expect(previewConfig).toContain('"preview_urls": false')
     expect(wrangler).toMatch(/"production"\s*:\s*\{/)
     expect(wrangler).toContain('"name": "re-me"')
     expect(wrangler).toContain('"preview_urls": false')

@@ -15,7 +15,9 @@
     "preview": {
       "name": "re-me-preview",
       "workers_dev": true,
-      "preview_urls": true,
+      // Auth0 allows the stable Preview callback only. Versioned Preview URLs
+      // use a different origin and would fail with Callback URL mismatch.
+      "preview_urls": false,
     },
     "production": {
       "name": "re-me",
