@@ -2,6 +2,7 @@ import { NavLink } from 'react-router'
 
 import { bottomNavItems, type BottomNavIconName } from './bottom-nav'
 
+/** Renders the primary mobile navigation for the authenticated app. */
 export function BottomNav() {
   return (
     <nav aria-label="メインナビゲーション" className="bottom-nav">
@@ -15,6 +16,7 @@ export function BottomNav() {
   )
 }
 
+/** Renders a reusable outline icon for navigation and letter state indicators. */
 export function NavIcon({
   className = 'bottom-nav__icon',
   name,

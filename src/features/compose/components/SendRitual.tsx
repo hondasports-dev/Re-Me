@@ -7,6 +7,7 @@ interface SendRitualProps {
   reducedMotion: boolean
 }
 
+/** Shows the short, reduced-motion-aware ritual after a letter is sent. */
 export function SendRitual({ onFinished, reducedMotion }: SendRitualProps) {
   useEffect(() => {
     const timeout = window.setTimeout(
