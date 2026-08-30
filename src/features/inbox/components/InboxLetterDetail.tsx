@@ -19,6 +19,7 @@ export type InboxAttachmentView = {
   locationLabel: string | null
 }
 
+/** Renders an arrived letter, including sealed opening and readable states. */
 export function InboxLetterDetail({
   attachments,
   content,

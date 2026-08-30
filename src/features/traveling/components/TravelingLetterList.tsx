@@ -11,6 +11,7 @@ import {
   type TravelingLetterMetadata,
 } from '../model/traveling'
 
+/** Renders traveling-letter metadata with delivery and seal state at a glance. */
 export function TravelingLetterList({
   letters,
   timeZone,

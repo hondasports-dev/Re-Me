@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router'
 import { useAuthRuntime } from '../AuthRuntimeProvider'
 import { AUTH0_DATABASE_CONNECTION, shouldStartE2eDatabaseLogin } from '../e2e-database-login'
 
+/** Renders the guest login panel and starts the configured Auth0 flow. */
 export function LoginPage() {
   const { loginWithRedirect, readiness } = useAuthRuntime()
   const [searchParams] = useSearchParams()

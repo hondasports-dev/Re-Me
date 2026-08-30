@@ -28,6 +28,7 @@ export type TravelingAttachmentView = {
   locationLabel: string | null
 }
 
+/** Renders a traveling letter's delivery status and readable content when allowed. */
 export function TravelingLetterDetail({
   attachments,
   content,
@@ -125,6 +126,7 @@ export function TravelingLetterDetail({
   )
 }
 
+/** Provides the confirmation and error handling controls for deleting a letter. */
 function DeleteTravelingLetter({ onDelete }: { onDelete: () => Promise<void> }) {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
