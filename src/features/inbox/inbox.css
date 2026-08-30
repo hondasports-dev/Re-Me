@@ -234,3 +234,147 @@
   background: rgba(255, 255, 255, 0.82);
   box-shadow: var(--re-me-shadow-sm);
 }
+
+.inbox-list {
+  gap: var(--re-me-space-3);
+}
+
+.inbox-list__header {
+  gap: 0.15rem;
+  padding-inline: var(--re-me-space-2);
+}
+
+.inbox-list__header h1 {
+  font-size: clamp(1.35rem, 6vw, 1.75rem);
+  letter-spacing: 0.08em;
+}
+
+.inbox-list__copy {
+  font-size: 0.78rem;
+}
+
+.inbox-list__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid rgba(104, 145, 190, 0.18);
+}
+
+.inbox-list__tab {
+  position: relative;
+  padding: 0.55rem var(--re-me-space-2) 0.7rem;
+  color: var(--re-me-color-ink-muted);
+  font-size: var(--re-me-font-size-sm);
+  font-weight: 600;
+  text-align: center;
+}
+
+.inbox-list__tab::before {
+  content: attr(data-label);
+}
+
+.inbox-list__tab--active {
+  color: var(--re-me-color-sky-deep);
+}
+
+.inbox-list__tab--active::after {
+  position: absolute;
+  right: 12%;
+  bottom: -1px;
+  left: 12%;
+  height: 2px;
+  border-radius: var(--re-me-radius-pill);
+  background: var(--re-me-color-cta-end);
+  content: '';
+}
+
+.inbox-list__items {
+  gap: 0.65rem;
+}
+
+.inbox-list__item {
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+  align-items: center;
+  min-height: 5.9rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--re-me-radius-lg);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 248, 253, 0.84));
+  box-shadow: 0 0.5rem 1.2rem rgba(33, 75, 120, 0.09);
+}
+
+.inbox-list__item-icon {
+  width: 1.8rem;
+  height: 1.8rem;
+  color: var(--re-me-color-sky-deep);
+}
+
+.inbox-list__item-content {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.inbox-list__item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.inbox-list__item-arrived {
+  color: var(--re-me-color-ink-muted);
+  font-size: var(--re-me-font-size-xs);
+}
+
+.inbox-list__unread-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--re-me-color-cta-end);
+  box-shadow: 0 0 0 0.2rem rgba(49, 93, 224, 0.12);
+}
+
+.inbox-list__item strong {
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox-letter:not(.inbox-letter--sealed) {
+  gap: var(--re-me-space-3);
+}
+
+.inbox-letter:not(.inbox-letter--sealed) h1 {
+  font-size: clamp(1.35rem, 6vw, 1.75rem);
+}
+
+.inbox-letter:not(.inbox-letter--sealed) .inbox-letter__body {
+  min-height: 16rem;
+  padding: var(--re-me-space-5);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 254, 0.88)),
+    var(--re-me-color-paper);
+  line-height: 2;
+}
+
+.inbox-letter__actions {
+  gap: 0.6rem;
+}
+
+.inbox-letter__reply {
+  display: block;
+  padding: 0.85rem 1rem;
+  border-radius: var(--re-me-radius-md);
+  background: linear-gradient(135deg, var(--re-me-color-cta-start), var(--re-me-color-cta-end));
+  color: white;
+  font-size: var(--re-me-font-size-sm);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 0.6rem 1.2rem rgba(49, 93, 224, 0.24);
+}
+
+.inbox-letter--sealed {
+  min-height: calc(100dvh - var(--re-me-header-height) - 1.5rem);
+  justify-content: center;
+  padding: var(--re-me-space-6) var(--re-me-space-5);
+}

@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 
+import { NavIcon } from '../../../app/BottomNav'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import {
   formatDeliveryWindow,
@@ -48,8 +49,16 @@ export function TravelingLetterList({
         <h1 id="traveling-title">旅する手紙</h1>
         <p className="traveling-list__copy">届くまでのあいだ、内容を変えずに見守れます。</p>
       </header>
+      <div className="traveling-list__tabs">
+        <span
+          aria-hidden="true"
+          className="traveling-list__tab traveling-list__tab--active"
+          data-label="送信済み"
+        />
+        <span aria-hidden="true" className="traveling-list__tab" data-label="下書き" />
+      </div>
       <ul aria-label="旅する手紙" className="traveling-list__items">
-        {letters.map((letter) => {
+        {letters.map((letter, index) => {
           const label = travelingListItemLabel(letter, timeZone)
           return (
             <li key={letter.letterId}>
@@ -58,15 +67,32 @@ export function TravelingLetterList({
                 className="traveling-list__item"
                 to={`/traveling/${letter.letterId}`}
               >
-                <span className="traveling-list__seal">{travelingSealLabel(letter.sealed)}</span>
-                <strong>{travelingDeliveryLabel(letter.deliveryMode)}</strong>
-                <span>
-                  {formatDeliveryWindow(
-                    letter.deliveryWindowStart,
-                    letter.deliveryWindowEnd,
-                    timeZone,
-                  )}
+                <span aria-hidden="true" className="traveling-list__item-art">
+                  <img
+                    alt=""
+                    src={index === 0 ? '/images/re-me-paper-plane.png' : '/images/re-me-planet.png'}
+                  />
                 </span>
+                <span className="traveling-list__item-content">
+                  <span className="traveling-list__seal">
+                    {index === 0
+                      ? 'あなたの手紙が未来へ旅立ちました'
+                      : travelingSealLabel(letter.sealed)}
+                  </span>
+                  <strong>未来のわたしへ</strong>
+                  <span className="traveling-list__item-delivery">
+                    <span>{travelingDeliveryLabel(letter.deliveryMode)}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>
+                      {formatDeliveryWindow(
+                        letter.deliveryWindowStart,
+                        letter.deliveryWindowEnd,
+                        timeZone,
+                      )}
+                    </span>
+                  </span>
+                </span>
+                {letter.sealed ? <NavIcon className="traveling-list__lock" name="lock" /> : null}
               </Link>
             </li>
           )

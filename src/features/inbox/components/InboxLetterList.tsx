@@ -1,6 +1,7 @@
 import { Button } from '@mantine/core'
 import { Link, useNavigate } from 'react-router'
 
+import { NavIcon } from '../../../app/BottomNav'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import {
   arrivedTodayLabel,
@@ -63,6 +64,14 @@ export function InboxLetterList({
         <h1 id="inbox-title">届いた手紙</h1>
         <p className="inbox-list__copy">本文は開くまで見えません。</p>
       </header>
+      <div className="inbox-list__tabs">
+        <span
+          aria-hidden="true"
+          className="inbox-list__tab inbox-list__tab--active"
+          data-label="未開封"
+        />
+        <span aria-hidden="true" className="inbox-list__tab" data-label="開封済み" />
+      </div>
       <ul aria-label="届いた手紙" className="inbox-list__items">
         {letters.map((letter) => {
           const arrived = arrivedTodayLabel(letter.deliveredAt, now, timeZone)
@@ -74,11 +83,19 @@ export function InboxLetterList({
                 className="inbox-list__item"
                 to={`/letters/${letter.letterId}`}
               >
-                <span className="inbox-list__state">
-                  {inboxOpenLabel(letter.sealed, letter.openedAt)}
+                <NavIcon className="inbox-list__item-icon" name="inbox" />
+                <span className="inbox-list__item-content">
+                  <span className="inbox-list__item-meta">
+                    <span className="inbox-list__state">
+                      {inboxOpenLabel(letter.sealed, letter.openedAt)}
+                    </span>
+                    {letter.openedAt === null ? (
+                      <span aria-label="未開封" className="inbox-list__unread-dot" />
+                    ) : null}
+                  </span>
+                  <strong>{fromYouLabel(letter.sentAt, now, timeZone)}</strong>
+                  {arrived ? <span className="inbox-list__item-arrived">{arrived}</span> : null}
                 </span>
-                <strong>{fromYouLabel(letter.sentAt, now, timeZone)}</strong>
-                {arrived ? <span>{arrived}</span> : null}
               </Link>
             </li>
           )

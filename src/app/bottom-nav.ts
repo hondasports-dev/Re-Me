@@ -4,4 +4,4 @@ export const bottomNavItems = [
   { to: '/traveling', end: false, icon: 'travel', label: '旅する手紙' },
 ] as const
 
-export type BottomNavIconName = (typeof bottomNavItems)[number]['icon']
+export type BottomNavIconName = (typeof bottomNavItems)[number]['icon'] | 'lock'
