@@ -14,9 +14,13 @@
   padding: clamp(2rem, 8vw, 3.5rem) clamp(1.25rem, 6vw, 2.5rem);
   border: 1px solid var(--re-me-color-border);
   border-radius: var(--re-me-radius-panel);
-  background: color-mix(in srgb, var(--re-me-color-paper) 84%, transparent);
+  background: var(--re-me-color-glass);
   box-shadow: var(--re-me-shadow-soft);
   backdrop-filter: blur(1rem);
+}
+
+.status-screen__panel .mantine-Button-root {
+  min-width: min(100%, 16rem);
 }
 
 .status-screen__eyebrow {

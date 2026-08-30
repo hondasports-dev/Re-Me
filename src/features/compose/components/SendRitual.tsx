@@ -25,7 +25,12 @@ export function SendRitual({ onFinished, reducedMotion }: SendRitualProps) {
       className="send-ritual"
       data-reduced={reducedMotion ? 'true' : 'false'}
     >
-      <div aria-hidden="true" className="send-ritual__envelope" />
+      <img
+        alt=""
+        aria-hidden="true"
+        className="send-ritual__envelope"
+        src="/images/re-me-envelope.png"
+      />
       <h1>手紙は未来へ旅立ちました</h1>
       <p>これからのあなたのもとへ向かっています。</p>
     </section>

@@ -81,7 +81,10 @@ export function TravelingLetterDetail({
   )
 
   return (
-    <article aria-labelledby="traveling-letter-title" className="traveling-letter">
+    <article
+      aria-labelledby="traveling-letter-title"
+      className={`traveling-letter${metadata.sealed ? ' traveling-letter--sealed' : ''}`}
+    >
       <p className="traveling-letter__eyebrow">未来を旅する手紙</p>
       <h1 id="traveling-letter-title">{travelingSealLabel(metadata.sealed)}</h1>
       {e2eAction}

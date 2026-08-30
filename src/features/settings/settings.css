@@ -30,3 +30,19 @@
   margin: 0;
   color: var(--re-me-color-danger);
 }
+
+.settings-page {
+  padding: var(--re-me-space-5);
+  border: 1px solid var(--re-me-color-border);
+  border-radius: var(--re-me-radius-xl);
+  background: var(--re-me-color-glass);
+  box-shadow: var(--re-me-shadow-sm);
+  backdrop-filter: blur(0.8rem);
+}
+
+.settings-page h1 {
+  color: var(--re-me-color-navy);
+  font-family: var(--re-me-font-sans);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}

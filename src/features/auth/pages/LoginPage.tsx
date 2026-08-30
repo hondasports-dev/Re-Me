@@ -59,7 +59,7 @@ export function LoginPage() {
   }, [loginWithRedirect, searchParams])
 
   return (
-    <section className="auth-panel" aria-labelledby="login-title">
+    <section className="auth-panel auth-panel--login" aria-labelledby="login-title">
       <p className="auth-panel__brand" aria-label="Re:Me 未来のあなたへ">
         Re:Me
       </p>

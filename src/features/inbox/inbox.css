@@ -141,3 +141,96 @@
   color: var(--re-me-color-sky-deep);
   font-size: var(--re-me-font-size-sm);
 }
+
+.inbox-list__header {
+  text-align: center;
+}
+
+.inbox-list h1,
+.inbox-letter h1,
+.inbox-letter h2 {
+  color: var(--re-me-color-navy);
+  font-family: var(--re-me-font-sans);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.inbox-list__items {
+  gap: var(--re-me-space-3);
+}
+
+.inbox-list__item {
+  position: relative;
+  gap: var(--re-me-space-2);
+  min-height: 5.25rem;
+  padding: var(--re-me-space-4) var(--re-me-space-5);
+  border-color: rgba(104, 145, 190, 0.2);
+  border-radius: var(--re-me-radius-lg);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(244, 249, 253, 0.76));
+  box-shadow: var(--re-me-shadow-sm);
+  transition:
+    transform var(--re-me-motion-standard),
+    box-shadow var(--re-me-motion-standard);
+}
+
+.inbox-list__item:hover,
+.inbox-list__item:focus-visible {
+  box-shadow: var(--re-me-shadow-md);
+  transform: translateY(-2px);
+}
+
+.inbox-list__item strong {
+  font-family: var(--re-me-font-sans);
+  font-weight: 600;
+}
+
+.inbox-letter--sealed {
+  align-items: center;
+  min-height: calc(100dvh - var(--re-me-header-height) - var(--re-me-nav-height) - 2rem);
+  padding: var(--re-me-space-6) var(--re-me-space-5);
+  border-radius: var(--re-me-radius-xl);
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(6, 28, 61, 0.06), rgba(6, 28, 61, 0.72)),
+    url('/images/re-me-hero.png') center / cover no-repeat;
+  box-shadow: 0 1.25rem 2.5rem rgba(6, 35, 76, 0.24);
+  text-align: center;
+}
+
+.inbox-letter--sealed .inbox-letter__eyebrow,
+.inbox-letter--sealed h1,
+.inbox-letter--sealed .inbox-letter__copy {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.inbox-letter--sealed .inbox-letter__eyebrow {
+  color: rgba(220, 236, 249, 0.9);
+}
+
+.inbox-letter__seal-visual {
+  width: min(100%, 18rem);
+  margin: var(--re-me-space-2) auto;
+}
+
+.inbox-letter__seal-visual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: saturate(0.78) brightness(1.08);
+  mix-blend-mode: screen;
+}
+
+.inbox-letter--sealed .inbox-letter__open-actions {
+  width: min(100%, 18rem);
+}
+
+.inbox-letter--sealed .inbox-letter__back {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.inbox-letter__body {
+  border-color: rgba(104, 145, 190, 0.2);
+  border-radius: var(--re-me-radius-xl);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--re-me-shadow-sm);
+}
