@@ -409,6 +409,10 @@
   display: none;
 }
 
+.re-me-shell[data-screen='settings'] .re-me-shell__settings {
+  display: none;
+}
+
 .re-me-shell[data-screen='list'] .re-me-shell__main {
   padding-top: calc(var(--re-me-space-3) + var(--re-me-header-height));
 }
