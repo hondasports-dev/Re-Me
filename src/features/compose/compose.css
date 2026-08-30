@@ -356,3 +356,193 @@
   filter: saturate(0.8) brightness(1.08);
   mix-blend-mode: screen;
 }
+
+.letter-editor,
+.delivery-seal,
+.send-ritual {
+  width: min(100%, 30rem);
+}
+
+.letter-editor {
+  gap: 0.8rem;
+}
+
+.letter-editor__header {
+  gap: 0.15rem;
+  padding-inline: var(--re-me-space-2);
+}
+
+.letter-editor__eyebrow,
+.delivery-seal > .letter-editor__eyebrow {
+  font-size: 0.72rem;
+}
+
+.letter-editor__header h1,
+.delivery-seal h1,
+.send-ritual h1 {
+  font-size: clamp(1.35rem, 6vw, 1.75rem);
+  letter-spacing: 0.08em;
+}
+
+.letter-editor__status,
+.delivery-seal__copy,
+.letter-editor__cta p {
+  font-size: 0.78rem;
+}
+
+.letter-editor__paper {
+  min-height: clamp(18rem, 43vh, 23rem);
+  padding: 1.15rem;
+  border-radius: var(--re-me-radius-lg);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 254, 0.88)),
+    var(--re-me-color-paper);
+  box-shadow: 0 0.65rem 1.4rem rgba(33, 75, 120, 0.08);
+}
+
+.letter-editor__body {
+  min-height: 17rem;
+  font-size: 1rem;
+  line-height: 2;
+}
+
+.letter-editor__attachments {
+  gap: 0.55rem;
+  padding: 0.55rem;
+  border-radius: var(--re-me-radius-lg);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.letter-editor__attachments > .mantine-Button-root {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 2.75rem;
+  border-color: rgba(104, 145, 190, 0.17);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: none;
+}
+
+.letter-editor__attachments > .mantine-Button-root::after {
+  color: var(--re-me-color-sky-deep);
+  content: '›';
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+
+.letter-editor__location {
+  gap: 0.45rem;
+  padding-top: 0.1rem;
+}
+
+.letter-editor__location .mantine-TextInput-root {
+  min-width: 0;
+}
+
+.letter-editor__location .mantine-Button-root {
+  min-width: 7.4rem;
+  padding-inline: 0.8rem;
+}
+
+.letter-editor__cta {
+  position: static;
+  gap: 0.35rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0;
+  background: none;
+}
+
+.letter-editor__cta .mantine-Button-root {
+  min-height: 2.9rem;
+}
+
+.delivery-seal {
+  gap: 0.65rem;
+}
+
+.delivery-seal > .letter-editor__eyebrow,
+.delivery-seal > h1,
+.delivery-seal > .delivery-seal__copy,
+.delivery-seal > .letter-editor__status {
+  text-align: center;
+}
+
+.delivery-seal__fieldset {
+  gap: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--re-me-radius-lg);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.delivery-seal__fieldset legend {
+  padding-inline: 0.4rem;
+  font-size: 0.72rem;
+}
+
+.delivery-seal__option {
+  min-height: 2.65rem;
+  padding: 0.5rem 0.2rem;
+  border-bottom: 1px solid rgba(104, 145, 190, 0.12);
+}
+
+.delivery-seal__option:last-child {
+  border-bottom: 0;
+}
+
+.delivery-seal__option span {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.86rem;
+}
+
+.delivery-seal__option small {
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.delivery-seal__confirm {
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border-radius: var(--re-me-radius-lg);
+}
+
+.delivery-seal__confirm h2 {
+  font-family: var(--re-me-font-sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.delivery-seal__preview {
+  max-height: 6.5rem;
+  padding: 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+
+.delivery-seal__summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.delivery-seal__summary div {
+  gap: 0.1rem;
+}
+
+.delivery-seal__summary dt {
+  font-size: 0.64rem;
+}
+
+.delivery-seal__summary dd {
+  overflow: hidden;
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-seal .letter-editor__cta {
+  padding-bottom: 0;
+}
+
+.send-ritual {
+  min-height: calc(100dvh - var(--re-me-header-height));
+  padding: var(--re-me-space-5) var(--re-me-space-4);
+}
