@@ -10,7 +10,7 @@ export const deliveryModeOptions = [
 
 export type DeliveryMode = (typeof deliveryModeOptions)[number]['value']
 
-export const SEND_RITUAL_MS = 900
+export const SEND_RITUAL_MS = 1400
 export const SEND_RITUAL_REDUCED_MS = 50
 
 export function canAdvanceToSend(body: string): boolean {

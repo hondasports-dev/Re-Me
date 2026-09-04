@@ -22,10 +22,16 @@ describe('design tokens', () => {
     expect(tokens).toContain('--re-me-radius-panel:')
     expect(tokens).toContain('--re-me-shadow-soft:')
     expect(tokens).toContain('--re-me-motion-duration-standard:')
+    expect(tokens).toContain('--re-me-motion-duration-page:')
+    expect(tokens).toContain('--re-me-motion-duration-ambient:')
     expect(tokens).toContain('--re-me-safe-top:')
     expect(tokens).toContain('--re-me-safe-bottom:')
     expect(tokens).toContain('prefers-reduced-motion: reduce')
     expect(motion).toContain('prefers-reduced-motion: reduce')
+    expect(motion).toContain('@keyframes re-me-page-enter')
+    expect(motion).toContain('@keyframes re-me-plane-travel')
+    expect(motion).toContain('@keyframes re-me-envelope-breathe')
+    expect(motion).toContain('animation-iteration-count: 1 !important')
   })
 
   it('connects the Mantine theme to Re:Me tokens', () => {

@@ -1,7 +1,20 @@
 @media (prefers-reduced-motion: no-preference) {
   .auth-panel,
-  .status-screen[data-status$='-empty'] {
-    animation: re-me-panel-enter var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
+  .status-screen,
+  .letter-editor,
+  .delivery-seal,
+  .send-ritual,
+  .inbox-list,
+  .inbox-letter,
+  .traveling-list,
+  .traveling-letter,
+  .thread-page,
+  .settings-page {
+    animation: re-me-page-enter var(--re-me-motion-duration-page) var(--re-me-motion-easing) both;
+  }
+
+  .re-me-shell__screen-title {
+    animation: re-me-toolbar-enter var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
   }
 
   .auth-panel__spinner,
@@ -10,11 +23,105 @@
   }
 
   .send-ritual__envelope {
-    animation: re-me-send-envelope var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
+    animation: re-me-send-envelope 900ms var(--re-me-motion-easing) both;
+  }
+
+  .send-ritual :is(h1, p) {
+    animation: re-me-copy-arrive var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
+  }
+
+  .send-ritual h1 {
+    animation-delay: 180ms;
+  }
+
+  .send-ritual p {
+    animation-delay: 280ms;
+  }
+
+  .inbox-list__tabs,
+  .traveling-list__tabs {
+    animation: re-me-tabs-enter var(--re-me-motion-duration-slow) var(--re-me-motion-easing) both;
+  }
+
+  :is(.inbox-list__items, .traveling-list__items, .thread-timeline) > li {
+    animation: re-me-card-enter var(--re-me-motion-duration-page) var(--re-me-motion-easing) both;
+  }
+
+  :is(.inbox-list__items, .traveling-list__items, .thread-timeline) > li:nth-child(2) {
+    animation-delay: 70ms;
+  }
+
+  :is(.inbox-list__items, .traveling-list__items, .thread-timeline) > li:nth-child(3) {
+    animation-delay: 140ms;
+  }
+
+  :is(.inbox-list__items, .traveling-list__items, .thread-timeline) > li:nth-child(4) {
+    animation-delay: 210ms;
+  }
+
+  :is(.inbox-list__items, .traveling-list__items, .thread-timeline) > li:nth-child(n + 5) {
+    animation-delay: 280ms;
+  }
+
+  .traveling-list__item-art img {
+    animation: re-me-art-drift var(--re-me-motion-duration-ambient)
+      var(--re-me-motion-easing-gentle) infinite alternate;
+  }
+
+  .traveling-list__items > li:first-child .traveling-list__item-art img {
+    animation-name: re-me-plane-travel;
+  }
+
+  .inbox-letter__seal-visual img {
+    animation: re-me-envelope-breathe 3600ms var(--re-me-motion-easing-gentle) infinite alternate;
+  }
+
+  .inbox-list__unread-dot {
+    animation: re-me-unread-pulse 2400ms var(--re-me-motion-easing-gentle) infinite;
+  }
+
+  .thread-timeline::before {
+    animation: re-me-timeline-grow 700ms var(--re-me-motion-easing) both;
+    transform-origin: top;
+  }
+
+  .thread-timeline__item::before {
+    animation: re-me-dot-arrive 420ms var(--re-me-motion-easing) both;
+  }
+
+  .bottom-nav__link,
+  .bottom-nav__icon,
+  .re-me-shell :is(a, button) {
+    transition:
+      color var(--re-me-motion-standard),
+      opacity var(--re-me-motion-standard),
+      transform var(--re-me-motion-standard),
+      box-shadow var(--re-me-motion-standard);
+  }
+
+  .bottom-nav__link[aria-current='page'] .bottom-nav__icon {
+    transform: translateY(-0.12rem) scale(1.06);
+  }
+
+  .re-me-shell :is(a, button):active {
+    transform: scale(0.97);
+  }
+
+  .re-me-shell[data-chrome='guest']::before {
+    animation: re-me-horizon-breathe 8s var(--re-me-motion-easing-gentle) infinite alternate;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .re-me-shell *,
+  .re-me-shell *::before,
+  .re-me-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .auth-panel__spinner,
   .status-screen__spinner {
     animation: none;
@@ -22,10 +129,22 @@
   }
 }
 
-@keyframes re-me-panel-enter {
+@keyframes re-me-page-enter {
   from {
     opacity: 0;
-    transform: translateY(0.75rem);
+    transform: translateY(0.9rem) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes re-me-toolbar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
   }
 
   to {
@@ -41,13 +160,131 @@
 }
 
 @keyframes re-me-send-envelope {
+  0% {
+    opacity: 0;
+    transform: translate3d(-1.5rem, 1.6rem, 0) rotate(-5deg) scale(0.9);
+  }
+
+  62% {
+    opacity: 1;
+    transform: translate3d(0.35rem, -0.45rem, 0) rotate(1deg) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, -0.3rem, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes re-me-copy-arrive {
   from {
-    opacity: 0.4;
-    transform: translateY(0.5rem) scale(0.96);
+    opacity: 0;
+    transform: translateY(0.45rem);
   }
 
   to {
     opacity: 1;
-    transform: translateY(-0.35rem) scale(1);
+    transform: translateY(0);
+  }
+}
+
+@keyframes re-me-tabs-enter {
+  from {
+    opacity: 0;
+    transform: scaleX(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes re-me-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.8rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes re-me-art-drift {
+  from {
+    transform: translate3d(-0.15rem, 0.15rem, 0) rotate(-1deg) scale(0.98);
+  }
+
+  to {
+    transform: translate3d(0.2rem, -0.35rem, 0) rotate(1.5deg) scale(1.03);
+  }
+}
+
+@keyframes re-me-plane-travel {
+  from {
+    transform: translate3d(-0.4rem, 0.35rem, 0) rotate(-3deg) scale(0.98);
+  }
+
+  to {
+    transform: translate3d(0.45rem, -0.4rem, 0) rotate(2deg) scale(1.03);
+  }
+}
+
+@keyframes re-me-envelope-breathe {
+  from {
+    filter: saturate(0.78) brightness(1.05) drop-shadow(0 0.55rem 0.8rem transparent);
+    transform: translateY(0.2rem) scale(0.985);
+  }
+
+  to {
+    filter: saturate(0.86) brightness(1.12) drop-shadow(0 0.7rem 1rem rgba(125, 182, 234, 0.2));
+    transform: translateY(-0.35rem) scale(1.015);
+  }
+}
+
+@keyframes re-me-unread-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0.2rem rgba(49, 93, 224, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 0 0.38rem rgba(49, 93, 224, 0.02);
+  }
+}
+
+@keyframes re-me-timeline-grow {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes re-me-dot-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes re-me-horizon-breathe {
+  from {
+    opacity: 0.72;
+  }
+
+  to {
+    opacity: 1;
   }
 }

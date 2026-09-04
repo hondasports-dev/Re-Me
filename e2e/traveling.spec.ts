@@ -18,6 +18,18 @@ test.describe('traveling letters', () => {
 
     await page.getByRole('link', { name: '旅する手紙' }).click()
     await expect(page).toHaveURL(/\/traveling$/)
+    const ambientMotion = await page
+      .locator('.traveling-list__item-art img')
+      .first()
+      .evaluate((element) => {
+        const style = window.getComputedStyle(element)
+        return {
+          animationIterationCount: style.animationIterationCount,
+          animationName: style.animationName,
+        }
+      })
+    expect(ambientMotion.animationName).toBe('re-me-plane-travel')
+    expect(ambientMotion.animationIterationCount).toBe('infinite')
     const existingHrefs = await readableLetterHrefs(page)
 
     await page.getByRole('link', { name: '書く' }).click()

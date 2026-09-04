@@ -79,7 +79,10 @@
   --re-me-motion-duration-fast: 120ms;
   --re-me-motion-duration-standard: 220ms;
   --re-me-motion-duration-slow: 400ms;
-  --re-me-motion-easing: ease;
+  --re-me-motion-duration-page: 520ms;
+  --re-me-motion-duration-ambient: 4800ms;
+  --re-me-motion-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --re-me-motion-easing-gentle: cubic-bezier(0.4, 0, 0.2, 1);
   --re-me-motion-standard: var(--re-me-motion-duration-standard) var(--re-me-motion-easing);
 }
 
@@ -88,6 +91,8 @@
     --re-me-motion-duration-fast: 0.01ms;
     --re-me-motion-duration-standard: 0.01ms;
     --re-me-motion-duration-slow: 0.01ms;
+    --re-me-motion-duration-page: 0.01ms;
+    --re-me-motion-duration-ambient: 0.01ms;
     --re-me-motion-standard: 0.01ms linear;
   }
 }

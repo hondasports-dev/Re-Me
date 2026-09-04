@@ -29,8 +29,9 @@ All comparison and implementation screenshots referenced by this record are comm
 
 - Full-view comparison: `all-screens-v3-comparison.png` places the full source board and all 12 authenticated implementation captures in one comparison input. The login source comparison remains the accepted baseline and was not changed. The three v2 focused inputs remain available for closer compose, inbox, and traveling inspection at the same 390 x 844 viewport.
 - Focused region comparison: toolbar hierarchy, paper/row/card density, tabs, envelope/planet/plane artwork, sealed treatment, floating write action, and bottom navigation were checked. Read, reply, thread, and settings were checked for the same shell/token treatment; the source board has no dedicated settings or thread phone crop.
+- Motion comparison: the static endpoints remain aligned with `all-screens-v3-comparison.png`. Live local inspection verified the 520 ms page entrance, staggered list/timeline arrival, traveling plane/planet drift, sealed-envelope breathing, unread pulse, send ritual, and active-control feedback without layout shift. The source board is static, so motion is treated as a product-consistent extension rather than pixel fidelity evidence.
 - Browser console: no `warn` or `error` entries were captured after the final authenticated reload.
-- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, and delete were exercised by the tracked Playwright suite: `13 passed`, `1 skipped` (Google OAuth smoke). The separate all-screen capture flow also passed, bringing this design pass to 14 successful browser cases.
+- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, reduced-motion behavior, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, and delete were exercised by the tracked Playwright suite: `14 passed`, `1 skipped` (Google OAuth smoke). The traveling flow also asserts that ambient plane motion is active when reduced motion is not requested.
 
 ## Required fidelity surfaces
 
@@ -48,6 +49,7 @@ All comparison and implementation screenshots referenced by this record are comm
 - `[P2]` Delivery confirmation CTA fell below the 390 px viewport. Resolved by tightening fieldset, seal, and confirmation spacing.
 - `[P2]` Sealed opening card could introduce a page scrollbar and settings had excessive empty card height. Resolved by mobile min-height and compact settings treatment.
 - `[P2]` Compose, reply, inbox, traveling, thread, and settings repeated the toolbar title inside the content area, pushing the source-like paper, tabs, and cards too far below the fold. Resolved by making the compact toolbar the page heading and removing repeated content headings while retaining accessible region names and live save status.
+- `[P2]` The existing motion layer animated only login, empty states, spinners, and the send envelope, leaving most authenticated screens visually static. Resolved with shared page entrances, staggered collections, role-specific ambient artwork motion, timeline growth, and control feedback. Non-essential motion collapses to 0.01 ms with one iteration under `prefers-reduced-motion: reduce`.
 - No actionable P0/P1/P2 findings remain after the final all-screen comparison.
 
 ## Comparison history
@@ -58,6 +60,7 @@ All comparison and implementation screenshots referenced by this record are comm
 4. Final comparison: no P0/P1/P2 differences requiring another iteration.
 5. User-requested authenticated design pass at `390 x 844`: `[P1]` generic authenticated chrome and sparse cards did not match the source board outside login. Resolved with compact route-aware toolbars, source-like tabs, envelope/plane/planet cards, paper controls, sealed opening treatment, and consistent detail shell. Rechecked all affected screens and recorded the v2 comparison inputs above.
 6. All-screen pass at `390 x 844`: `[P2]` repeated in-content page titles reduced usable space and diverged from the source's compact toolbar-first hierarchy. Removed the repetitions, expanded the compose/reply paper, renamed the send toolbar to `配送の確認`, and recaptured all 12 screens in `all-screens-v3-comparison.png`.
+7. Motion pass: `[P2]` authenticated screens lacked temporal feedback beyond the send ritual. Added a tokenized motion system and checked the live local implementation plus its settled static state. Playwright verifies both active traveling artwork motion and the reduced-motion override; no layout, typography, color, or asset drift was introduced.
 
 ## Open questions
 
@@ -73,6 +76,7 @@ All comparison and implementation screenshots referenced by this record are comm
 - [x] Run static/unit/worker/loop checks and anonymous mobile Playwright coverage.
 - [x] Run authenticated visual/E2E coverage with the configured Preview Auth0 + Convex runtime.
 - [x] Capture every user-facing screen in the core flow and compare them together with the source board.
+- [x] Verify active ambient motion and the reduced-motion path without changing the approved static composition.
 
 ## Follow-up polish
 
