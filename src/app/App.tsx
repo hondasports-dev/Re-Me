@@ -6,6 +6,7 @@ import { Link, Outlet, useLocation } from 'react-router'
 import { useAuthRuntime } from '../features/auth/AuthRuntimeProvider'
 import { BottomNav } from './BottomNav'
 
+/** Renders the route-aware application shell for authenticated Re:Me screens. */
 export function App() {
   const { logout, readiness } = useAuthRuntime()
   const location = useLocation()
@@ -115,6 +116,7 @@ export function App() {
   )
 }
 
+/** Classifies a pathname so the shell can apply the matching layout treatment. */
 function screenKind(pathname: string): 'list' | 'compose' | 'detail' | 'settings' {
   if (pathname === '/settings') return 'settings'
   if (pathname.startsWith('/write') || /\/letters\/[^/]+\/reply(?:\/|$)/.test(pathname)) {
@@ -130,6 +132,7 @@ function screenKind(pathname: string): 'list' | 'compose' | 'detail' | 'settings
   return 'list'
 }
 
+/** Returns the compact header title associated with the current route. */
 function appScreenTitle(pathname: string): string {
   if (pathname.endsWith('/send')) return '配送の確認'
   if (pathname.includes('/reply')) return '未来へ返信する'
@@ -143,6 +146,7 @@ function appScreenTitle(pathname: string): string {
   return ''
 }
 
+/** Resolves the safe parent route used by the compact header back affordance. */
 function appBackPath(pathname: string): string {
   const replyMatch = pathname.match(/^\/letters\/([^/]+)\/reply/)
   if (replyMatch) {

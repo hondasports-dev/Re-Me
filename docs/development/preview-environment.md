@@ -8,7 +8,7 @@
 |---|---|---|
 | Auth0 | DEV tenant / SPA application | 同じ DEV SPA application + Preview callback |
 | Convex | マシン上の local backend（無料枠に乗らない） | 共有 Preview deployment（remote） |
-| Cloudflare | Vite + local Worker runtime | `re-me-preview` Worker（`workers.dev`） |
+| Cloudflare | Vite + local Worker runtime | `re-me-preview` Worker（固定 `workers.dev` URL） |
 | 非公開写真 bucket | `re-me-dev-attachments` | `re-me-preview-attachments` |
 | ブラウザ設定 | `.env.local`（`VITE_CONVEX_URL` は local URL） | `.env.preview.local` / GitHub `preview` environment の変数 |
 | 秘密情報 | local の ignore ファイル / local deployment の env | `.env.convex-preview.local` / deployment 限定の GitHub environment secret |
@@ -114,7 +114,7 @@ Agent の非対話シェルでは step 3 が再び anonymous 扱いになりう�
 5. `.env.preview.example` を `.env.preview.local` へコピーし、DEV Auth0 と Convex URL のブラウザ公開値を設定する。
 6. `.env.convex-preview.example` を `.env.convex-preview.local` へコピーし、Preview deploy key だけを設定する。
 7. `pnpm deploy:preview` を実行する。
-8. 出力された `https://re-me-preview.<subdomain>.workers.dev` を Auth0 DEV SPA application に登録する。
+8. 固定 Preview URL `https://re-me-preview.<subdomain>.workers.dev` を Auth0 DEV SPA application に登録する。Cloudflare が出力する版付き Preview URL（`<version>-re-me-preview...`）は Auth0 callback と origin が一致しないため使わない。
 
 Auth0 の設定値は次の形にする。
 
@@ -124,7 +124,7 @@ Allowed Logout URLs:   https://re-me-preview.<subdomain>.workers.dev
 Allowed Web Origins:   https://re-me-preview.<subdomain>.workers.dev
 ```
 
-Preview callback は固定 Worker URL だけを許可する。版付き Preview URL の wildcard は Auth0 callback に登録しない。
+Preview Worker は `wrangler.jsonc` で版付き Preview URL を無効化している。Preview callback / logout / web origin は固定 Worker URL だけを許可し、版付き Preview URL の wildcard は Auth0 callback に登録しない。
 
 ## 非公開 R2 写真 bucket
 

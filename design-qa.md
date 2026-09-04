@@ -3,22 +3,34 @@
 ## Comparison target
 
 - Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the configured shared Preview Convex connection; the deployed check also used `https://re-me-preview.hondasports.workers.dev`
-- Source visual truth: `docs/design/concept.png` and the documents under `docs/design/`
-- Login comparison input (kept unchanged in this iteration): prior QA capture, not part of this diff
-- Authenticated focused comparison inputs: `docs/design/qa/compose-v2-comparison.png`, `docs/design/qa/inbox-v2-comparison.png`, and `docs/design/qa/traveling-v2-comparison.png`
-- Authenticated all-screen comparison input: `docs/design/qa/all-screens-v3-comparison.png`
-- Authenticated implementation captures: the 12 mobile captures embedded in the committed all-screen comparison, covering inbox, compose, delivery confirmation, send ritual, traveling list/detail, sealed arrival, read, reply, thread, and settings.
-- Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the configured shared Preview Convex connection; the deployed check also used `https://re-me-preview.hondasports.workers.dev`
+- Source visual truth: [`docs/design/concept.png`](docs/design/concept.png) and the documents under [`docs/design/`](docs/design/)
+- Source landing crop: [`docs/design/qa/reference-landing.png`](docs/design/qa/reference-landing.png)
+- Login comparison input (kept unchanged in this iteration): [`docs/design/qa/login-comparison.png`](docs/design/qa/login-comparison.png)
+- Authenticated focused comparison inputs: [`docs/design/qa/compose-v2-comparison.png`](docs/design/qa/compose-v2-comparison.png), [`docs/design/qa/inbox-v2-comparison.png`](docs/design/qa/inbox-v2-comparison.png), and [`docs/design/qa/traveling-v2-comparison.png`](docs/design/qa/traveling-v2-comparison.png)
+- Authenticated all-screen comparison input: [`docs/design/qa/all-screens-v3-comparison.png`](docs/design/qa/all-screens-v3-comparison.png)
+- Authenticated implementation captures:
+  - [`compose-v2-mobile-390.png`](docs/design/qa/captures/compose-v2-mobile-390.png)
+  - [`send-v2-tight-mobile.png`](docs/design/qa/captures/send-v2-tight-mobile.png)
+  - [`inbox-v2-populated-mobile-390.png`](docs/design/qa/captures/inbox-v2-populated-mobile-390.png)
+  - [`traveling-v2-mobile-390.png`](docs/design/qa/captures/traveling-v2-mobile-390.png)
+  - [`sealed-open-v2-tight-mobile-390.png`](docs/design/qa/captures/sealed-open-v2-tight-mobile-390.png)
+  - [`read-v2-mobile-390.png`](docs/design/qa/captures/read-v2-mobile-390.png)
+  - [`reply-v2-mobile-390.png`](docs/design/qa/captures/reply-v2-mobile-390.png)
+  - [`thread-v2-mobile-390.png`](docs/design/qa/captures/thread-v2-mobile-390.png)
+  - [`settings-v2-compact-mobile-390.png`](docs/design/qa/captures/settings-v2-compact-mobile-390.png)
+- The 12 latest mobile captures are embedded in the committed all-screen comparison, covering inbox, compose, delivery confirmation, send ritual, traveling list/detail, sealed arrival, read, reply, thread, and settings.
 - Viewport: CSS `390 x 844`, browser screenshot `390 x 844`, device scale factor `1`
 - Source pixels: full board `1672 x 941`; landing phone crop `202 x 456`
 - Density normalization: browser chrome and source board chrome were excluded; the landing crop was scaled into the comparison canvas at the implementation viewport size. The implementation screenshot is the app viewport only.
 
 ## Evidence
 
-- Full-view comparison: `all-screens-v3-comparison.png` places the full source board and all 12 authenticated implementation captures in one comparison input. The login source comparison remains the accepted baseline and was not changed.
+All comparison and implementation screenshots referenced by this record are committed under [`docs/design/qa/`](docs/design/qa/); no local-only filesystem path is required to inspect the evidence.
+
+- Full-view comparison: `all-screens-v3-comparison.png` places the full source board and all 12 authenticated implementation captures in one comparison input. The login source comparison remains the accepted baseline and was not changed. The three v2 focused inputs remain available for closer compose, inbox, and traveling inspection at the same 390 x 844 viewport.
 - Focused region comparison: toolbar hierarchy, paper/row/card density, tabs, envelope/planet/plane artwork, sealed treatment, floating write action, and bottom navigation were checked. Read, reply, thread, and settings were checked for the same shell/token treatment; the source board has no dedicated settings or thread phone crop.
 - Browser console: no `warn` or `error` entries were captured after the final authenticated reload.
-- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, delete, and the all-screen capture flow were exercised by Playwright: `14 passed`, `1 skipped` (Google OAuth smoke).
+- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, and delete were exercised by the tracked Playwright suite: `13 passed`, `1 skipped` (Google OAuth smoke). The separate all-screen capture flow also passed, bringing this design pass to 14 successful browser cases.
 
 ## Required fidelity surfaces
 

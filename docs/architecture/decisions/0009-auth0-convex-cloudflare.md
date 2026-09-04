@@ -43,7 +43,7 @@ TanStack Query は Convex data の標準層にしない。Convex の reactive qu
 ## 環境
 
 - Local: Auth0 DEV tenant/application、Convex local backend、local Vite / Cloudflare Worker runtime。cloud developer deployment は日常開発の正本にしない。接続先は [Local / Preview 環境](../../development/preview-environment.md)
-- Preview / CI E2E: Auth0 DEV tenant の preview callback、共有 Convex preview deployment、Cloudflare preview URL。CI Playwright は Preview へ deploy したあと remote 参照する
+- Preview / CI E2E: Auth0 DEV tenant の固定 Preview callback、共有 Convex preview deployment、Cloudflare の固定 `workers.dev` Preview URL。版付き Preview URL は Auth0 callback と origin が一致しないため使わず、CI Playwright は Preview へ deploy したあと remote 参照する
 - Production: Auth0 PROD tenant/application、Convex production deployment、Cloudflare production Worker/custom domain
 
 DEV と PROD では Auth0 tenant/application、Google OAuth client、Convex deployment、Cloudflare environment、secret を共有しない。

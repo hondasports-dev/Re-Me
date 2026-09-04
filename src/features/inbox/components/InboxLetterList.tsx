@@ -12,6 +12,7 @@ import {
   type InboxLetterMetadata,
 } from '../model/inbox'
 
+/** Renders the inbox metadata list while keeping letter contents private. */
 export function InboxLetterList({
   letters,
   now,
