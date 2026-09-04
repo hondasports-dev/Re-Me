@@ -34,7 +34,7 @@ test.describe('traveling letters', () => {
     await page.getByRole('button', { name: '未来へ送る' }).click()
 
     await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
-    await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '未来を旅する手紙' })).toBeVisible()
     await expect(page.getByText(letterBody)).toHaveCount(0)
 
     await expect
@@ -83,5 +83,5 @@ async function openAuthenticatedInbox(page: Page): Promise<void> {
   await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 20_000,
   })
-  await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
 }

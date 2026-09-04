@@ -9,6 +9,10 @@
   margin: 0 auto;
 }
 
+.thread-page__header {
+  padding-inline: 0.15rem;
+}
+
 .thread-page__header,
 .thread-timeline__card {
   display: grid;

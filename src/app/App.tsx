@@ -69,7 +69,7 @@ export function App() {
                     <span aria-hidden="true">‹</span>
                   </Link>
                 )}
-                <span className="re-me-shell__screen-title">{screenTitle}</span>
+                <h1 className="re-me-shell__screen-title">{screenTitle}</h1>
                 {isDetail ? (
                   <span className="re-me-shell__header-status">
                     {isCompose && !location.pathname.endsWith('/send') ? '下書き保存' : ''}
@@ -131,7 +131,7 @@ function screenKind(pathname: string): 'list' | 'compose' | 'detail' | 'settings
 }
 
 function appScreenTitle(pathname: string): string {
-  if (pathname.endsWith('/send')) return '届ける時期を選ぶ'
+  if (pathname.endsWith('/send')) return '配送の確認'
   if (pathname.includes('/reply')) return '未来へ返信する'
   if (pathname.startsWith('/write')) return '手紙を書く'
   if (pathname === '/') return '受信箱'

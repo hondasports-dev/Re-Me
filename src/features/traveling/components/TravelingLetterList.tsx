@@ -43,12 +43,7 @@ export function TravelingLetterList({
   }
 
   return (
-    <section aria-labelledby="traveling-title" className="traveling-list">
-      <header className="traveling-list__header">
-        <p className="traveling-list__eyebrow">未来を旅する手紙</p>
-        <h1 id="traveling-title">旅する手紙</h1>
-        <p className="traveling-list__copy">届くまでのあいだ、内容を変えずに見守れます。</p>
-      </header>
+    <section aria-label="旅する手紙" className="traveling-list">
       <div className="traveling-list__tabs">
         <span
           aria-hidden="true"

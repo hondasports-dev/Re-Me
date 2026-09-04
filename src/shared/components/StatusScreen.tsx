@@ -15,6 +15,7 @@ export function StatusScreen({ action, description, title, tone, variant }: Stat
   const status = `${tone}-${variant}`
   const isError = variant === 'error'
   const isLoading = variant === 'loading'
+  const Heading = tone === 'content' ? 'h2' : 'h1'
 
   return (
     <section
@@ -26,9 +27,9 @@ export function StatusScreen({ action, description, title, tone, variant }: Stat
     >
       <div className="status-screen__panel">
         <p className="status-screen__eyebrow">{eyebrowFor(tone, variant)}</p>
-        <h1 className="status-screen__title" id={`${status}-title`}>
+        <Heading className="status-screen__title" id={`${status}-title`}>
           {title}
-        </h1>
+        </Heading>
         {description ? <p className="status-screen__description">{description}</p> : null}
         {isLoading ? <span className="status-screen__spinner" aria-hidden="true" /> : null}
         {action ? <div className="status-screen__action">{action}</div> : null}

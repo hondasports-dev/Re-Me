@@ -364,12 +364,7 @@
 }
 
 .letter-editor {
-  gap: 0.8rem;
-}
-
-.letter-editor__header {
-  gap: 0.15rem;
-  padding-inline: var(--re-me-space-2);
+  gap: 0.7rem;
 }
 
 .letter-editor__eyebrow,
@@ -391,7 +386,7 @@
 }
 
 .letter-editor__paper {
-  min-height: clamp(18rem, 43vh, 23rem);
+  min-height: clamp(21rem, 52vh, 27rem);
   padding: 1.15rem;
   border-radius: var(--re-me-radius-lg);
   background:

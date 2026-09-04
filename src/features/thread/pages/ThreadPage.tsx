@@ -76,10 +76,9 @@ function ThreadRoute() {
   }
 
   return (
-    <section aria-labelledby="thread-title" className="thread-page">
+    <section aria-label="時間をまたぐ手紙" className="thread-page">
       <header className="thread-page__header">
         <p className="thread-page__eyebrow">一本道の手紙</p>
-        <h1 id="thread-title">時間をまたぐ手紙</h1>
         <p className="thread-page__copy">
           過去の自分から、次の未来の自分へ。返信は枝分かれしません。
         </p>

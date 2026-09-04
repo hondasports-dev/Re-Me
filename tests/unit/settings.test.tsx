@@ -25,7 +25,7 @@ describe('settings page', () => {
     await waitFor(() => {
       expect(screen.getByText(PUSH_PERMISSION_COPY)).toBeInTheDocument()
     })
-    expect(screen.getByRole('heading', { name: '設定' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '通知設定' })).toBeInTheDocument()
     expect(
       screen.getByText(
         'このブラウザでは通知を使えません。手紙の作成・受信・開封はそのまま使えます。',
