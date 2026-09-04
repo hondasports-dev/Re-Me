@@ -12,6 +12,7 @@ import {
   urlBase64ToUint8Array,
 } from '../model/push'
 
+/** Manages quiet notification availability and the current browser subscription. */
 export function SettingsPage() {
   const upsertMine = useMutation(api.pushSubscriptions.upsertMine)
   const disableMine = useMutation(api.pushSubscriptions.disableMine)
@@ -156,9 +157,8 @@ export function SettingsPage() {
         : null
 
   return (
-    <section className="settings-page">
+    <section aria-label="通知設定" className="settings-page">
       <p className="settings-page__eyebrow">静かな到着</p>
-      <h1>設定</h1>
       <p className="settings-page__copy">{PUSH_PERMISSION_COPY}</p>
       {unsupportedCopy ? <p className="settings-page__copy">{unsupportedCopy}</p> : null}
       {error ? (

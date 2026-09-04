@@ -22,6 +22,7 @@ interface LetterEditorProps {
   photoUploadProgress: number | null
 }
 
+/** Renders the editable paper, attachments, and progression controls for a draft. */
 export function LetterEditor({
   body,
   eyebrow = '今の自分から',
@@ -44,14 +45,10 @@ export function LetterEditor({
   const canNext = canAdvanceToSend(body) && photosReady
 
   return (
-    <section aria-labelledby="compose-title" className="letter-editor">
-      <header className="letter-editor__header">
-        <p className="letter-editor__eyebrow">{eyebrow}</p>
-        <h1 id="compose-title">{heading}</h1>
-        <p className="letter-editor__status" aria-live="polite">
-          {saveLabel(saveStatus)}
-        </p>
-      </header>
+    <section aria-label={heading} className="letter-editor" data-eyebrow={eyebrow}>
+      <p className="visually-hidden" aria-live="polite">
+        {saveLabel(saveStatus)}
+      </p>
 
       <label className="letter-editor__paper">
         <span className="visually-hidden">本文</span>
@@ -132,6 +129,7 @@ export function LetterEditor({
   )
 }
 
+/** Maps autosave state to concise assistive status text. */
 function saveLabel(status: LetterEditorProps['saveStatus']): string {
   if (status === 'saving') {
     return '保存しています'

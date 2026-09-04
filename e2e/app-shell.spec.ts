@@ -22,6 +22,24 @@ test('keeps the login shell usable at a 320px mobile viewport', async ({ page })
   expect(overflowing).toBe(false)
 })
 
+test('removes decorative motion when reduced motion is requested', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/login')
+
+  const motion = await page.locator('.auth-panel').evaluate((element) => {
+    const style = window.getComputedStyle(element)
+    return {
+      animationDuration: style.animationDuration,
+      animationIterationCount: style.animationIterationCount,
+      transitionDuration: style.transitionDuration,
+    }
+  })
+
+  expect(Number.parseFloat(motion.animationDuration)).toBeLessThanOrEqual(0.00001)
+  expect(motion.animationIterationCount).toBe('1')
+  expect(Number.parseFloat(motion.transitionDuration)).toBeLessThanOrEqual(0.00001)
+})
+
 test('shows a finite callback error without redirecting back to Google', async ({ page }) => {
   await page.goto('/auth/callback?error=access_denied&error_description=sensitive-provider-detail')
 

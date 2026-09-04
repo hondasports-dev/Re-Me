@@ -59,12 +59,7 @@ export function InboxLetterList({
   }
 
   return (
-    <section aria-labelledby="inbox-title" className="inbox-list">
-      <header className="inbox-list__header">
-        <p className="inbox-list__eyebrow">未来のあなたから</p>
-        <h1 id="inbox-title">届いた手紙</h1>
-        <p className="inbox-list__copy">本文は開くまで見えません。</p>
-      </header>
+    <section aria-label="届いた手紙" className="inbox-list">
       <div className="inbox-list__tabs">
         <span
           aria-hidden="true"

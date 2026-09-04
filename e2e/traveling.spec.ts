@@ -18,6 +18,18 @@ test.describe('traveling letters', () => {
 
     await page.getByRole('link', { name: '旅する手紙' }).click()
     await expect(page).toHaveURL(/\/traveling$/)
+    const ambientMotion = await page
+      .locator('.traveling-list__item-art img')
+      .first()
+      .evaluate((element) => {
+        const style = window.getComputedStyle(element)
+        return {
+          animationIterationCount: style.animationIterationCount,
+          animationName: style.animationName,
+        }
+      })
+    expect(ambientMotion.animationName).toBe('re-me-plane-travel')
+    expect(ambientMotion.animationIterationCount).toBe('infinite')
     const existingHrefs = await readableLetterHrefs(page)
 
     await page.getByRole('link', { name: '書く' }).click()
@@ -34,7 +46,7 @@ test.describe('traveling letters', () => {
     await page.getByRole('button', { name: '未来へ送る' }).click()
 
     await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
-    await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '未来を旅する手紙' })).toBeVisible()
     await expect(page.getByText(letterBody)).toHaveCount(0)
 
     await expect
@@ -83,5 +95,5 @@ async function openAuthenticatedInbox(page: Page): Promise<void> {
   await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 20_000,
   })
-  await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
 }

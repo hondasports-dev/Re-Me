@@ -34,7 +34,7 @@ test.describe('pwa and quiet notifications', () => {
     await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
       timeout: 20_000,
     })
-    await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
 
     expect(
       await page.evaluate(
@@ -61,13 +61,15 @@ test.describe('pwa and quiet notifications', () => {
 
     await page.getByRole('link', { name: '設定' }).click()
     await expect(page).toHaveURL(/\/settings$/)
-    await expect(page.getByRole('heading', { name: '設定' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('heading', { level: 1, name: '設定' })).toBeVisible({
+      timeout: 20_000,
+    })
     await expect(
       page.getByText(
         '届いた手紙を忘れないよう、静かな通知だけ送ります。本文や写真は通知に出しません。',
       ),
     ).toBeVisible()
-    await expect(page.getByRole('heading', { name: '届いた手紙' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: '受信箱' })).toHaveCount(0)
     expect(
       await page.evaluate(
         () =>

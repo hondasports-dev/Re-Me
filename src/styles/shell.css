@@ -377,6 +377,7 @@
 
 .re-me-shell__screen-title {
   overflow: hidden;
+  margin: 0;
   color: var(--re-me-color-navy);
   font-size: var(--re-me-font-size-sm);
   font-weight: 600;

@@ -30,7 +30,7 @@ test.describe('reply and thread', () => {
 
     await page.getByRole('link', { name: '未来へ返信する' }).click()
     await expect(page).toHaveURL(new RegExp(`/letters/${letterId}/reply$`))
-    await expect(page.getByRole('heading', { name: '未来へ返信する' })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: '未来へ返信する' })).toBeVisible({
       timeout: 20_000,
     })
 
@@ -49,7 +49,7 @@ test.describe('reply and thread', () => {
     await page.goto(`/letters/${letterId}`)
     await expect(page.getByRole('link', { name: '未来へ返信する' })).toHaveCount(0)
     await page.getByRole('link', { name: '時間をまたぐ手紙' }).click()
-    await expect(page.getByRole('heading', { name: '時間をまたぐ手紙' })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: '時間をまたぐ手紙' })).toBeVisible({
       timeout: 20_000,
     })
     await expect(page.getByText(parentBody)).toBeVisible()
@@ -96,5 +96,5 @@ async function openAuthenticatedInbox(page: Page): Promise<void> {
   await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 20_000,
   })
-  await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
 }

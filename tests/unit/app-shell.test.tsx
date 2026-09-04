@@ -65,7 +65,7 @@ describe('AppShell', () => {
     expect(inbox).toHaveAttribute('aria-current', 'page')
     expect(write).not.toHaveAttribute('aria-current')
     expect(traveling).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('heading', { name: '届いた手紙' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '受信箱' })).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '届いた手紙' }).closest('[data-status]'),
     ).toHaveAttribute('data-status', 'content-loading')
@@ -82,9 +82,12 @@ describe('AppShell', () => {
     await user.click(write)
     expect(write).toHaveAttribute('aria-current', 'page')
     expect(inbox).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('heading', { name: '手紙を書く' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: '手紙を書く' })).toHaveLength(2)
     expect(
-      screen.getByRole('heading', { name: '手紙を書く' }).closest('[data-status]'),
+      screen
+        .getAllByRole('heading', { name: '手紙を書く' })
+        .find((heading) => heading.closest('[data-status]'))
+        ?.closest('[data-status]'),
     ).toHaveAttribute('data-status', 'content-loading')
   })
 })

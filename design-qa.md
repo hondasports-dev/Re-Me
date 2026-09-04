@@ -7,6 +7,7 @@
 - Source landing crop: [`docs/design/qa/reference-landing.png`](docs/design/qa/reference-landing.png)
 - Login comparison input (kept unchanged in this iteration): [`docs/design/qa/login-comparison.png`](docs/design/qa/login-comparison.png)
 - Authenticated focused comparison inputs: [`docs/design/qa/compose-v2-comparison.png`](docs/design/qa/compose-v2-comparison.png), [`docs/design/qa/inbox-v2-comparison.png`](docs/design/qa/inbox-v2-comparison.png), and [`docs/design/qa/traveling-v2-comparison.png`](docs/design/qa/traveling-v2-comparison.png)
+- Authenticated all-screen comparison input: [`docs/design/qa/all-screens-v3-comparison.png`](docs/design/qa/all-screens-v3-comparison.png)
 - Authenticated implementation captures:
   - [`compose-v2-mobile-390.png`](docs/design/qa/captures/compose-v2-mobile-390.png)
   - [`send-v2-tight-mobile.png`](docs/design/qa/captures/send-v2-tight-mobile.png)
@@ -17,6 +18,20 @@
   - [`reply-v2-mobile-390.png`](docs/design/qa/captures/reply-v2-mobile-390.png)
   - [`thread-v2-mobile-390.png`](docs/design/qa/captures/thread-v2-mobile-390.png)
   - [`settings-v2-compact-mobile-390.png`](docs/design/qa/captures/settings-v2-compact-mobile-390.png)
+- The 12 latest mobile captures are embedded in the committed all-screen comparison in this order:
+  1. Inbox list: `/`
+  2. Compose: `/write/:letterId`
+  3. Delivery confirmation: `/write/:letterId/send`
+  4. Post-send ritual: `/write/:letterId/send` after sending (comparison-only capture)
+  5. Traveling list: `/traveling`
+  6. Sealed traveling detail: `/traveling/:letterId` (comparison-only capture)
+  7. Sealed arrival/opening: `/letters/:letterId`
+  8. Read letter: `/letters/:letterId` after opening
+  9. Reply compose: `/letters/:letterId/reply`
+  10. Reply delivery confirmation: `/letters/:letterId/reply/send` (comparison-only capture)
+  11. One-path thread: `/threads/:threadId`
+  12. Settings: `/settings`
+- The three comparison-only captures above account for the difference between the nine individually committed v2 captures and the 12-screen composite.
 - Viewport: CSS `390 x 844`, browser screenshot `390 x 844`, device scale factor `1`
 - Source pixels: full board `1672 x 941`; landing phone crop `202 x 456`
 - Density normalization: browser chrome and source board chrome were excluded; the landing crop was scaled into the comparison canvas at the implementation viewport size. The implementation screenshot is the app viewport only.
@@ -25,10 +40,11 @@
 
 All comparison and implementation screenshots referenced by this record are committed under [`docs/design/qa/`](docs/design/qa/); no local-only filesystem path is required to inspect the evidence.
 
-- Full-view comparison: the login source comparison remains the accepted baseline and was not changed. The three v2 focused inputs compare compose, inbox, and traveling source phone crops against the authenticated implementation at the same 390 x 844 viewport.
+- Full-view comparison: `all-screens-v3-comparison.png` places the full source board and all 12 authenticated implementation captures in one comparison input. The login source comparison remains the accepted baseline and was not changed. The three v2 focused inputs remain available for closer compose, inbox, and traveling inspection at the same 390 x 844 viewport.
 - Focused region comparison: toolbar hierarchy, paper/row/card density, tabs, envelope/planet/plane artwork, sealed treatment, floating write action, and bottom navigation were checked. Read, reply, thread, and settings were checked for the same shell/token treatment; the source board has no dedicated settings or thread phone crop.
+- Motion comparison: the static endpoints remain aligned with `all-screens-v3-comparison.png`. Live local inspection verified the 520 ms page entrance, staggered list/timeline arrival, traveling plane/planet drift, sealed-envelope breathing, unread pulse, send ritual, and active-control feedback without layout shift. The source board is static, so motion is treated as a product-consistent extension rather than pixel fidelity evidence.
 - Browser console: no `warn` or `error` entries were captured after the final authenticated reload.
-- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, and delete flows were exercised by Playwright: `13 passed`, `1 skipped` (Google OAuth smoke). The deployed Preview workflow also completed successfully.
+- Primary interactions: anonymous redirect/login shell, 320 px overflow guard, reduced-motion behavior, compose/send, autosave, private photo, sealed open boundary, unsealed read, reply-to-future, one-path thread, PWA/settings, and delete were exercised by the tracked Playwright suite: `14 passed`, `1 skipped` (Google OAuth smoke). The traveling flow also asserts that ambient plane motion is active when reduced motion is not requested.
 
 ## Required fidelity surfaces
 
@@ -45,7 +61,9 @@ All comparison and implementation screenshots referenced by this record are comm
 - `[P1]` Authenticated screens used a generic Re:Me header/card rhythm instead of the source toolbar and dense mobile composition. Resolved by route-aware compact chrome, tabs, cards, and art on compose/inbox/traveling/detail flows.
 - `[P2]` Delivery confirmation CTA fell below the 390 px viewport. Resolved by tightening fieldset, seal, and confirmation spacing.
 - `[P2]` Sealed opening card could introduce a page scrollbar and settings had excessive empty card height. Resolved by mobile min-height and compact settings treatment.
-- No actionable P0/P1/P2 findings remain after the final v2 comparison.
+- `[P2]` Compose, reply, inbox, traveling, thread, and settings repeated the toolbar title inside the content area, pushing the source-like paper, tabs, and cards too far below the fold. Resolved by making the compact toolbar the page heading and removing repeated content headings while retaining accessible region names and live save status.
+- `[P2]` The existing motion layer animated only login, empty states, spinners, and the send envelope, leaving most authenticated screens visually static. Resolved with shared page entrances, staggered collections, role-specific ambient artwork motion, timeline growth, and control feedback. Non-essential motion collapses to 0.01 ms with one iteration under `prefers-reduced-motion: reduce`.
+- No actionable P0/P1/P2 findings remain after the final all-screen comparison.
 
 ## Comparison history
 
@@ -54,10 +72,12 @@ All comparison and implementation screenshots referenced by this record are comm
 3. Authenticated comparison: `[P2]` the fixed AppShell header/footer layering was being reset by the shell z-index helper, and compose content could sit under the header. Fixed by preserving Mantine's fixed header/footer positioning and adding header-aware main padding (including the compose override); recaptured compose/inbox/traveling/sealed-open/reply/thread/settings at the same viewport.
 4. Final comparison: no P0/P1/P2 differences requiring another iteration.
 5. User-requested authenticated design pass at `390 x 844`: `[P1]` generic authenticated chrome and sparse cards did not match the source board outside login. Resolved with compact route-aware toolbars, source-like tabs, envelope/plane/planet cards, paper controls, sealed opening treatment, and consistent detail shell. Rechecked all affected screens and recorded the v2 comparison inputs above.
+6. All-screen pass at `390 x 844`: `[P2]` repeated in-content page titles reduced usable space and diverged from the source's compact toolbar-first hierarchy. Removed the repetitions, expanded the compose/reply paper, renamed the send toolbar to `配送の確認`, and recaptured all 12 screens in `all-screens-v3-comparison.png`.
+7. Motion pass: `[P2]` authenticated screens lacked temporal feedback beyond the send ritual. Added a tokenized motion system and checked the live local implementation plus its settled static state. Playwright verifies both active traveling artwork motion and the reduced-motion override; no layout, typography, color, or asset drift was introduced.
 
 ## Open questions
 
-- The local-only Auth0/Convex setup remains unavailable in this task worktree; authenticated visual captures and full E2E evidence therefore use the configured shared Preview connection. Re-run against local Convex when a task-local development deployment is provisioned.
+- Authenticated visual captures and full E2E evidence use the shared Preview Convex connection because a task-local Convex deployment is not provisioned in this worktree.
 - If a final approved hero/envelope asset becomes available, it can replace the generated assets without changing the layout contract.
 
 ## Implementation checklist
@@ -68,6 +88,8 @@ All comparison and implementation screenshots referenced by this record are comm
 - [x] Capture and compare the rendered login and authenticated mobile screens at `390 x 844`.
 - [x] Run static/unit/worker/loop checks and anonymous mobile Playwright coverage.
 - [x] Run authenticated visual/E2E coverage with the configured Preview Auth0 + Convex runtime.
+- [x] Capture every user-facing screen in the core flow and compare them together with the source board.
+- [x] Verify active ambient motion and the reduced-motion path without changing the approved static composition.
 
 ## Follow-up polish
 

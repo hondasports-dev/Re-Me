@@ -27,7 +27,7 @@ test.describe('inbox letters', () => {
 
     await page.getByRole('link', { name: 'あとで開封する' }).click()
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
     await expect(page.locator(`a[href="/letters/${letterId}"]`)).toContainText('未開封')
     await expect(page.getByText(body)).toHaveCount(0)
 
@@ -107,5 +107,5 @@ async function openAuthenticatedInbox(page: Page): Promise<void> {
   await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 20_000,
   })
-  await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
 }

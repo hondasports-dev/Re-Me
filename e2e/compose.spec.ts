@@ -69,7 +69,7 @@ test.describe('compose draft editor', () => {
       timeout: 20_000,
     })
     await expect(page).toHaveURL(/\/traveling$/, { timeout: 20_000 })
-    await expect(page.getByRole('heading', { name: '旅する手紙' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '未来を旅する手紙' })).toBeVisible()
 
     await page.goto(`/write/${letterId}`)
     await expect(page.getByRole('heading', { name: 'この手紙はもう送れません' })).toBeVisible({
@@ -137,5 +137,5 @@ async function openAuthenticatedInbox(page: Page): Promise<void> {
   await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 20_000,
   })
-  await expect(page.getByRole('heading', { name: '届いた手紙' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()
 }
