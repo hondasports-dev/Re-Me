@@ -11,6 +11,7 @@ export interface StatusScreenProps {
   variant: StatusVariant
 }
 
+/** Renders a consistently styled loading, empty, or error state. */
 export function StatusScreen({ action, description, title, tone, variant }: StatusScreenProps) {
   const status = `${tone}-${variant}`
   const isError = variant === 'error'
@@ -38,6 +39,7 @@ export function StatusScreen({ action, description, title, tone, variant }: Stat
   )
 }
 
+/** Returns the short context label shown above a status message. */
 function eyebrowFor(tone: StatusTone, variant: StatusVariant): string {
   if (tone === 'auth') {
     return variant === 'error' ? '認証エラー' : '認証'

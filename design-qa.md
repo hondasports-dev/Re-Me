@@ -18,7 +18,20 @@
   - [`reply-v2-mobile-390.png`](docs/design/qa/captures/reply-v2-mobile-390.png)
   - [`thread-v2-mobile-390.png`](docs/design/qa/captures/thread-v2-mobile-390.png)
   - [`settings-v2-compact-mobile-390.png`](docs/design/qa/captures/settings-v2-compact-mobile-390.png)
-- The 12 latest mobile captures are embedded in the committed all-screen comparison, covering inbox, compose, delivery confirmation, send ritual, traveling list/detail, sealed arrival, read, reply, thread, and settings.
+- The 12 latest mobile captures are embedded in the committed all-screen comparison in this order:
+  1. Inbox list: `/`
+  2. Compose: `/write/:letterId`
+  3. Delivery confirmation: `/write/:letterId/send`
+  4. Post-send ritual: `/write/:letterId/send` after sending (comparison-only capture)
+  5. Traveling list: `/traveling`
+  6. Sealed traveling detail: `/traveling/:letterId` (comparison-only capture)
+  7. Sealed arrival/opening: `/letters/:letterId`
+  8. Read letter: `/letters/:letterId` after opening
+  9. Reply compose: `/letters/:letterId/reply`
+  10. Reply delivery confirmation: `/letters/:letterId/reply/send` (comparison-only capture)
+  11. One-path thread: `/threads/:threadId`
+  12. Settings: `/settings`
+- The three comparison-only captures above account for the difference between the nine individually committed v2 captures and the 12-screen composite.
 - Viewport: CSS `390 x 844`, browser screenshot `390 x 844`, device scale factor `1`
 - Source pixels: full board `1672 x 941`; landing phone crop `202 x 456`
 - Density normalization: browser chrome and source board chrome were excluded; the landing crop was scaled into the comparison canvas at the implementation viewport size. The implementation screenshot is the app viewport only.

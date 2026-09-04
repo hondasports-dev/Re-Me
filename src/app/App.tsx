@@ -26,6 +26,7 @@ export function App() {
   const backPath = appBackPath(location.pathname)
   const compactHeader = showAppChrome
 
+  /** Ends the authenticated session while keeping failures visible in the shell. */
   async function handleLogout(): Promise<void> {
     if (isLoggingOut) {
       return

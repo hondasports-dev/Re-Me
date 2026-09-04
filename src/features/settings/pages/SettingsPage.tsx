@@ -12,6 +12,7 @@ import {
   urlBase64ToUint8Array,
 } from '../model/push'
 
+/** Manages quiet notification availability and the current browser subscription. */
 export function SettingsPage() {
   const upsertMine = useMutation(api.pushSubscriptions.upsertMine)
   const disableMine = useMutation(api.pushSubscriptions.disableMine)

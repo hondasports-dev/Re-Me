@@ -19,6 +19,7 @@ describe('design tokens', () => {
     expect(tokens).toContain('--re-me-font-sans:')
     expect(tokens).toContain('--re-me-font-serif:')
     expect(tokens).toContain('--re-me-space-4:')
+    expect(tokens).toContain('--re-me-space-letter-editor-gap:')
     expect(tokens).toContain('--re-me-radius-panel:')
     expect(tokens).toContain('--re-me-shadow-soft:')
     expect(tokens).toContain('--re-me-motion-duration-standard:')

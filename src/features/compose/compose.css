@@ -364,7 +364,7 @@
 }
 
 .letter-editor {
-  gap: 0.7rem;
+  gap: var(--re-me-space-letter-editor-gap);
 }
 
 .letter-editor__eyebrow,

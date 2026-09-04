@@ -8,6 +8,7 @@ import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { ThreadErrorBoundary } from '../components/ThreadErrorBoundary'
 import { ThreadTimeline } from '../components/ThreadTimeline'
 
+/** Provides the error boundary for the one-path letter thread route. */
 export function ThreadPage() {
   return (
     <ThreadErrorBoundary>
@@ -16,6 +17,7 @@ export function ThreadPage() {
   )
 }
 
+/** Loads and renders the current user's chronological letter thread. */
 function ThreadRoute() {
   const { threadId } = useParams()
   const typedThreadId = threadId as Id<'threads'> | undefined

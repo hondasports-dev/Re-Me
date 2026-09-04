@@ -22,6 +22,7 @@ interface LetterEditorProps {
   photoUploadProgress: number | null
 }
 
+/** Renders the editable paper, attachments, and progression controls for a draft. */
 export function LetterEditor({
   body,
   eyebrow = '今の自分から',
@@ -128,6 +129,7 @@ export function LetterEditor({
   )
 }
 
+/** Maps autosave state to concise assistive status text. */
 function saveLabel(status: LetterEditorProps['saveStatus']): string {
   if (status === 'saving') {
     return '保存しています'
