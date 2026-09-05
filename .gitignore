@@ -20,6 +20,7 @@ migration-artifacts/
 .claude/
 agent/
 skills-lock.json
+.loop/state/
 convex/_generated/ai/
 .tools/
 supabase/database.generated.ts
