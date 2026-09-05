@@ -388,6 +388,32 @@ describe('Convex to D1 migration plan', () => {
     )
     expect(secondCounts).toEqual(firstCounts)
     expect(countRows(database, 'migration_import_keys')).toBe(plan.rows.length)
+
+    const partialDatabase = openMigrationDatabase()
+    partialDatabase.exec(plan.statements[0])
+    executeStatements(partialDatabase, plan.statements)
+    expect(countRows(partialDatabase, 'users')).toBe(1)
+    expect(countRows(partialDatabase, 'migration_import_keys')).toBe(plan.rows.length)
+    partialDatabase.close()
+
+    const unexpectedTargetDatabase = openMigrationDatabase()
+    unexpectedTargetDatabase.exec(plan.statements[0])
+    unexpectedTargetDatabase
+      .prepare("UPDATE users SET email = 'unrelated@example.com' WHERE id = 'user-1'")
+      .run()
+    expect(() => unexpectedTargetDatabase.exec(plan.statements[1])).toThrow()
+    expect(countRows(unexpectedTargetDatabase, 'migration_import_keys')).toBe(0)
+    unexpectedTargetDatabase.close()
+
+    const missingTargetDatabase = openMigrationDatabase()
+    missingTargetDatabase.exec(plan.statements[0])
+    missingTargetDatabase.exec(plan.statements[2])
+    missingTargetDatabase.exec("DELETE FROM users WHERE id = 'user-1'")
+    executeStatements(missingTargetDatabase, plan.statements)
+    expect(countRows(missingTargetDatabase, 'users')).toBe(1)
+    expect(countRows(missingTargetDatabase, 'migration_import_keys')).toBe(plan.rows.length)
+    missingTargetDatabase.close()
+
     expect(() =>
       database
         .prepare(

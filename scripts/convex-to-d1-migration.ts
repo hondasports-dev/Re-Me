@@ -671,7 +671,7 @@ function mapDocument(input: {
       sourceChecksum = checksumWithTargetMapping(document, { r2CutoverId, targetObjectKey })
       break
     }
-    case 'letterDeliveries':
+    case 'letterDeliveries': {
       columns = [
         'id',
         'letter_id',
@@ -696,6 +696,7 @@ function mapDocument(input: {
         timestamp(document, 'createdAt', '_creationTime'),
       ]
       break
+    }
     case 'notificationJobs': {
       const generationToken =
         optionalString(document, 'generationToken') ?? generationTokenFactory(sourceId)
@@ -1167,10 +1168,18 @@ function buildImportStatements(rows: ImportRow[], now: number | undefined): stri
       .map(sqlLiteral)
       .join(', ')
     const conflict = quoteIdentifier(findConflictColumn(row.targetTable))
+    const mapKey = `source_table = ${sqlLiteral(row.sourceTable)} AND source_id = ${sqlLiteral(row.sourceId)}`
+    const matchingTarget = targetMatchCondition(row)
     const importedAt =
       now === undefined ? "CAST(strftime('%s', 'now') AS INTEGER) * 1000" : sqlLiteral(now)
+    // Recover a target row left by a sequential CLI interruption only when the
+    // import map agrees; a mismatched existing row deliberately causes a
+    // unique-key failure in the next statement instead of being adopted.
     statements.push(
-      `INSERT INTO ${quoteIdentifier(row.targetTable)} (${columns}) SELECT ${values} WHERE NOT EXISTS (SELECT 1 FROM ${IMPORT_MAP_TABLE} WHERE source_table = ${sqlLiteral(row.sourceTable)} AND source_id = ${sqlLiteral(row.sourceId)}) OR NOT EXISTS (SELECT 1 FROM ${quoteIdentifier(row.targetTable)} WHERE ${conflict} = ${sqlLiteral(row.targetId)});`,
+      `INSERT INTO ${quoteIdentifier(row.targetTable)} (${columns}) SELECT ${values} WHERE NOT EXISTS (SELECT 1 FROM ${quoteIdentifier(row.targetTable)} WHERE ${conflict} = ${sqlLiteral(row.targetId)}) AND (NOT EXISTS (SELECT 1 FROM ${IMPORT_MAP_TABLE} WHERE ${mapKey}) OR EXISTS (SELECT 1 FROM ${IMPORT_MAP_TABLE} WHERE ${mapKey} AND target_id = ${sqlLiteral(row.targetId)} AND source_checksum = ${sqlLiteral(row.sourceChecksum)}));`,
+    )
+    statements.push(
+      `INSERT INTO ${quoteIdentifier(row.targetTable)} (${columns}) SELECT ${values} WHERE NOT EXISTS (SELECT 1 FROM ${IMPORT_MAP_TABLE} WHERE ${mapKey}) AND EXISTS (SELECT 1 FROM ${quoteIdentifier(row.targetTable)} WHERE ${conflict} = ${sqlLiteral(row.targetId)}) AND NOT EXISTS (SELECT 1 FROM ${quoteIdentifier(row.targetTable)} WHERE ${conflict} = ${sqlLiteral(row.targetId)} AND ${matchingTarget});`,
     )
     statements.push(
       `INSERT INTO ${IMPORT_MAP_TABLE} (source_table, source_id, target_id, source_checksum, imported_at) VALUES (${sqlLiteral(row.sourceTable)}, ${sqlLiteral(row.sourceId)}, ${sqlLiteral(row.targetId)}, ${sqlLiteral(row.sourceChecksum)}, ${importedAt}) ON CONFLICT (source_table, source_id) DO UPDATE SET target_id = excluded.target_id, source_checksum = excluded.source_checksum, imported_at = excluded.imported_at;`,
@@ -1184,6 +1193,18 @@ function buildImportStatements(rows: ImportRow[], now: number | undefined): stri
     )
   }
   return statements
+}
+
+function targetMatchCondition(row: ImportRow): string {
+  return row.columns
+    .map((column, index) => {
+      const value = sqlLiteral(row.values[index])
+      if (row.targetTable === 'letters' && column === 'next_letter_id') {
+        return `(${quoteIdentifier(column)} IS NULL OR ${quoteIdentifier(column)} IS ${value})`
+      }
+      return `${quoteIdentifier(column)} IS ${value}`
+    })
+    .join(' AND ')
 }
 
 function buildRollbackStatements(rows: ImportRow[], r2Objects: R2MigrationObject[]): string[] {

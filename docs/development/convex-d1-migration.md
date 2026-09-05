@@ -50,7 +50,7 @@ pnpm migrate:convex-to-d1 -- --input migration-artifacts/convex-export --sql --o
 pnpm exec wrangler d1 execute re-me-local --local --file=migration-artifacts/rehearsal-import.sql
 ```
 
-`--sql` は SQL artifact を生成するだけで、remote D1 / R2 の操作はしない。target の予期せぬ conflict は statement failure として扱い、そこで停止する。Worker 側で atomic に適用する場合は、生成された statement 配列を D1 `batch()` に渡す。再実行時は `migration_import_keys` が source ID と checksum を照合し、source が変わっていれば `migration_checksum_drift` で停止する。R2 object を持つ row の checksum には `r2-cutover-id` と生成された target key も含むため、別 prefix の artifact を同じ target に混ぜる操作も拒否される。
+`--sql` は SQL artifact を生成するだけで、remote D1 / R2 の操作はしない。target の予期せぬ conflict は statement failure として扱い、そこで停止する。Worker 側で atomic に適用する場合は、生成された statement 配列を D1 `batch()` に渡す。再実行時は `migration_import_keys` が source ID と checksum を照合し、source が変わっていれば `migration_checksum_drift` で停止する。R2 object を持つ row の checksum には `r2-cutover-id` と生成された target key も含むため、別 prefix の artifact を同じ target に混ぜる操作も拒否される。CLIの途中停止でtarget rowだけが先に残った場合は、内容がartifactと一致するとmapを復旧できるが、同じconflict keyの別内容は明示的に失敗する。
 
 返信チェーンの自己参照は、親 letter を先に登録し、`next_letter_id` を全 letter 登録後に確定する二段階で適用する。rollback は先に `next_letter_id` を外してから、返信の子を先に削除する。途中失敗時は同じ artifact を再実行するか、checksum 一致を確認した rollback artifact を isolated target に適用する。
 
