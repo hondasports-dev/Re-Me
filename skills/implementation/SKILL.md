@@ -13,7 +13,7 @@ description: PREPAREのcompact contract（AC/IV/TC、Risk、Controls、Coverage 
 - AC / relevant IVがID付き
 - material assumptions解消済み
 - Risk / Required Controls / Verification plan記録済み
-- specific Human Gate triggerがimplementation前に発生した場合だけ承認済み
+- specific Human Gate triggerがある場合は、対象operation開始前にHuman Gateの明示的な承認を取得済み
 
 前工程を長く再要約せず `task-state.prepare` を参照する。
 
@@ -23,7 +23,7 @@ Issue全文・chat履歴・Requirements Skill全文は、contractが無効化さ
 
 ユーザーがすでに許可したreversible repository edit、review/fix、tests、branch/PR作業について追加permissionを要求せず、ACを満たす具体的な差分まで進める。
 
-R4分類だけを理由にImplementationをHuman Gateで止めない。production / irreversible write等のspecific triggerがある時だけ止める。
+R4分類だけを理由にImplementationをHuman Gateで止めない。production / irreversible / bulk state mutation等のspecific triggerがある時だけ止める。
 
 ## Mid-turn steering
 
@@ -97,7 +97,7 @@ AC本文を再コピーせずIDだけ記録する。
 - private R2 access
 - reply / future thread semantics
 
-production / irreversible effectならHuman Gateへ。
+production / irreversible / bulk state mutation effectが判明した場合は、effect実行前に停止してHuman Gateへ戻る。
 
 ## 終了確認
 
