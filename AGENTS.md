@@ -4,7 +4,8 @@
 
 - Loop / Risk / Controls: `.loop/process.yaml`
 - Loop overview: `.loop/README.md`
-- Current task: `.loop/templates/task-state.yaml`
+- Task-state schema/template: `.loop/templates/task-state.yaml`
+- Current task state (worktree-local, ignored): `.loop/state/<task-id>.yaml`
 - Current state / conditional helper: `skills/*/SKILL.md`
 - Deterministic enforcement: `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs` / `scripts/check-local-e2e-gate.mjs` / `scripts/check-pr-aftercare.mjs`
 
@@ -49,7 +50,8 @@ Skillがpermission確認・停止・未完了を要求すると解釈した場�
 - **R4分類だけを理由にHuman Gateを起動しない。** Human Gateはproduction / irreversible / unresolved material choice等のspecific triggerへ束縛する。
 - required Verification / ReviewがFAIL・BLOCKEDのまま進まない。
 - `PR created`はcheckpoint。通常targetはlatest PR contentの`merge_ready`。`pnpm loop:aftercare` が PASS するまで DONE にしない。required CI の pending/fail と unresolved review thread（レビューツール含む）は飛ばせない。
-- `task-state.findings`をfindingの唯一のsource of truthとする。protected findingはAgent単独defer不可。
+- current instance（`.loop/state/<task-id>.yaml`）の`findings[]`をfindingの唯一のsource of truthとする。protected findingはAgent単独defer不可。
+- tracked templateへtask固有値を書かない。task開始時に`.loop/templates/task-state.yaml`を`.loop/state/<task-id>.yaml`へコピーして使い、current instanceはPRへcommitしない。
 - same tree/contentのEvidenceは再利用し、content deltaだけ再検証する。
 - Process Learningはevent-driven。R3/R4だけを理由に起動しない。
 - scope外改善を勝手に同じPRへ混ぜない。
