@@ -165,14 +165,20 @@ export function parseTableExport(value: string, table?: ConvexSourceTable): Conv
   }
 
   const result: ConvexExport = {}
+  let recognizedTableCount = 0
   for (const [key, rows] of Object.entries(parsed)) {
     if (!isConvexSourceTable(key)) {
       continue
     }
+    recognizedTableCount += 1
     if (!Array.isArray(rows)) {
       throw new Error(`table_must_be_array:${key}`)
     }
     result[key] = rows.map((item, index) => asDocument(item, `${key}:${index + 1}`))
+  }
+  if (recognizedTableCount === 0) {
+    if (table) return { [table]: [asDocument(parsed, `${table}:1`)] }
+    throw new Error('export_root_has_no_known_tables')
   }
   return result
 }
@@ -193,9 +199,7 @@ export function buildMigrationPlan(
     sourceIds.set(table, collectUniqueIds(normalized[table] ?? [], table))
   }
   const userIds = sourceIds.get('users') as Set<string>
-  const threadIds = sourceIds.get('threads') as Set<string>
   const letterIds = sourceIds.get('letters') as Set<string>
-  const attachmentIds = sourceIds.get('letterAttachments') as Set<string>
 
   assertUniqueTokenIdentifiers(normalized.users ?? [])
   assertUserReferences(normalized, userIds)
@@ -205,15 +209,21 @@ export function buildMigrationPlan(
     'userSettings',
     'duplicate_user_settings',
   )
-  assertThreadReferences(normalized, threadIds, userIds)
+  const threadOwners = assertThreadReferences(normalized, userIds)
 
-  const letters = normalizeLetters(normalized.letters ?? [], userIds, threadIds)
+  const letters = normalizeLetters(normalized.letters ?? [], userIds, threadOwners)
   assertReplyGraph(letters, letterIds)
-  assertLetterContentReferences(normalized.letterContents ?? [], letterIds, userIds)
+  assertLetterContentReferences(normalized.letterContents ?? [], letters, userIds)
   assertAttachmentReferences(normalized.letterAttachments ?? [], letterIds, userIds)
   assertChildOwnership(normalized, letters)
-  assertFinalizationReferences(normalized.attachmentFinalizationAttempts ?? [], attachmentIds)
-  assertDeliveryReferences(normalized.letterDeliveries ?? [], letterIds, userIds)
+  const attachmentsById = new Map(
+    (normalized.letterAttachments ?? []).map((attachment) => [
+      requiredId(attachment, 'letterAttachments'),
+      attachment,
+    ]),
+  )
+  assertFinalizationReferences(normalized.attachmentFinalizationAttempts ?? [], attachmentsById)
+  assertDeliveryReferences(normalized.letterDeliveries ?? [], letters, userIds)
   assertNotificationReferences(normalized.notificationJobs ?? [], letterIds, userIds)
   assertPushReferences(normalized.pushSubscriptions ?? [], userIds)
 
@@ -390,7 +400,7 @@ function mapDocument(input: {
 }): ImportRow {
   const { table, document, letters, r2CutoverId, r2Objects, generationTokenFactory } = input
   const sourceId = requiredId(document, table.source)
-  const sourceChecksum = sha256(canonicalJson(document))
+  let sourceChecksum = sha256(canonicalJson(document))
   let targetId = sourceId
   let columns: string[]
   let values: SqlValue[]
@@ -605,6 +615,11 @@ function mapDocument(input: {
         timestamp(document, 'createdAt', '_creationTime'),
         timestamp(document, 'updatedAt', 'createdAt', '_creationTime'),
       ]
+      sourceChecksum = checksumWithTargetMapping(document, {
+        r2CutoverId,
+        r2ObjectKey,
+        uploadObjectKey,
+      })
       break
     }
     case 'attachmentFinalizationAttempts': {
@@ -653,6 +668,7 @@ function mapDocument(input: {
         timestamp(document, 'createdAt', '_creationTime'),
         timestamp(document, 'updatedAt', 'createdAt', '_creationTime'),
       ]
+      sourceChecksum = checksumWithTargetMapping(document, { r2CutoverId, targetObjectKey })
       break
     }
     case 'letterDeliveries':
@@ -757,7 +773,7 @@ function mapDocument(input: {
 function normalizeLetters(
   documents: ConvexDocument[],
   userIds: Set<string>,
-  threadIds: Set<string>,
+  threadOwners: Map<string, string>,
 ): Map<string, LetterRecord> {
   const letters = new Map<string, LetterRecord>()
   for (const document of documents) {
@@ -793,7 +809,11 @@ function normalizeLetters(
       deletedAt: optionalTimestamp(document, 'deletedAt'),
     }
     if (!userIds.has(record.ownerId)) throw new Error(`orphan_owner:letters:${id}`)
-    if (!threadIds.has(record.threadId)) throw new Error(`orphan_thread:letters:${id}`)
+    const threadOwner = threadOwners.get(record.threadId)
+    if (!threadOwner) throw new Error(`orphan_thread:letters:${id}`)
+    if (threadOwner !== record.ownerId) {
+      throw new Error(`letter_thread_owner_mismatch:${id}`)
+    }
     assertLetterState(record)
     if (letters.has(id)) throw new Error(`duplicate_id:letters:${id}`)
     letters.set(id, record)
@@ -867,6 +887,16 @@ function assertLetterState(letter: LetterRecord): void {
     return
   }
 
+  if (letter.openedAt !== null && letter.status !== 'delivered') {
+    throw new Error(`opened_state_inconsistent:${letter.id}`)
+  }
+  if (
+    letter.repliedAt !== null &&
+    (letter.status !== 'delivered' || letter.nextLetterId === null)
+  ) {
+    throw new Error(`reply_state_inconsistent:${letter.id}`)
+  }
+
   if (
     letter.sentAt === null ||
     letter.deliveryMode === null ||
@@ -907,20 +937,24 @@ function assertDeliveryStateCoverage(
 
 function assertLetterContentReferences(
   documents: ConvexDocument[],
-  letterIds: Set<string>,
+  letters: Map<string, LetterRecord>,
   userIds: Set<string>,
 ): void {
   const seen = new Set<string>()
   for (const document of documents) {
     const letterId = requiredString(document, 'letterId', 'letterContents')
-    if (!letterIds.has(letterId)) throw new Error(`orphan_letter_content:${letterId}`)
+    const letter = letters.get(letterId)
+    if (!letter) throw new Error(`orphan_letter_content:${letterId}`)
     const ownerId = requiredString(document, 'ownerId', 'letterContents')
     if (!userIds.has(ownerId)) throw new Error(`orphan_owner:letterContents:${letterId}`)
     if (seen.has(letterId)) throw new Error(`duplicate_letter_content:${letterId}`)
     seen.add(letterId)
-    requiredBody(document)
+    const body = requiredBody(document)
+    if (letter.status !== 'draft' && body.trim().length === 0) {
+      throw new Error(`sent_letter_body_empty:${letterId}`)
+    }
   }
-  for (const letterId of letterIds) {
+  for (const letterId of letters.keys()) {
     if (!seen.has(letterId)) throw new Error(`letter_content_missing:${letterId}`)
   }
 }
@@ -944,18 +978,31 @@ function assertAttachmentReferences(
 
 function assertFinalizationReferences(
   documents: ConvexDocument[],
-  attachmentIds: Set<string>,
+  attachments: Map<string, ConvexDocument>,
 ): void {
   for (const document of documents) {
     const id = requiredId(document, 'attachmentFinalizationAttempts')
     const attachmentId = requiredString(document, 'attachmentId', 'attachmentFinalizationAttempts')
-    if (!attachmentIds.has(attachmentId)) throw new Error(`orphan_finalization_attachment:${id}`)
+    const attachment = attachments.get(attachmentId)
+    if (!attachment) throw new Error(`orphan_finalization_attachment:${id}`)
+    if (optionalString(attachment, 'kind') !== 'photo') {
+      throw new Error(`finalization_photo_required:${id}`)
+    }
+    const attachmentGenerationToken = optionalString(attachment, 'generationToken')
+    const attemptGenerationToken = requiredString(
+      document,
+      'generationToken',
+      'attachmentFinalizationAttempts',
+    )
+    if (!attachmentGenerationToken || attemptGenerationToken !== attachmentGenerationToken) {
+      throw new Error(`finalization_generation_mismatch:${id}`)
+    }
   }
 }
 
 function assertDeliveryReferences(
   documents: ConvexDocument[],
-  letterIds: Set<string>,
+  letters: Map<string, LetterRecord>,
   userIds: Set<string>,
 ): void {
   const seenLetters = new Set<string>()
@@ -963,11 +1010,22 @@ function assertDeliveryReferences(
     const id = requiredId(document, 'letterDeliveries')
     const letterId = requiredString(document, 'letterId', 'letterDeliveries')
     const ownerId = requiredString(document, 'ownerId', 'letterDeliveries')
-    if (!letterIds.has(letterId)) throw new Error(`orphan_delivery:${id}`)
+    const letter = letters.get(letterId)
+    if (!letter) throw new Error(`orphan_delivery:${id}`)
     if (!userIds.has(ownerId)) throw new Error(`orphan_owner:letterDeliveries:${id}`)
+    if (letter.ownerId !== ownerId) throw new Error(`delivery_owner_mismatch:${id}`)
     if (seenLetters.has(letterId)) throw new Error(`duplicate_delivery:${letterId}`)
     seenLetters.add(letterId)
-    enumValue(document, 'status', DELIVERY_STATUSES, 'letterDeliveries')
+    const status = enumValue(document, 'status', DELIVERY_STATUSES, 'letterDeliveries')
+    if (letter.status === 'traveling' && letter.deletedAt === null && status !== 'pending') {
+      throw new Error(`delivery_state_mismatch:${id}:traveling:${status}`)
+    }
+    if (letter.status === 'traveling' && letter.deletedAt !== null && status !== 'canceled') {
+      throw new Error(`delivery_state_mismatch:${id}:deleted_traveling:${status}`)
+    }
+    if (letter.status === 'delivered' && status !== 'consumed') {
+      throw new Error(`delivery_state_mismatch:${id}:delivered:${status}`)
+    }
     timestamp(document, 'scheduledAt')
     nonNegativeInteger(document, 'attemptCount', 'letterDeliveries')
   }
@@ -1025,7 +1083,8 @@ function assertPushReferences(documents: ConvexDocument[], userIds: Set<string>)
     const ownerId = requiredString(document, 'ownerId', 'pushSubscriptions')
     const endpoint = requiredString(document, 'endpoint', 'pushSubscriptions')
     if (!userIds.has(ownerId)) throw new Error(`orphan_owner:pushSubscriptions:${id}`)
-    if (endpoints.has(endpoint)) throw new Error(`duplicate_push_endpoint:${endpoint}`)
+    assertHttpsPushEndpoint(endpoint, id)
+    if (endpoints.has(endpoint)) throw new Error(`duplicate_push_endpoint:${id}`)
     endpoints.add(endpoint)
   }
 }
@@ -1052,21 +1111,20 @@ function assertUserReferences(input: ConvexExport, userIds: Set<string>): void {
   }
 }
 
-function assertThreadReferences(
-  input: ConvexExport,
-  threadIds: Set<string>,
-  userIds: Set<string>,
-): void {
+function assertThreadReferences(input: ConvexExport, userIds: Set<string>): Map<string, string> {
+  const threadOwners = new Map<string, string>()
   for (const thread of input.threads ?? []) {
     const id = requiredId(thread, 'threads')
     const ownerId = requiredString(thread, 'ownerId', 'threads')
     if (!userIds.has(ownerId)) throw new Error(`orphan_owner:threads:${id}`)
+    threadOwners.set(id, ownerId)
   }
   for (const letter of input.letters ?? []) {
     const id = requiredId(letter, 'letters')
     const threadId = requiredString(letter, 'threadId', 'letters')
-    if (!threadIds.has(threadId)) throw new Error(`orphan_thread:letters:${id}`)
+    if (!threadOwners.has(threadId)) throw new Error(`orphan_thread:letters:${id}`)
   }
+  return threadOwners
 }
 
 function assertUniqueTokenIdentifiers(users: ConvexDocument[]): void {
@@ -1335,6 +1393,23 @@ function canonicalJson(value: unknown): string {
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function checksumWithTargetMapping(
+  document: ConvexDocument,
+  targetMapping: Record<string, SqlValue>,
+): string {
+  return sha256(canonicalJson({ source: document, targetMapping }))
+}
+
+function assertHttpsPushEndpoint(endpoint: string, sourceId: string): void {
+  try {
+    const parsed = new URL(endpoint)
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password)
+      throw new Error('invalid')
+  } catch {
+    throw new Error(`push_endpoint_invalid:${sourceId}`)
+  }
 }
 
 function sqlLiteral(value: SqlValue): string {

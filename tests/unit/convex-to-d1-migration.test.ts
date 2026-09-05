@@ -212,7 +212,9 @@ function makeReplyExport(): ConvexExport {
   ]
   replyExport.letterAttachments = []
   replyExport.attachmentFinalizationAttempts = []
-  replyExport.letterDeliveries = [{ ...replyExport.letterDeliveries![0], letterId: 'z-parent' }]
+  replyExport.letterDeliveries = [
+    { ...replyExport.letterDeliveries![0], letterId: 'z-parent', status: 'consumed' },
+  ]
   replyExport.notificationJobs = [{ ...replyExport.notificationJobs![0], letterId: 'z-parent' }]
   return replyExport
 }
@@ -323,6 +325,17 @@ describe('Convex to D1 migration plan', () => {
     expect(second.sourceChecksum).toBe(first.sourceChecksum)
     expect(second.statements).toEqual(first.statements)
 
+    const alternateDatabase = openMigrationDatabase()
+    executeStatements(alternateDatabase, first.statements)
+    const alternate = buildMigrationPlan(makeExport(), {
+      now: baseTime + 1,
+      r2CutoverId: 'rehearsal-sqlite-alternate',
+    })
+    expect(() => executeStatements(alternateDatabase, alternate.statements)).toThrow(
+      'migration_checksum_drift',
+    )
+    alternateDatabase.close()
+
     expect(() => assertExecutionAllowed('production', 'sql')).toThrow(
       'production_human_gate_required',
     )
@@ -400,6 +413,25 @@ describe('Convex to D1 migration plan', () => {
     orphan.letterContents = [{ ...orphan.letterContents![0], ownerId: 'missing-user' }]
     expect(() => buildMigrationPlan(orphan)).toThrow('orphan_owner:letterContents:content-1')
 
+    const threadOwnerMismatch = makeExport()
+    threadOwnerMismatch.users = [
+      ...threadOwnerMismatch.users!,
+      {
+        _id: 'user-2',
+        _creationTime: baseTime,
+        tokenIdentifier: 'auth0|user-2',
+        email: 'other@example.com',
+        name: 'Other user',
+        pictureUrl: null,
+        createdAt: baseTime,
+        updatedAt: baseTime,
+      },
+    ]
+    threadOwnerMismatch.threads = [{ ...threadOwnerMismatch.threads![0], ownerId: 'user-2' }]
+    expect(() => buildMigrationPlan(threadOwnerMismatch)).toThrow(
+      'letter_thread_owner_mismatch:letter-1',
+    )
+
     const invalidWindow = makeExport()
     invalidWindow.letters = [
       makeLetter('letter-1', {
@@ -410,6 +442,52 @@ describe('Convex to D1 migration plan', () => {
     expect(() => buildMigrationPlan(invalidWindow)).toThrow(
       'delivery_window_order_invalid:letter-1',
     )
+
+    const consumedTraveling = makeExport()
+    consumedTraveling.letterDeliveries = [
+      { ...consumedTraveling.letterDeliveries![0], status: 'consumed' },
+    ]
+    expect(() => buildMigrationPlan(consumedTraveling)).toThrow(
+      'delivery_state_mismatch:delivery-1:traveling:consumed',
+    )
+
+    const openedTraveling = makeExport()
+    openedTraveling.letters = [makeLetter('letter-1', { openedAt: baseTime + 1 })]
+    expect(() => buildMigrationPlan(openedTraveling)).toThrow('opened_state_inconsistent:letter-1')
+
+    const emptySent = makeExport()
+    emptySent.letterContents = [{ ...emptySent.letterContents![0], body: '' }]
+    expect(() => buildMigrationPlan(emptySent)).toThrow('sent_letter_body_empty:letter-1')
+
+    const wrongFinalizationKind = makeExport()
+    wrongFinalizationKind.letterAttachments = [
+      { ...wrongFinalizationKind.letterAttachments![0], kind: 'location', locationLabel: '東京' },
+    ]
+    expect(() => buildMigrationPlan(wrongFinalizationKind)).toThrow(
+      'finalization_photo_required:finalization-1',
+    )
+
+    const wrongFinalizationGeneration = makeExport()
+    wrongFinalizationGeneration.letterAttachments = [
+      { ...wrongFinalizationGeneration.letterAttachments![0], generationToken: 'other-token' },
+    ]
+    expect(() => buildMigrationPlan(wrongFinalizationGeneration)).toThrow(
+      'finalization_generation_mismatch:finalization-1',
+    )
+
+    const insecurePush = makeExport()
+    insecurePush.pushSubscriptions = [
+      { ...insecurePush.pushSubscriptions![0], endpoint: 'http://push.example/subscription-1' },
+    ]
+    expect(() => buildMigrationPlan(insecurePush)).toThrow('push_endpoint_invalid:push-1')
+
+    const duplicatePush = makeExport()
+    duplicatePush.pushSubscriptions = [
+      ...duplicatePush.pushSubscriptions!,
+      { ...duplicatePush.pushSubscriptions![0], _id: 'push-2' },
+    ]
+    expect(() => buildMigrationPlan(duplicatePush)).toThrow('duplicate_push_endpoint:push-2')
+    expect(() => buildMigrationPlan(duplicatePush)).not.toThrow('https://push.example')
 
     const branching = makeExport()
     branching.letters = [
@@ -445,6 +523,8 @@ describe('Convex to D1 migration plan', () => {
     const row = JSON.stringify({ _id: 'user-1', _creationTime: baseTime })
     expect(parseJsonLines(`${row}\n`, 'users')).toEqual([JSON.parse(row)])
     expect(parseTableExport(`[${row}]`, 'users')).toEqual({ users: [JSON.parse(row)] })
+    expect(parseTableExport(row, 'users')).toEqual({ users: [JSON.parse(row)] })
+    expect(() => parseTableExport(row)).toThrow('export_root_has_no_known_tables')
     expect(() => parseJsonLines('{not-json}', 'users')).toThrow('invalid_json_line:users:1')
     expect(() => parseTableExport('{"users":{}}')).toThrow('table_must_be_array:users')
   })
