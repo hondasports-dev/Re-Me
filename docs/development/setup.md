@@ -55,7 +55,6 @@ transition の source of truth や。ブラウザは TanStack Query で Worker A
 VITE_AUTH0_DOMAIN
 VITE_AUTH0_CLIENT_ID
 VITE_API_BASE_URL
-VITE_WEB_PUSH_VAPID_PUBLIC_KEY
 ```
 
 Browser へ出さない:
@@ -70,6 +69,8 @@ E2E_AUTH0_PASSWORD
 
 `VITE_*` は公開値だけや。`VITE_API_BASE_URL` は local では空（same-origin）、Preview /
 Production では固定 Worker URL を指定する。
+Web Push の公開鍵は Worker の `/api/push/config` から実行時に取得する。GitHub の
+build variable と二重管理せず、`VAPID_PUBLIC_KEY` は Worker secret のままにする。
 
 ## Auth0 DEV のセットアップ
 
