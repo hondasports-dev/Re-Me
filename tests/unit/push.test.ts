@@ -52,10 +52,11 @@ describe('push client model', () => {
     expect(shouldReleaseBrowserPush(true)).toBe(true)
   })
 
-  it('opens inbox from the service worker notification click', () => {
+  it('keeps browser fetches outside the service worker while owning notification clicks', () => {
     const source = readFileSync(resolve('public/sw.js'), 'utf8')
     expect(source).toContain("self.clients.openWindow('/')")
-    expect(source).toContain('event.respondWith(fetch(event.request))')
+    expect(source).not.toContain("self.addEventListener('fetch'")
+    expect(source).not.toContain('event.respondWith(fetch(event.request))')
     expect(source).not.toContain('caches')
     expect(source).not.toContain('letterId')
     expect(source).not.toContain('scheduledAt')

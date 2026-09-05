@@ -28,7 +28,3 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   event.waitUntil(self.clients.openWindow('/'))
 })
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request))
-})
