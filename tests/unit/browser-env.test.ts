@@ -7,22 +7,22 @@ import {
 } from '../../src/shared/config/browser-env'
 
 describe('readBrowserAuthConfig', () => {
-  it('stays unconfigured when Auth0 and Convex env are absent', () => {
+  it('stays unconfigured when Auth0 and API env are absent', () => {
     expect(readBrowserAuthConfig({})).toEqual({ kind: 'unconfigured' })
   })
 
-  it('reads a live Auth0 + Convex configuration', () => {
+  it('reads a live Auth0 + Worker API configuration', () => {
     expect(
       readBrowserAuthConfig({
         VITE_AUTH0_CLIENT_ID: 'spa-client-id',
         VITE_AUTH0_DOMAIN: 're-me-dev.auth0.com',
-        VITE_CONVEX_URL: 'https://happy-animal-123.convex.cloud',
+        VITE_API_BASE_URL: 'https://re-me.example.com',
       }),
     ).toEqual({
       kind: 'live',
       auth0ClientId: 'spa-client-id',
       auth0Domain: 're-me-dev.auth0.com',
-      convexUrl: 'https://happy-animal-123.convex.cloud',
+      apiBaseUrl: 'https://re-me.example.com',
     })
   })
 
@@ -38,12 +38,12 @@ describe('readBrowserAuthConfig', () => {
     {
       VITE_AUTH0_CLIENT_ID: 'spa-client-id',
       VITE_AUTH0_DOMAIN: 'https://re-me-dev.auth0.com',
-      VITE_CONVEX_URL: 'https://happy-animal-123.convex.cloud',
+      VITE_API_BASE_URL: 'https://re-me.example.com',
     },
     {
       VITE_AUTH0_CLIENT_ID: 'spa-client-id',
       VITE_AUTH0_DOMAIN: 're-me-dev.auth0.com',
-      VITE_CONVEX_URL: 'http://example.com',
+      VITE_API_BASE_URL: 'http://example.com',
     },
   ])('rejects a malformed live configuration without returning values', (env) => {
     expect(() => readBrowserAuthConfig(env)).toThrowError('browser_auth_configuration_invalid')
@@ -57,7 +57,7 @@ describe('readBrowserAuthConfig', () => {
 })
 
 describe('assertBrowserSafeViteEnv', () => {
-  it('rejects Convex deploy keys and Auth0 secrets under VITE names', () => {
+  it('rejects backend deploy keys and Auth0 secrets under VITE names', () => {
     expect(() =>
       assertBrowserSafeViteEnv({
         VITE_CONVEX_DEPLOY_KEY: 'cvx_prod_must_not_bundle',
@@ -82,7 +82,7 @@ describe('assertBrowserSafeViteEnv', () => {
       assertBrowserSafeViteEnv({
         VITE_AUTH0_CLIENT_ID: 'spa-client-id',
         VITE_AUTH0_DOMAIN: 're-me-dev.auth0.com',
-        VITE_CONVEX_URL: 'https://happy-animal-123.convex.cloud',
+        VITE_API_BASE_URL: 'https://re-me.example.com',
         VITE_WEB_PUSH_VAPID_PUBLIC_KEY: 'vapid-public',
       }),
     ).not.toThrow()

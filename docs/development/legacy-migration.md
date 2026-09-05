@@ -1,6 +1,6 @@
 # Legacy data migration
 
-この文書は [Issue #30](https://github.com/hondasports-dev/Re-Me/issues/30) の正本である。runtime の正本は `convex/schema.ts`。`supabase/migrations/` は比較用 legacy であり、application backend ではない。
+この文書は [Issue #30](https://github.com/hondasports-dev/Re-Me/issues/30) の legacy Supabase mapping 記録や。現在のapplication runtimeの正本はCloudflare Worker + D1 + R2 + Queueで、`convex/` と `supabase/migrations/` はrollback window中のlegacy source / 比較資料として保持する。Convex exportからD1へ実際に移す手順は [convex-d1-migration.md](convex-d1-migration.md) を正とする。
 
 Production data の export / import / 削除、credential の破棄は **Human Gate** なしに実行しない。実装の手順を読んでも、承認前に production へ書き込まない。
 
@@ -8,14 +8,14 @@ Production data の export / import / 削除、credential の破棄は **Human G
 
 | 対象 | 状態 | 判断 |
 |---|---|---|
-| Production Auth0 / Convex / Cloudflare / R2 | [Issue #38](https://github.com/hondasports-dev/Re-Me/issues/38) が未着手 | production stack は未作成 |
-| Production user / letter / contents / attachment / delivery / job | production stack が無い | **import 対象テーブルの production 行は合計 0** |
+| Production Auth0 / legacy Convex | [Issue #38](https://github.com/hondasports-dev/Re-Me/issues/38) が未着手 | Auth0 PROD / Convex export は未準備 |
+| Production Worker / D1 / R2 / Queue | resource は作成済み、schemaのみ適用 | **import 対象テーブルの production 行は合計 0** |
 | git の `supabase/migrations/` | schema / RLS / RPC のみ | dump はリポジトリに無い |
 | git の production dump / CSV | 無し | 秘密の dump を commit しない |
 | 共有 Preview Convex | CI E2E 用 | **移行元にしない**。E2E データは破棄してよい |
 | local Convex / local Supabase | 開発者マシン依存 | 移行元にしない。必要なら各自が破棄 |
 
-**Migration necessity:** `no_production_import`。Auth0 + Convex runtime への feature 移行は完了している。残作業は (1) mapping と rollback を cutover 前に固定する (2) `#38` のあとに production 行が生まれてから、この手順で再棚卸しする (3) rollback window 後に legacy artifact を片付ける。
+**Migration necessity:** `no_production_import`。Worker runtimeへのfeature移行は完了しているが、Convex production exportがまだ無く、実データimportは未実施や。残作業は (1) Convex→D1 mapping とrollbackを固定する (2) export取得後にこのrunbookで再棚卸しする (3) cutover後のrollback windowを終えてからlegacy artifactを片付ける。
 
 後から production dump や live production 行が見つかったら `import_required` に切り替え、下の mapping で dry-run する。判定は **dump の有無、または全 import 対象テーブル（`LEGACY_PUBLIC_TABLES` + `LEGACY_PRIVATE_TABLES`）の合計行数** で行う。user / letter が 0 でも orphan の `letter_contents` 等があれば省略しない。`#38` の production stack が未作成でも、live 行が 1 件以上あれば import を省略しない。判定ヘルパーは `countImportTargetRows` と `decideMigrationNecessity`。
 

@@ -14,7 +14,8 @@ import {
 describe('sync-worktree-e2e-env', () => {
   it('copies missing Auth0 keys without overwriting existing ones', () => {
     const plan = planE2eAuth0Sync({
-      currentText: 'E2E_AUTH0_EMAIL=existing@example.com\nVITE_CONVEX_URL=http://127.0.0.1:3210\n',
+      currentText:
+        'E2E_AUTH0_EMAIL=existing@example.com\nVITE_API_BASE_URL=http://127.0.0.1:8787\n',
       sourceText:
         'E2E_AUTH0_EMAIL=canonical@example.com\nE2E_AUTH0_PASSWORD=canonical-secret\nE2E_AUTH0_CONNECTION=Username-Password-Authentication\n',
     })
@@ -22,7 +23,7 @@ describe('sync-worktree-e2e-env', () => {
     expect(plan.copied).toEqual(['E2E_AUTH0_PASSWORD', 'E2E_AUTH0_CONNECTION'])
     expect(plan.alreadyPresent).toEqual(['E2E_AUTH0_EMAIL'])
     expect(plan.nextText).toContain('E2E_AUTH0_EMAIL=existing@example.com')
-    expect(plan.nextText).toContain('VITE_CONVEX_URL=http://127.0.0.1:3210')
+    expect(plan.nextText).toContain('VITE_API_BASE_URL=http://127.0.0.1:8787')
     expect(plan.nextText).toContain('E2E_AUTH0_PASSWORD=canonical-secret')
     expect(plan.nextText).not.toContain('canonical@example.com')
   })

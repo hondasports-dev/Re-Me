@@ -1,17 +1,15 @@
 import { VisuallyHidden } from '@mantine/core'
-import { useConvex, useMutation } from 'convex/react'
 import { useEffect, useState } from 'react'
 
-import { api } from '../../../convex/_generated/api'
+import { useApiClient } from '../../shared/api/client'
+import { resolveApiSessionState } from './api-session'
 import { useAuthRuntime } from './AuthRuntimeProvider'
-import { resolveConvexSessionState } from './convex-session'
 
 const PROVISION_ATTEMPTS = 5
 
 export function CurrentUserSession() {
   const { readiness } = useAuthRuntime()
-  const convex = useConvex()
-  const ensureCurrentUser = useMutation(api.users.ensureCurrentUser)
+  const apiClient = useApiClient()
   const isAuthenticated = readiness.status === 'authenticated'
   const [provisionedUser, setProvisionedUser] = useState<{ userId: string } | null>(null)
   const [provisionError, setProvisionError] = useState<Error | null>(null)
@@ -30,8 +28,8 @@ export function CurrentUserSession() {
 
       for (let attempt = 0; attempt < PROVISION_ATTEMPTS; attempt += 1) {
         try {
-          await ensureCurrentUser({})
-          const me = await convex.query(api.users.me, {})
+          await apiClient.request('/api/users/ensure', { method: 'POST', body: '{}' })
+          const me = await apiClient.request<{ userId: string } | null>('/api/users/me')
 
           if (cancelled) {
             return
@@ -62,9 +60,9 @@ export function CurrentUserSession() {
     return () => {
       cancelled = true
     }
-  }, [convex, ensureCurrentUser, isAuthenticated])
+  }, [apiClient, isAuthenticated])
 
-  const state = resolveConvexSessionState({
+  const state = resolveApiSessionState({
     isAuthenticated,
     provisionError,
     user: provisionedUser,
@@ -72,7 +70,7 @@ export function CurrentUserSession() {
 
   return (
     <VisuallyHidden>
-      <span data-state={state} data-testid="convex-session">
+      <span data-state={state} data-testid="api-session">
         {state}
       </span>
     </VisuallyHidden>

@@ -8,29 +8,26 @@ describe('production environment runbook', () => {
   const packageJson = readFileSync(resolve('package.json'), 'utf8')
 
   it('does not create live production resources from the runbook itself', () => {
-    expect(runbook).toContain(
-      'この文書を読んでも Auth0 / Convex / Cloudflare の本番リソースは作らない',
-    )
+    expect(runbook).toContain('この文書を読んでも Auth0 / Cloudflare の本番リソースは作らない')
     expect(runbook).toContain('Human Gate')
     expect(runbook).toContain('https://re-me.hondasports.workers.dev')
     expect(runbook).toContain('https://re-me-preview.hondasports.workers.dev')
     expect(runbook).toContain('Re:Me PROD')
-    expect(runbook).toContain('CONVEX_PRODUCTION_DEPLOY_KEY')
-    expect(runbook).toContain('CONVEX_PREVIEW_DEPLOY_KEY')
+    expect(runbook).toContain('CLOUDFLARE_API_TOKEN')
     expect(runbook).toContain('re-me-production-attachments')
+    expect(runbook).toContain('pnpm deploy:production')
     expect(runbook).not.toMatch(/convex deploy --prod/)
   })
 
   it('keeps production example env files committable and out of the default deploy script', () => {
     expect(gitignore).toContain('!.env.production.example')
-    expect(gitignore).toContain('!.env.convex-production.example')
     expect(readFileSync(resolve('.env.production.example'), 'utf8')).toContain(
       'CLOUDFLARE_ENV=production',
     )
-    expect(readFileSync(resolve('.env.convex-production.example'), 'utf8')).toContain(
-      'Preview key は入れない',
-    )
     expect(JSON.parse(packageJson).scripts.deploy).toBe('pnpm deploy:preview')
-    expect(JSON.parse(packageJson).scripts).not.toHaveProperty('deploy:production')
+    expect(JSON.parse(packageJson).scripts['build:production']).toBe(
+      'node scripts/cloudflare-build.mjs production',
+    )
+    expect(JSON.parse(packageJson).scripts['deploy:production']).toContain('pnpm build:production')
   })
 })

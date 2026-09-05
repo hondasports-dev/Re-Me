@@ -1,21 +1,20 @@
 import { Auth0Provider } from '@auth0/auth0-react'
 import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
-import { ConvexProviderWithAuth } from 'convex/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { RouterProvider } from 'react-router'
 
 import { AuthRuntimeProvider } from '../features/auth/AuthRuntimeProvider'
 import { unconfiguredAuthRuntime, type AuthRuntime } from '../features/auth/auth-runtime'
 import { LiveAuthRuntimeProvider } from '../features/auth/LiveAuthRuntimeProvider'
-import { useConvexAuthFromAuth0 } from '../features/auth/useConvexAuthFromAuth0'
 import { createAppRouter } from '../router'
 import {
   createAuth0RedirectUri,
   readBrowserAuthConfig,
   type LiveBrowserAuthConfig,
 } from '../shared/config/browser-env'
-import { createConvexClient } from '../shared/convex/client'
+import { ApiClientProvider } from '../shared/api/client'
 import { reMeCssVariablesResolver, reMeTheme } from '../styles/theme'
 
 import '@mantine/core/styles.css'
@@ -28,18 +27,23 @@ interface AppProvidersProps {
 
 export function AppProviders({ children, runtime }: AppProvidersProps) {
   const [router] = useState(() => createAppRouter())
+  const [queryClient] = useState(() => new QueryClient())
   const tree = children ?? <RouterProvider router={router} />
 
   return (
-    <MantineProvider
-      cssVariablesResolver={reMeCssVariablesResolver}
-      defaultColorScheme="light"
-      forceColorScheme="light"
-      theme={reMeTheme}
-    >
-      <Notifications position="top-center" />
-      <AuthTree runtime={runtime}>{tree}</AuthTree>
-    </MantineProvider>
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider
+        cssVariablesResolver={reMeCssVariablesResolver}
+        defaultColorScheme="light"
+        forceColorScheme="light"
+        theme={reMeTheme}
+      >
+        <Notifications position="top-center" />
+        <ApiClientProvider>
+          <AuthTree runtime={runtime}>{tree}</AuthTree>
+        </ApiClientProvider>
+      </MantineProvider>
+    </QueryClientProvider>
   )
 }
 
@@ -64,8 +68,6 @@ function LiveAuthProviders({
   children: ReactNode
   config: LiveBrowserAuthConfig
 }) {
-  const [convexClient] = useState(() => createConvexClient(config.convexUrl))
-
   return (
     <Auth0Provider
       authorizationParams={{
@@ -78,9 +80,7 @@ function LiveAuthProviders({
       useRefreshTokens
       useRefreshTokensFallback
     >
-      <ConvexProviderWithAuth client={convexClient} useAuth={useConvexAuthFromAuth0}>
-        <LiveAuthRuntimeProvider>{children}</LiveAuthRuntimeProvider>
-      </ConvexProviderWithAuth>
+      <LiveAuthRuntimeProvider apiBaseUrl={config.apiBaseUrl}>{children}</LiveAuthRuntimeProvider>
     </Auth0Provider>
   )
 }

@@ -1,10 +1,8 @@
 import { useReducedMotion } from '@mantine/hooks'
-import { useMutation, useQuery } from 'convex/react'
+import { api, useMutation, useQuery } from '../../../shared/api/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { ComposeUnavailableScreen } from '../components/ComposeUnavailableScreen'
 import { DeliverySealForm } from '../components/DeliverySealForm'
@@ -26,14 +24,10 @@ type DraftSnapshot = {
 
 export function ComposeSendPage() {
   const { letterId } = useParams()
-  return <ComposeSendSession letterId={letterId as Id<'letters'> | undefined} />
+  return <ComposeSendSession letterId={letterId as string | undefined} />
 }
 
-export function ComposeSendSession({
-  letterId: typedLetterId,
-}: {
-  letterId: Id<'letters'> | undefined
-}) {
+export function ComposeSendSession({ letterId: typedLetterId }: { letterId: string | undefined }) {
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion() ?? false
   const [sent, setSent] = useState(false)
@@ -139,7 +133,7 @@ function LoadedComposeSend({
   sending,
 }: {
   draft: DraftSnapshot
-  letterId: Id<'letters'>
+  letterId: string
   onSendFailed: () => void
   onSendingStart: () => void
   onSent: () => void

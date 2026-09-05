@@ -23,7 +23,8 @@ describe('Cloudflare D1 migration foundation', () => {
     expect(wrangler).toContain('re-me-preview-notifications')
     expect(wrangler).toContain('re-me-production-notifications')
     expect(wrangler).toMatch(/"crons": \["\*\/5 \* \* \* \*"\]/)
-    expect(wrangler).not.toContain('"database_id"')
+    expect(wrangler).toContain('"database_id": "d688b3a0-a948-4f9e-9e21-49050e2f79c8"')
+    expect(wrangler).toContain('"database_id": "e129d7d0-2f45-4b17-9ebb-0eb5f781498f"')
     expect(wrangler).not.toContain('CLOUDFLARE_API_TOKEN')
   })
 

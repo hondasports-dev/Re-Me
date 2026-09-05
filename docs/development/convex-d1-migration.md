@@ -1,10 +1,27 @@
-# Convex → D1 移行リハーサル
+# Convex → D1 移行 runbook
 
-この手順は Issue #60 の移行 foundation 用や。Production の export / R2 copy / D1 import / cutover は、resource inventory と明示 Human Gate が揃うまで実行したらあかん。
+Issue #60のdata migration用や。現在のapplication runtimeはCloudflare Worker + D1 + R2 + Queueへ切り替え済みの実装で、Convexはproduction cutoverのsource / rollback windowが終わるまで保持するlegacy backendや。
+
+Productionのexport、R2 copy、D1 import、traffic切替、Convex data削除は、resource inventoryと明示Human Gateが揃うまで実行したらあかん。
+
+## 現在のinventory
+
+| 対象 | 状態 |
+|---|---|
+| Production D1 `re-me` | 作成済み、`0001` / `0002`適用済み、data row 0 |
+| Production R2 `re-me-production-attachments` | 作成済み、object 0 |
+| Production Queue `re-me-production-notifications` | 作成済み、message 0 |
+| Preview D1 / R2 / Queue | 分離済み、Preview用schema適用済み |
+| Convex production export | 未取得。実データimportは未実施 |
+| source R2 inventory / credential | 未取得。R2 copyは未実施 |
+
+空のtarget resourceを作ってschemaを適用しただけではdata migration完了とはみなさへん。
 
 ## 1. 入力 export
 
-`migration-artifacts/` 以下に、Convex document を table ごとの JSONL として置く。1 行 1 document で、少なくとも `_id` と `_creationTime` を含めること。次の table 名に対応する。
+operatorがConvex productionから取得したexportを、git管理外の `migration-artifacts/` に置く。tableごとのJSONLなら1行1documentで、少なくとも `_id` と `_creationTime` を含める。raw dump、R2 inventory、secretをrepositoryへcommitせえへん。
+
+対応table:
 
 ```text
 users
@@ -19,69 +36,108 @@ notificationJobs
 pushSubscriptions
 ```
 
-単一 JSON object（`{ "users": [...] }`）、table 単位の JSON array / JSONL、または table ファイルを含む directory も読める。export の raw dump、R2 inventory、secret は repository に置かへん。
+単一JSON object、table単位のJSON array / JSONL、table fileを含むdirectoryを読める。Convex Dashboard / export toolの実際の形式は取得後に変換し、変換前後のchecksumを保存する。
 
-## 2. dry-run（既定）
+## 2. dry-run
 
-まず検証だけする。これは D1 / R2 へ接続せず、source checksum、row count、R2 object count、warning を表示する。
+まずtargetへ接続せず検証する。
 
-```bash
+```text
 pnpm migrate:convex-to-d1 -- --input migration-artifacts/convex-export
 ```
 
-検証で拒否する代表例は次の通りや。
+dry-runはsource checksum、row count、R2 object count、warningを表示する。次を検出したらSQLを生成せず停止する。
 
-- owner / thread / letter / attachment の orphan
-- sent letter の delivery 欠落、draft の delivery
-- `deliveryWindowStart > deliveryWindowEnd`
-- sent state の必須時刻欠落
-- reply parent の owner / thread 不一致、deleted / delivered でない親、cycle、branch
-- photo の R2 object 欠落、location の label 欠落
+- owner / thread / letter / attachmentのorphan
+- sent letterのdelivery欠落、draftのdelivery
+- delivery windowの逆転、sent stateの必須時刻欠落
+- reply parentのowner / thread不一致、cycle、branch
+- deleted / delivered stateの矛盾
+- photoのR2 object欠落、location label欠落
 - duplicate content / delivery / notification / push endpoint
 - invalid enum、timestamp、body size、identity mapping
 
-## 3. local SQL と schema
+## 3. SQL artifact と local rehearsal
 
-schema migration は local D1 にだけ適用する。
+schemaをlocal D1へ適用し、同じartifactを二回実行できることとchecksum driftで止まることを確認する。
 
-```bash
-pnpm d1:migrations:apply:local
+```text
+pnpm exec wrangler d1 migrations apply re-me-local --local
 pnpm migrate:convex-to-d1 -- --input migration-artifacts/convex-export --sql --output migration-artifacts/rehearsal-import.sql --rollback-output migration-artifacts/rehearsal-rollback.sql --manifest-output migration-artifacts/rehearsal-manifest.json --r2-cutover-id rehearsal-20260905
 pnpm exec wrangler d1 execute re-me-local --local --file=migration-artifacts/rehearsal-import.sql
-```
-
-`--sql` は SQL artifact を生成するだけで、remote D1 / R2 の操作はしない。target の予期せぬ conflict は statement failure として扱い、そこで停止する。Worker 側で atomic に適用する場合は、生成された statement 配列を D1 `batch()` に渡す。再実行時は `migration_import_keys` が source ID と checksum を照合し、source が変わっていれば `migration_checksum_drift` で停止する。R2 object を持つ row の checksum には `r2-cutover-id` と生成された target key も含むため、別 prefix の artifact を同じ target に混ぜる操作も拒否される。CLIの途中停止でtarget rowだけが先に残った場合は、内容がartifactと一致するとmapを復旧できるが、同じconflict keyの別内容は明示的に失敗する。
-
-返信チェーンの自己参照は、親 letter を先に登録し、`next_letter_id` を全 letter 登録後に確定する二段階で適用する。rollback は先に `next_letter_id` を外してから、返信の子を先に削除する。途中失敗時は同じ artifact を再実行するか、checksum 一致を確認した rollback artifact を isolated target に適用する。
-
-生成される manifest の R2 list は、source key、target key、etag、byte size を記録するだけや。R2 object の copy と checksum verification が完了する前に、D1 の attachment row を本番へ入れたらあかん。
-
-`letterDeliveries.scheduledAt` は配送判定用の private data として D1 に保持するが、browser-facing metadata へは含めへん。
-
-## 4. rollback rehearsal
-
-import の row count、relationship、owner、sealed read denial、private schedule projection を確認してから、同じ isolated local target に rollback SQL を適用する。rollback は source map と checksum が一致する行だけを対象にする。
-
-```bash
+pnpm exec wrangler d1 execute re-me-local --local --file=migration-artifacts/rehearsal-import.sql
 pnpm exec wrangler d1 execute re-me-local --local --file=migration-artifacts/rehearsal-rollback.sql
 ```
 
-R2 の rollback は manifest の target key を確認し、copy 済み object を別途削除する。削除は production では必ず Human Gate の対象や。
+`--sql` はSQL / rollback / manifestを生成するだけで、remote D1 / R2 APIを呼ばへん。`migration_import_keys` がsource IDとchecksumを保持し、partial retry、同一artifactの再実行、変更されたsourceの `migration_checksum_drift` を扱う。
 
-## 5. Preview / Production の扱い
+返信chainは親を先に登録し、全letter登録後に `next_letter_id` を設定する。rollbackは `next_letter_id` を外してから子を削除する。
 
-Wrangler の config には local / `preview` / `production` の resource 名を分けて書いてある。実在する database ID、bucket、queue が作成されるまでは placeholder の resource name のままや。remote command に `--remote` を付けたり、Production binding を手動で作ったりするのはこの task の範囲外や。
+## 4. R2 copy rehearsal
 
-Production 用 SQL artifact を生成する場合も、意図を明示するため `--environment production --human-gate` が必要や。ただしこれは SQL 生成の確認フラグであって、import / delete / traffic cutover の承認を代替せえへん。
+manifestの各objectについて、source key → `migration/{cutoverId}/` のtarget keyへcopyする。copy後にetag、byte size、JPEG policy、object keyを照合し、D1 attachment rowを参照させるのは検証完了後だけや。location attachmentにはR2 objectを作らへん。
 
-## 6. 移行後に別途必要な検証
+R2 objectのcopy実行はsource credentialとtarget bucketを明示したoperator scriptで行う。source / targetが同じでないこと、target prefixがcutover IDで隔離されていることを先に確認する。既存objectを上書き・削除しない。
 
-- Worker API の Auth0 JWT 検証と current-user 解決
-- User A / B ownership denial、sealed traveling / unopened denial
-- send / open / reply の transaction と同時実行
-- Cron delivery の overlap / retry
-- Queue notification の at-least-once / idempotency
-- Worker R2 capability、expiration、EXIF / location leakage
-- Preview critical E2E
+## 5. Preview verification
 
-この repository の current runtime はまだ Convex や。D1 schema と rehearsal が通っただけでは cutover 完了とはみなさへん。
+Preview D1へproduction exportを流し込まへん。合成fixtureまたはredacted fixtureで次を検証する。
+
+- User A / B ownership denial
+- sealed traveling / delivered-unopenedの本文 deny
+- sent letter body / attachment immutable
+- exact `scheduledAt` がbrowser responseに無い
+- draft → send、delivery → open、reply → future send
+- delivery sweepのoverlap / retryとnotification outboxの分離
+- R2 upload / finalize / download capabilityの期限、所有者、用途検証
+- Preview critical Playwright E2E
+
+## 6. Production cutover（Human Gate）
+
+次のpacketが揃うまでproductionへ書き込まへん。
+
+```text
+source export checksum / table counts
+source R2 inventory / target copy manifest / checksum
+identity mappingとorphan report
+local rehearsal import / rerun / rollback evidence
+Preview Worker / D1 / R2 / Queue smoke evidence
+rollback owner、対象prefix、rollback window
+```
+
+明示Human Gate後にだけ、次の順で実行する。
+
+1. source R2 objectをProduction bucketのimmutable cutover prefixへcopyし、checksumを再確認
+2. 生成SQLをProduction D1へ一度だけ適用し、row count / checksum mapを確認
+3. `pnpm deploy:production` でWorker build、schema確認、Production Worker deployを行う
+4. Auth0 PROD login、API、sealed、reply、Queue、R2 capabilityをsmokeする
+5. Production URLへtrafficを切り替える
+
+Production D1 importは不可逆なdata mutationや。`--environment production --human-gate` はSQL生成の明示フラグであって、import / cutoverの承認を代替せえへん。
+
+## 7. Rollback
+
+- Workerは直前versionへ戻す
+- D1は同じsource checksumのrollback artifactだけを使う
+- R2は今回のcutover prefixとmanifest記載keyだけを対象にする
+- Convex export / source / mappingはrollback window中保持する
+- Auth0 user作成が残る場合は記録する
+
+Convex production dataの削除、旧secretの無効化、unused resourceの削除はrollback window終了後の別Human Gateや。
+
+## Human Gate
+
+明示承認が必要:
+
+- Production export / import
+- Production data mutation
+- Production traffic cutover
+- legacy Production data deletion
+- irreversible credential / project deletion
+
+不要:
+
+- local schema compare
+- mapping unit test
+- dry-run / SQL artifact生成
+- このrunbookの更新

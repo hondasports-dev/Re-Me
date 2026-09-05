@@ -32,13 +32,13 @@ describe('Cloudflare SPA hosting', () => {
     const workflow = readFileSync(resolve('.github/workflows/preview.yml'), 'utf8')
     const stepsStart = workflow.indexOf('\n    steps:')
     const frontendBuild = workflow.indexOf('pnpm build:preview')
-    const firstConvexKey = workflow.indexOf('CONVEX_DEPLOY_KEY')
+    const firstCloudflareKey = workflow.indexOf('CLOUDFLARE_API_TOKEN')
 
     expect(stepsStart).toBeGreaterThan(0)
     expect(frontendBuild).toBeGreaterThan(stepsStart)
-    expect(firstConvexKey).toBeGreaterThan(frontendBuild)
+    expect(firstCloudflareKey).toBeGreaterThan(frontendBuild)
 
-    for (const secretName of ['CLOUDFLARE_API_TOKEN', 'CONVEX_DEPLOY_KEY']) {
+    for (const secretName of ['CLOUDFLARE_API_TOKEN']) {
       const occurrences = [...workflow.matchAll(new RegExp(secretName, 'g'))]
 
       expect(occurrences.length).toBeGreaterThan(0)
@@ -46,13 +46,11 @@ describe('Cloudflare SPA hosting', () => {
     }
   })
 
-  it('builds Preview before loading the local Convex deploy credential', () => {
+  it('builds Preview before loading the Cloudflare deploy credential', () => {
     const packageJson = readFileSync(resolve('package.json'), 'utf8')
     const deployScript = JSON.parse(packageJson).scripts['deploy:preview'] as string
 
-    expect(deployScript).toMatch(
-      /^pnpm build:preview && convex deploy --env-file \.env\.convex-preview\.local && wrangler deploy --env preview$/,
-    )
+    expect(deployScript).toBe('pnpm build:preview && node scripts/cloudflare-deploy.mjs preview')
   })
 
   it('sets long-lived cache headers for hashed Vite assets', () => {

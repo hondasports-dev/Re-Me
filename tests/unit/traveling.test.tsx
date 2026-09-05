@@ -14,9 +14,12 @@ const { mockCreateDownloadCapability } = vi.hoisted(() => ({
   mockCreateDownloadCapability: vi.fn(),
 }))
 
-vi.mock('convex/react', () => ({
-  useAction: () => mockCreateDownloadCapability,
-}))
+vi.mock('../../src/shared/api/react', async () => {
+  const actual = await vi.importActual<typeof import('../../src/shared/api/react')>(
+    '../../src/shared/api/react',
+  )
+  return { ...actual, useAction: () => mockCreateDownloadCapability }
+})
 import {
   canFetchTravelingContent,
   formatDeliveryWindow,

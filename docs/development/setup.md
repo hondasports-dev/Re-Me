@@ -1,218 +1,138 @@
 # 開発セットアップ
 
-この文書は Auth0 + Convex + Cloudflare という target architecture のセットアップ基準。runtime は Auth0 + Convex。legacy `supabase/migrations/` は不変条件の比較用に残し、通常の local / CI test は Supabase 起動を要求しない。
+Re:Meのruntimeは Auth0 + Cloudflare Workers + D1 + private R2 + Queues で構成する。Convexはcutover / rollback window中だけ残すlegacy backendや。legacy Supabaseは比較資料で、通常のlocal / CI testはSupabase起動を要求しない。
 
 ## 前提
 
 - Node.js 24 LTS
-- pnpm
-- Auth0 アカウント（DEV tenant/application）
-- Convex アカウント / project（Preview / production。local 開発の backend は CLI の local deployment）
-- Cloudflare アカウント
-- Google Cloud project（本番前の専用 OAuth client。local DEV は Auth0 の Google connection で開始できる）
+- pnpm 11
+- Auth0 DEV tenant / SPA application
+- Cloudflare account
+- Google Cloud project（production用OAuth clientはDEVと分離）
 
-Docker / local PostgreSQL は target architecture の必須条件ではない。
-
-## 採用するパッケージ
-
-### Runtime
+## Runtime package
 
 ```text
-react
-react-dom
-react-router
-@mantine/core
-@mantine/hooks
-@mantine/notifications
+react / react-dom / react-router
+@mantine/core / @mantine/hooks / @mantine/notifications
 @auth0/auth0-react
-convex
-@convex-dev/r2
+@tanstack/react-query
+hono / jose
 ```
 
-TanStack Query、Supabase client、Hono は runtime に含めない。Convex data へ別の query cache を重ねない。
+Cloudflare側のruntime packageは `wrangler`、`@cloudflare/vite-plugin`、D1 / R2 / Queue bindingや。formatterはOxfmt、linterはOxlint、typecheckはTypeScriptを使う。Convex / `@convex-dev/r2` はlegacy compatibility window中だけ依存・testを保持し、new codeからimportせえへん。
 
-### 開発
+## 主な scripts
 
 ```text
-typescript
-vite
-@vitejs/plugin-react
-@cloudflare/vite-plugin
-wrangler
-oxlint
-oxfmt
-vitest
-@testing-library/react
-@testing-library/jest-dom
-@testing-library/user-event
-jsdom
-@cloudflare/vitest-pool-workers
-@playwright/test
-convex-test
+pnpm dev
+pnpm dev:full
+pnpm build
+pnpm deploy:preview
+pnpm deploy:production   # Human Gate後だけ
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test:unit
+pnpm test:worker
+pnpm test:convex         # legacy compatibility window中
+pnpm test:e2e
+pnpm cf:typegen
 ```
 
-package の version は導入時の stable を公式ドキュメントと互換性で確認し、`pnpm-lock.yaml` に固定する。
+`dev:full` と `dev` はCloudflare Vite pluginを通った同じlocal Worker runtimeを起動する。`deploy:preview` はPreview build → D1 migrations → Preview Worker deploy、`deploy:production` はProductionの同じ順や。Production commandはproduction data / trafficのHuman Gateを代替せえへん。
 
-## 採用する scripts
-
-```json
-{
-  "scripts": {
-    "dev": "vite dev",
-    "dev:full": "node scripts/convex-dev-target.mjs --start \"vite dev\"",
-    "build": "vite build",
-    "deploy:backend": "convex deploy",
-    "deploy:frontend": "pnpm build && wrangler deploy",
-    "lint": "oxlint .",
-    "format": "oxfmt .",
-    "format:check": "oxfmt . --check",
-    "typecheck": "tsc --noEmit",
-    "test": "pnpm test:unit && pnpm test:convex && pnpm test:worker",
-    "test:e2e": "playwright test",
-    "convex:dev": "node scripts/convex-dev-target.mjs",
-    "convex:codegen": "convex codegen",
-    "convex:check": "node scripts/convex-dev-target.mjs --once",
-    "cf:typegen": "wrangler types"
-  }
-}
-```
-
-実際の Convex / Cloudflare の deploy コマンドは導入時の公式ドキュメントと CI の制約で確定する。Production deploy はこのセットアップ作業の自動実行対象にしない。
-
-## フォーマット
-
-Oxfmt が正。Prettier は入れない。改行は LF で固定する。
-
-Windows でも Git の `core.autocrlf` に任せず、`.gitattributes` の `eol=lf` と `.oxfmtrc.json` の `endOfLine: "lf"` を正とする。`pnpm format` が working tree 全体を CRLF に書き換えないようにするため。
-
-## Provider の組み立て
+## Provider / API
 
 ```text
 MantineProvider
-  └─ Auth0Provider
-      └─ ConvexProviderWithAuth0
-          └─ React Router
+  └─ QueryClientProvider
+      └─ Auth0Provider
+          └─ API client provider
+              └─ React Router
 ```
 
-`convex/auth.config.ts` に Auth0 issuer domain / application id を環境変数から設定する。config を変更したら local Convex へ push し、`useConvexAuth()` が認証済みになるところまで確認する。
+Auth0はauthentication、Workerの認証済みAPIがauthorizationとdomain state transitionのsource of truthや。ブラウザはTanStack QueryでWorker APIを読むが、Convex query cacheを重ねない。`letters` metadataと本文をWorker/D1で分け、exact `scheduledAt` はbrowser responseへ出さへん。
 
-## 環境の境界
-
-Local と共有 Preview の具体的な構築・rollback 手順は [`preview-environment.md`](./preview-environment.md) を正とする。Production は別 Issue で扱い、このセットアップ作業では作成・更新しない。
-
-### ブラウザに出してよい値
+## Browser environment
 
 ```text
 VITE_AUTH0_DOMAIN
 VITE_AUTH0_CLIENT_ID
-VITE_CONVEX_URL
+VITE_API_BASE_URL
 VITE_WEB_PUSH_VAPID_PUBLIC_KEY
 ```
 
-### Convex 環境の秘密情報
+Browserへ出さない:
 
 ```text
-AUTH0_DOMAIN
-AUTH0_CLIENT_ID
-WEB_PUSH_VAPID_PUBLIC_KEY
-WEB_PUSH_VAPID_PRIVATE_KEY
-WEB_PUSH_SUBJECT
-R2 integration の credential / component 設定
+AUTH0_AUDIENCE / CAPABILITY_SECRET
+VAPID_PRIVATE_KEY / VAPID_SUBJECT
+CLOUDFLARE_API_TOKEN
+R2 credential
+E2E_AUTH0_PASSWORD
 ```
 
-R2 component は以下の4値を Convex deployment の環境にだけ設定する。値を `.env.local`、Vite、Worker、GitHub log へ複製しない。
-
-```text
-R2_BUCKET
-R2_ENDPOINT
-R2_ACCESS_KEY_ID
-R2_SECRET_ACCESS_KEY
-```
-
-Auth0 domain / client id は secret ではないが、DEV / PROD の組み合わせを混ぜない。Management API credential、Google OAuth client secret、Convex deploy key、R2 secret、VAPID private key は `VITE_*` にしない。
-
-### Cloudflare
-
-Workers Static Assets を SPA mode で配信する。application backend の secret は Worker に複製しない。R2 credential は Convex integration が必要とする環境に限定する。
+`VITE_*` は公開値だけや。`VITE_API_BASE_URL` はlocalでは空（same-origin）、Preview / Productionでは固定Worker URLを指定する。
 
 ## Auth0 DEV のセットアップ
 
-1. DEV tenant に Single Page Application を作成する
-2. Auth0 の Google OAuth connection を DEV SPA に有効化する。local の「Googleで続ける」はこれを使う
-3. Auth0 の Allowed Callback URLs に `http://127.0.0.1:5173/auth/callback`、`http://127.0.0.1:4173/auth/callback` と固定 Preview callback を登録する。版付き Cloudflare Preview URL は使わない
-4. Allowed Logout URLs / Allowed Web Origins に `127.0.0.1` の Vite / Playwright origin と Preview origin を登録する
-5. Auth0 issuer / client id を Vite の `.env.local` と local Convex に設定する。入れ方は下の「`VITE_AUTH0_*` の入れ方」。ブラウザへは `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` / `VITE_CONVEX_URL` だけを出す。`VITE_CONVEX_URL` は `pnpm convex:dev` が書く local URL を使う
-6. Universal Login から Google OAuth login を確認する
-7. DEV の Username-Password connection を SPA に有効化し、公開サインアップは無効にする
-8. E2E 用 database user を Management API で作成し、`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は canonical checkout の `.env.local` にだけ置く。task worktree は `pnpm loop:preflight` / `pnpm loop:e2e-env` が同じキーを正本からコピーする。値を chat / CI log / commit に出さない。
+1. DEV tenantの既存SPA `Re:Me DEV` を使う。新しいSPAは作らない
+2. Google OAuth connectionを有効化する
+3. local callback / logout / web originと固定Preview URLを登録する
+4. `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` を `.env.local` に設定する
+5. Universal LoginでGoogle loginを確認する
+6. E2E用database userは `E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` としてcanonical `.env.local`だけに置く。chat / log / commitへ出さない
 
 ### `VITE_AUTH0_*` の入れ方
 
-`VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` は SPA の公開値であり secret ではない。`.env.local` に書く。git にコミットしない。chat / CI log に値を貼らない。`pnpm loop:preflight` は `E2E_AUTH0_*` だけをコピーし、この2つはコピーしない。
+`VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` はSPAの公開値でsecretやない。Auth0 CLIを使う場合:
 
-既存の DEV SPA は Auth0 application 名 `Re:Me DEV` である。ダッシュボードで手入力してもよい。Auth0 CLI を使う場合は次のとおり。新しい SPA は作らない。
-
-1. `auth0 login`。未ログインなら device code の URL をブラウザで承認する
-2. `auth0 tenants list` で DEV tenant が active であることを確認する。違えば `auth0 tenants use <dev-tenant>.auth0.com`
-3. `auth0 apps list` から name が `Re:Me DEV` かつ type が SPA の `client_id` を取る
-4. `.env.local` に次を書く。空の `VITE_AUTH0_DOMAIN=` を残したまま末尾へ追記しない。Vite は先頭のキーを使う
+1. `auth0 login`
+2. `auth0 tenants list` でDEV tenantを確認する
+3. `auth0 apps list` から `Re:Me DEV` のSPA `client_id` を確認する
+4. `.env.local` に次を一度だけ設定する
 
 ```text
-VITE_AUTH0_DOMAIN=<DEV tenant の domain。https:// は付けない>
-VITE_AUTH0_CLIENT_ID=<Re:Me DEV の client_id>
+VITE_AUTH0_DOMAIN=<DEV tenant domain。https://なし>
+VITE_AUTH0_CLIENT_ID=<Re:Me DEV client id>
 ```
 
-5. 同じ公開値を local Convex へは `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` として入れる。手順は [Local / Preview 環境](./preview-environment.md) の「Task worktree の local Convex」。`--deployment local` と一時ファイルを使い、production には置かない
-6. Auth0 CLI が worktree に `.config/auth0/` を書くことがある。gitignore 済み。コミットしない
+5. `pnpm loop:preflight` はE2E credentialだけをtask worktreeへ同期する。Auth0 public valueは各環境へ明示的に設定する
 
-`E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` は別物である。Playwright が Auth0 のフォームへ入力するための値で、`VITE_` を付けない。domain / client id が無いとアプリは Auth0 へリダイレクトできない。
+Auth0 CLIのtokenはworktreeの `.config/auth0/` に書かれる場合があるが、gitignore済みや。
 
-本番前に Google Cloud の専用 OAuth 2.0 Web client を作り、Authorized redirect URI に `https://<auth0-domain>/login/callback` を登録して Auth0 Google connection へ差し替える。Auth0 の共有 developer key に本番を載せない。
+## Local Worker / D1
 
-Production tenant / Google OAuth client / callback は共有しない。Custom domain はこの手順の必須条件ではない。
+1. `.env.example` を `.env.local` へコピーする
+2. DEV Auth0 public valuesを設定する
+3. `pnpm exec wrangler d1 migrations apply re-me-local --local` を実行する
+4. `pnpm dev:full` を起動する
 
-Google OAuth client secret は Auth0 connection にだけ設定し、Vite / Convex application code / Cloudflare Worker へ複製しない。Production で Auth0 custom domain を導入する場合は、Google 側の Authorized redirect URI も `https://<custom-domain>/login/callback` へ切り替える。
+初回のlocal Worker / R2 / Queue resourceは `wrangler.jsonc` のlocal bindingから作る。test-only headerとforce deliveryは `APP_ENV=local` の場合だけ有効や。Production / PreviewのWorkerがこのheaderを信用せえへんことをWorker testで確認する。
 
-## Convex local のセットアップ
+## Preview
 
-日常の local 開発は cloud の developer deployment ではなく、マシン上の local Convex backend を使う。接続先の正本は [Local / Preview 環境](./preview-environment.md) の「Convex の使い分け」を見る。
+Previewのresource、GitHub environment、Auth0 callbackは [preview-environment.md](preview-environment.md) を正とする。Preview D1へproduction exportを入れない。Preview Worker secretは `CAPABILITY_SECRET`、`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`を対象環境へ登録し、値はログへ出さへん。
 
-- 初回だけ `pnpm exec convex deployment create local --select`（既存なら `pnpm convex:dev` が `deployment select local` する）
-- 新しい task worktree は `.convex/` も `CONVEX_DEPLOYMENT` も持たない。素の `deployment create local` が anonymous mode になる場合の起こし方は [Local / Preview 環境](./preview-environment.md) の「Task worktree の local Convex」。canonical の cloud `CONVEX_DEPLOYMENT` は project 特定にだけ使い、worktree の正本にはしない
-- `convex/schema.ts` / indexes / `auth.config.ts` を local backend へ push する（`pnpm convex:dev` または `pnpm convex:check`）
-- local backend が動いている間に `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` と DEV R2 の4値を `pnpm exec convex env set` で local deployment へ設定する
-- ブラウザの `VITE_CONVEX_URL` は `http://127.0.0.1:3210` 系の local URL になる。cloud URL を `.env.local` に固定しない
-- local backend の状態は gitignored の `.convex/` に置く
-- `convex dev` を止めると local backend も止まる。frontend だけ `pnpm dev` しても Convex には繋がらない
-- `"use node"` の action は手元の Node.js 24 で動く。local backend を使うときは同じ major を使う
-- CI / Preview は共有 Preview の remote Convex を使う。local E2E は local backend が起動している必要がある
-- どうしても cloud developer deployment を使う場合だけ `CONVEX_ALLOW_CLOUD_DEV=1` を付けて無料枠を消費することを明示する。このとき wrapper は `deployment select dev` する
+## E2E
 
-Production data を local へコピーする場合は個人情報の棚卸しと承認を別途必要とする。
+通常E2EはGoogle OAuth UIを毎回通さず、Auth0 database test identityでUniversal Loginを完了する。Playwrightは `storageState` を `e2e/.auth/` に保存し、Auth0 callback → Worker JWT検証 → `/api/users/ensure` → authenticated APIを検証する。
 
-## 認証テスト
+最低限:
 
-通常 E2E は Google OAuth UI を毎回通さない。Playwright は Auth0 の database test identity で Universal Login を完了し、`storageState` を `e2e/.auth/` に保存して保護ルートと認証済み Convex query（`users.me` / `ensureCurrentUser`）を検証する。
+- authenticated local / Preview session → draft → send
+- sealed letter arrival → open
+- open → reply → send to future
+- ownership denial、sealed content denial、photo capability expiration
 
-この経路は Playwright preview build だけが `VITE_ALLOW_E2E_DB_LOGIN=1` を持ち、`/login?e2e_db=1` で Username-Password connection を開始する。通常の `pnpm dev` と production build では Google ボタン以外の login 入口を出さない。
+Google OAuth自体は少数のsmoke testで検証し、critical E2Eへ毎回含めない。
 
-Google OAuth smoke は少数だけ実行する。`E2E_GOOGLE_SMOKE=1` のときだけ走る。
+## 移行完了条件
 
-```text
-Google OAuth login
-  → Auth0 callback
-  → token 発行
-  → Convex token 検証
-  → 認証済み query
-```
-
-## 最初の移行の成功条件
-
-- Auth0 の login / logout / callback が DEV で動く
-- Convex auth が issuer / audience を検証する
-- 認証済み query / mutation が動く
-- ユーザー A / ユーザー B のデータ境界テストが通る
-- Convex schema / indexes / scheduled function を push できる
-- React SPA が Cloudflare Worker の local runtime で表示される
-- 標準の品質ゲートが通る
-- Supabase / TanStack Query / Hono の runtime import が無い
+- Worker API / D1 authorization / R2 capability / Cron / QueueがPreviewで動く
+- Convex exportのchecksum、row count、R2 inventoryが取得済み
+- local / Previewでimport、rerun、rollbackをリハーサル済み
+- Production D1 / R2へHuman Gate付きで実データを投入済み
+- Production URLでAuth0、draft→send、open、reply、notificationをsmoke済み
+- rollback window終了後にのみlegacy Convex / credential / unused resourceを別PRでcleanupする

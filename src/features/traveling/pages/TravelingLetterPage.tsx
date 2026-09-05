@@ -1,10 +1,8 @@
 import { Button } from '@mantine/core'
-import { useMutation, useQuery } from 'convex/react'
+import { api, useMutation, useQuery } from '../../../shared/api/react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { TravelingErrorBoundary } from '../components/TravelingErrorBoundary'
 import { TravelingLetterDetail } from '../components/TravelingLetterDetail'
 import { travelingContentQueryArgs } from '../model/traveling'
@@ -19,7 +17,7 @@ export function TravelingLetterPage() {
 
 function TravelingLetterRoute() {
   const { letterId } = useParams()
-  const typedLetterId = letterId as Id<'letters'> | undefined
+  const typedLetterId = letterId as string | undefined
   const navigate = useNavigate()
   const deleteLetter = useMutation(api.letters.deleteLetter)
   const metadata = useQuery(
@@ -53,7 +51,7 @@ function TravelingLetterRoute() {
   )
 }
 
-function E2EForceDeliverButton({ letterId }: { letterId: Id<'letters'> }) {
+function E2EForceDeliverButton({ letterId }: { letterId: string }) {
   const forceDeliver = useMutation(api.letters.forceDeliverOwnLetter)
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)

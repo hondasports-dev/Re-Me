@@ -1,6 +1,4 @@
-import { useQuery } from 'convex/react'
-
-import { api } from '../../../../convex/_generated/api'
+import { api, useQuery } from '../../../shared/api/react'
 import { TravelingErrorBoundary } from '../components/TravelingErrorBoundary'
 import { TravelingLetterList } from '../components/TravelingLetterList'
 
