@@ -67,6 +67,8 @@ CLOUDFLARE_API_TOKEN
 
 Preview Workerには別途、Cloudflare secretとして `CAPABILITY_SECRET`、`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`を登録する。CIは名前の存在だけ確認してからdeployする。
 
+GitHub environmentの `CLOUDFLARE_API_TOKEN` は、対象accountに対する Workers Scripts、D1、R2、Queues の必要な操作権限を持たせる。D1 migrationを含む `pnpm deploy:preview` が Cloudflare code 7403 で止まる場合は、tokenのaccount scope / D1 permissionを直してからCIを再実行する。token値はログへ出さへん。
+
 手動deployは次や。
 
 ```text
