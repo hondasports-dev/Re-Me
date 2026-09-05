@@ -4,8 +4,8 @@ session:
 
 revision:
   current:
-    commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
-    tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
+    commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
+    tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
   verified:
     commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
     tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
@@ -13,11 +13,11 @@ revision:
     commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
     tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
   published:
-    commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
-    tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
+    commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
+    tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
   observed:
-    commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
-    tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
+    commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
+    tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
 
 task:
   id: "issue-60"
@@ -25,7 +25,7 @@ task:
   objective: "Issue #60のD1移行基盤とConvex exportからのデータ移行リハーサルを実装する"
   base_branch: main
   delivery_target: merge_ready
-  current_state: delivery
+  current_state: done
 
 prepare:
   status: PASS
@@ -341,35 +341,37 @@ delivery:
   base: main
   evidence:
     - "Dedicated branch pushed to origin with implementation commit 9a5d1ca and loop evidence commit 807329b."
-    - "PR #61 created against main with base SHA 4263ee7e7f032c1085901ad4f1097f29ffadd272 and head SHA 807329b7c1b3041cb9dffa51ebe8e8d7e163e813."
+    - "PR #61 created against main with base SHA 4263ee7e7f032c1085901ad4f1097f29ffadd272 and initial head SHA 807329b7c1b3041cb9dffa51ebe8e8d7e163e813."
+    - "PR metadata-only delivery update is published at head 3fd16418507a1dd78e0e077b433a86bff90fb8a8."
 
 pr_aftercare:
-  status: pending
+  status: pass
   checks:
-    - "GitHub CI: in_progress at current PR head; lint, format, loop enforcement, and typecheck completed successfully."
+    - "GitHub CI run 33935218497: success for head 3fd16418507a1dd78e0e077b433a86bff90fb8a8; Quality gates and End-to-end jobs passed."
     - "CodeRabbit status: success; repository auto-review is skipped because the repository has fewer than 10 stars."
     - "Review submissions: none; inline review threads: none."
   requested_changes: []
   approval_required: false
-  approval_status: pending # pending | pass | not_required | blocked
+  approval_status: not_required # pending | pass | not_required | blocked
   approval_evidence: []
-  revision_consistency: pending # pending | pass | blocked
+  revision_consistency: pass # pending | pass | blocked
   conflict_status: pass
   mergeable: pass
   evidence:
-    - "PR info: open, not draft, mergeable true, base main, head 807329b."
-    - "PR aftercare is waiting only for the required GitHub CI run to complete."
+    - "PR info: open, not draft, mergeable true, base main, head 3fd1641."
+    - "No requested changes, review submissions, or unresolved inline review threads."
+    - "All required GitHub CI jobs completed successfully; no production deploy or data operation was performed."
 
 telemetry:
   enabled: true
   measurement_source: wall_clock
   stages:
-    prepare: { started_at: "2026-09-05T08:42:27.6810510+09:00", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    prepare: { started_at: "2026-09-05T08:42:27.6810510+09:00", finished_at: "2026-09-05T09:33:00+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
     implementation: { started_at: "2026-09-05T09:33:00+09:00", finished_at: "2026-09-05T09:34:00+09:00", elapsed_seconds: 60, external_wait_seconds: 0, wait_reasons: [] }
     verification: { started_at: "2026-09-05T09:54:54+09:00", finished_at: "2026-09-05T09:55:45+09:00", elapsed_seconds: 51, external_wait_seconds: 0, wait_reasons: [] }
-    review: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
-    delivery: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
-    pr_aftercare: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    review: { started_at: "2026-09-05T09:38:15+09:00", finished_at: "2026-09-05T10:02:00+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    delivery: { started_at: "2026-09-05T10:04:27+09:00", finished_at: "2026-09-05T10:11:28.6925399+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    pr_aftercare: { started_at: "2026-09-05T10:06:00+09:00", finished_at: "2026-09-05T10:11:28.6925399+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
     incident: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
     process_learning: { started_at: "2026-09-05T09:38:14.9553166+09:00", finished_at: "2026-09-05T09:38:14.9553166+09:00", elapsed_seconds: 0, external_wait_seconds: 0, wait_reasons: [] }
   counters:
@@ -443,5 +445,5 @@ learning:
       verification_evidence: []
 
 completion:
-  status: in_progress
+  status: complete
   blockers: []
