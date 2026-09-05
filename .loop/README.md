@@ -1,11 +1,13 @@
-# Re:Me Agent Loop v4
+# Re:Me Agent Loop v5
 
-Re:Me Agent Loop v4 は、v3 の Risk-based / deterministic enforcement 方針を維持しつつ、次を強化する。
+Re:Me Agent Loop v5 は、v4 の Risk / Evidence / deterministic enforcement 方針を維持しつつ、kakeibo Agent Loop v12 と GPT-6 Astra のモデルガイドを参考に、**止まりにくさ・指示追従・検証の適正化**を強化する。
 
-1. **Context削減** — stage間で長文を再要約せず、ID付きcompact contractだけ引き継ぐ
-2. **高速化** — cheap check → targeted test → integration → E2E → CIのfail-fast順
-3. **漏れ検出** — AC / Invariant / Test CaseをIDで結び、forward / reverse両方向で不足を探す
-4. **Timing telemetry** — stage時間をRisk / Spec Confidence / task sizeと一緒に改善Evidenceへ使う
+1. **Instruction priority** — current user instruction を一般的なSkill guidanceより優先し、曖昧なSkill文言で作業を止めない
+2. **Autonomy** — 許可済みのread-only / reversible / review / fix / PR作業は追加確認なしでconcrete resultまで進める
+3. **Mid-turn steering** — 作業途中の追加指示で全loopをrestartせず、affected contract / Evidenceだけdelta更新する
+4. **Calibrated verification** — low-impact変更で実装を鏡写しするだけのtestや、PASS後の無根拠なfull check拡大を避ける
+5. **Focused delegation** — subagentはwall-clock短縮か独立coverage改善にmaterialに効く時だけ使う
+6. **Re:Me protected behavior** — sealed content、immutability、authorization、delivery idempotency、private R2等の強い境界は削らない
 
 正本:
 
@@ -32,9 +34,60 @@ Gate数・Agent数・文書量を品質指標にしない。
 PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → AFTERCARE → DONE
 ```
 
-Human Gate / Incident / Process Learningは必要時だけ。
+Human Gate / Incident / Process Learningは具体的trigger時だけ。
 
 ---
+
+## Instruction priority
+
+優先順位は次の通り。
+
+1. platform / non-bypassable safety
+2. current explicit user instruction
+3. latest explicitly approved spec / ADR
+4. `AGENTS.md` / `.loop/process.yaml`
+5. current / triggered Skill
+6. explanatory docs
+
+Skillは、すでにユーザーが許可したreversible/read-only/review/fix/PR作業を独自に狭める権限として扱わない。
+
+Skillがpermission確認・停止・未完了を要求すると解釈した場合は、exact `SKILL.md` pathと該当箇所を示して、その解釈が本当にmaterialか確認する。
+
+Safety invariantはこの優先順位で上書きしない。
+
+## Autonomy / Human Gate
+
+次は追加permissionなしで進める。
+
+- read-only discovery
+- reversible repository edit
+- review / fix
+- tests / verification
+- dedicated branch作成
+- requested / implied PR create or update
+
+質問や承認要求の前に、cheapな許可済み調査とreversibleな準備を終え、具体的なreviewable resultを作る。
+
+Human Gateは次のような**具体的trigger**へ束縛する。
+
+- authorized discovery後もmaterial choiceが残る
+- production write
+- irreversible / bulk state mutation
+- production secret / credential rotation
+- production DNS / domain cutover
+- production data migration / cutover
+- protected findingのaccept
+
+**R4分類だけではHuman Gateを起動しない。**
+
+## Mid-turn steering
+
+作業途中で新しい指示が来たら、それをcurrent explicit user instructionとして取り込む。
+
+- affected Goal / scope / AC / IV / TC / Risk / Controlsだけ更新
+- unaffected contractとsame-content Evidenceは保持
+- 全loopを無条件にrestartしない
+- material choiceが新規発生した時だけPREPARE / Human Gateへ戻る
 
 ## Compact contract
 
@@ -55,6 +108,19 @@ Issue全文・chat履歴・source本文を各stageで再要約しない。source
 source再読はcontract conflict / requirements gap / unbounded impact等の具体的理由がある時だけ。
 
 Conditional Skillもtrigger時だけ読み、使用後はactive contextから外してよい。
+
+## Delegation
+
+same shared diffのwriterは原則1体。
+
+subagent / independent reviewerは、次のどれかにmaterialに効く時だけ使う。
+
+- read-only discoveryを並列化してwall-clockを短縮
+- required independent reviewでcoverageを改善
+- path-disjoint analysisを安全に分離
+
+cheap sequential work、simple search、同じEvidenceの重複要約には使わない。
+R4だけを理由にreviewer / specialist数を増やさない。
 
 ## Requirements completeness
 
@@ -84,8 +150,8 @@ Re:Meでは特に次の意味を推測で決めない。
 ## Coverage Map
 
 ```text
-AC01 → convex/letters.ts#get → TC01, TC02
-IV01 → notification outbox  → TC03
+AC01 → worker/routes/letters.ts#get → TC01, TC02
+IV01 → notification outbox           → TC03
 ```
 
 ### Forward coverage
@@ -114,7 +180,7 @@ scopeable static / owning tsconfig
   ↓
 targeted unit / contract
   ↓
-affected Convex / integration
+affected Worker / D1 integration
   ↓
 required functional Playwright
   ↓
@@ -124,6 +190,17 @@ repo-wide regression = CI Aftercare
 material failureがあれば無意味な下流checkを止める。
 
 same contentのEvidenceは再利用し、content deltaが無効化した範囲だけ再検証する。
+
+required checksが通った後にcheckを広げたり繰り返したりするのは、次の時だけ。
+
+- new content change
+- material failure
+- unresolved concern
+- Required Controlが追加Evidenceを要求
+
+reversible / low-impact変更では、implementation detailを鏡写しするだけの新規testを要求しない。observable AC/IVをmaterialに証明するtestだけ追加する。
+
+ただしRe:Meのprotected behaviorやrequired browser E2Eをこの方針で省略しない。
 
 ### Re:Me browser E2E
 
@@ -154,6 +231,7 @@ Reviewerへ渡すのはcompact packetだけ。
 - scope外behavior change
 
 具体的不足が出た時だけsource探索を広げる。
+Specialist追加はmaterially distinctなControlがある時だけ。R4だけを理由に増やさない。
 
 ## Finding Ledger
 
@@ -186,14 +264,6 @@ AFTERCARE     240s  (external wait 205s)
 - findings / retries / full suite runs / review cycles
 
 DONE時にRisk・Spec Confidence・task sizeと一緒にcompact summaryを表示する。
-
-```text
-Spec: C2 | Risk: R2 (max R2) | Size: small
-Files: 4 | AC: 3 | IV: 1 | TC: 6 | Controls: 1
-Prepare 1m32s | Implement 5m10s | Verify 3m04s | Review 1m01s
-Deliver 22s | Aftercare 4m00s (external wait 3m25s)
-Total 15m09s | Active 11m44s | Retries 1 | Full suites 0 | Review cycles 1
-```
 
 時間だけで良し悪しを決めない。CI / Human Gate / external service待ちは可能ならexternal waitへ分離する。
 
@@ -232,4 +302,4 @@ pnpm loop:aftercare
 - production / irreversible Human Gate
 - latest PR contentがmerge-readyになるまでAftercare
 
-v4の狙いは**チェックを増やすことではなく、同じ情報を何度も読まず、安い段階で漏れを見つけ、どこに時間が消えたかを比較可能にすること**や。
+v5の狙いは**品質Gateを減らすことではなく、意味のない停止・重複・過剰検証を削り、Re:Me固有の重要境界へEvidenceを集中すること**や。
