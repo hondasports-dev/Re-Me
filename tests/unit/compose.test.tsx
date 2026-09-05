@@ -3,9 +3,12 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('convex/react', () => ({
-  useAction: () => vi.fn().mockResolvedValue(null),
-}))
+vi.mock('../../src/shared/api/react', async () => {
+  const actual = await vi.importActual<typeof import('../../src/shared/api/react')>(
+    '../../src/shared/api/react',
+  )
+  return { ...actual, useAction: () => vi.fn().mockResolvedValue(null) }
+})
 
 import { DeliverySealForm } from '../../src/features/compose/components/DeliverySealForm'
 import { LetterEditor } from '../../src/features/compose/components/LetterEditor'

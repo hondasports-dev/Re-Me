@@ -1,8 +1,6 @@
-import { useQuery } from 'convex/react'
+import { api, useQuery } from '../../../shared/api/react'
 import { Link, useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { useCalendarClock } from '../../inbox/model/useCalendarClock'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { ThreadErrorBoundary } from '../components/ThreadErrorBoundary'
@@ -20,7 +18,7 @@ export function ThreadPage() {
 /** Loads and renders the current user's chronological letter thread. */
 function ThreadRoute() {
   const { threadId } = useParams()
-  const typedThreadId = threadId as Id<'threads'> | undefined
+  const typedThreadId = threadId as string | undefined
   const thread = useQuery(
     api.threads.getThread,
     typedThreadId ? { threadId: typedThreadId } : 'skip',

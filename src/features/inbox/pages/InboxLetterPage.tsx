@@ -1,9 +1,7 @@
-import { useMutation, useQuery } from 'convex/react'
+import { api, useMutation, useQuery } from '../../../shared/api/react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { InboxErrorBoundary } from '../components/InboxErrorBoundary'
 import { InboxLetterDetail } from '../components/InboxLetterDetail'
 import { inboxContentQueryArgs } from '../model/inbox'
@@ -19,7 +17,7 @@ export function InboxLetterPage() {
 
 function InboxLetterRoute() {
   const { letterId } = useParams()
-  const typedLetterId = letterId as Id<'letters'> | undefined
+  const typedLetterId = letterId as string | undefined
   const openLetter = useMutation(api.letters.openLetter)
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)

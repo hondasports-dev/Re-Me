@@ -13,18 +13,19 @@ describe('Auth0 Vite env setup docs', () => {
     expect(setup).toContain('auth0 apps list')
     expect(setup).toContain('Re:Me DEV')
     expect(setup).toContain('auth0 tenants list')
-    expect(setup).toContain('新しい SPA は作らない')
+    expect(setup).toContain('新しいSPAは作らない')
     expect(setup).toContain('pnpm loop:preflight')
     expect(setup).toContain('E2E_AUTH0_EMAIL')
     expect(setup).not.toMatch(/VITE_AUTH0_CLIENT_SECRET/)
   })
 
   it('points Local and worktree steps at the same Auth0 CLI procedure', () => {
-    expect(preview).toContain('`VITE_AUTH0_*` の入れ方')
+    expect(preview).toContain('VITE_AUTH0_DOMAIN')
     expect(preview).toContain('setup.md')
     expect(preview).toContain('Re:Me DEV')
     expect(preview).toContain('pnpm loop:preflight')
-    expect(preview).toContain('convex env set --force --deployment local --from-file')
+    expect(preview).toContain('VITE_API_BASE_URL')
+    expect(preview).toContain('test headerはlocal以外では無視される')
   })
 
   it('keeps Auth0 CLI tokens out of git', () => {

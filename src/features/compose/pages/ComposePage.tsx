@@ -1,8 +1,7 @@
-import { useMutation } from 'convex/react'
+import { api, useMutation } from '../../../shared/api/react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { startBlankDraft } from '../model/compose'
 

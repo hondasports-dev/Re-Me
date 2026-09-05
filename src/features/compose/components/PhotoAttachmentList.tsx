@@ -1,12 +1,9 @@
 import { Button } from '@mantine/core'
-import { useAction } from 'convex/react'
+import { api, useAction } from '../../../shared/api/react'
 import { useEffect, useState } from 'react'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
-
 export interface PhotoAttachment {
-  attachmentId: Id<'letterAttachments'>
+  attachmentId: string
   generationToken: string
   status: 'pending' | 'ready'
 }

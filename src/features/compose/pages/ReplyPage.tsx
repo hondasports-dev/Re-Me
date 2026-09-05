@@ -1,9 +1,7 @@
-import { useMutation, useQuery } from 'convex/react'
+import { api, useMutation, useQuery } from '../../../shared/api/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { canReplyFromInbox, needsOpenRitual } from '../../inbox/model/inbox'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { ComposeDraftEditor } from '../components/ComposeDraftEditor'
@@ -12,9 +10,9 @@ import { startReplyDraft } from '../model/compose'
 
 export function ReplyPage() {
   const { letterId } = useParams()
-  const parentId = letterId as Id<'letters'> | undefined
+  const parentId = letterId as string | undefined
   const createDraft = useMutation(api.letters.createDraft)
-  const [createdDraftId, setCreatedDraftId] = useState<Id<'letters'> | null>(null)
+  const [createdDraftId, setCreatedDraftId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const creating = useRef(false)
   const parent = useQuery(api.letters.getLetterMetadata, parentId ? { letterId: parentId } : 'skip')
@@ -40,7 +38,7 @@ export function ReplyPage() {
     creating.current = true
     void startReplyDraft(parentId, () => createDraft({ parentLetterId: parentId }))
       .then((created) => {
-        setCreatedDraftId(created.letterId as Id<'letters'>)
+        setCreatedDraftId(created.letterId)
       })
       .catch(() => {
         creating.current = false

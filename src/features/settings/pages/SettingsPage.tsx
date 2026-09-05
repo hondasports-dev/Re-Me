@@ -1,8 +1,7 @@
 import { Button } from '@mantine/core'
-import { useMutation, useQuery } from 'convex/react'
+import { api, useMutation, useQuery } from '../../../shared/api/react'
 import { useEffect, useState } from 'react'
 
-import { api } from '../../../../convex/_generated/api'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import {
   PUSH_PERMISSION_COPY,

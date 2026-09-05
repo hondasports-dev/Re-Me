@@ -92,7 +92,7 @@ async function readableLetterHrefs(page: Page): Promise<Array<string | null>> {
 
 async function openAuthenticatedInbox(page: Page): Promise<void> {
   await page.goto('/')
-  await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
+  await expect(page.getByTestId('api-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 20_000,
   })
   await expect(page.getByRole('heading', { name: '受信箱' })).toBeVisible()

@@ -1,103 +1,99 @@
 # Production readiness
 
-この文書は [Issue #13](https://github.com/hondasports-dev/Re-Me/issues/13) の本番準備チェックリストである。Production の **構成手順** は [production-environment.md](production-environment.md)。Auth0 / Convex / Cloudflare の作成そのものは [Issue #38](https://github.com/hondasports-dev/Re-Me/issues/38) の Human Gate。ここを読んでも production を作らない・書き込まない。
-
-Local / Preview の接続先は [preview-environment.md](preview-environment.md)。legacy の棚卸し / dry-run / rollback は [legacy-migration.md](legacy-migration.md)。
+この文書は本番切替前の確認表や。Issue #38のProduction構成は
+[production-environment.md](production-environment.md)、データ移行のrunbookは
+[convex-d1-migration.md](convex-d1-migration.md) を見る。旧legacy mappingは
+[legacy-migration.md](legacy-migration.md) に残す。
 
 ## 環境分離
 
 | 境界 | DEV / Local | Preview / CI E2E | Production |
 |---|---|---|---|
-| Auth0 tenant / SPA | DEV | 同じ DEV + Preview callback | PROD（#38） |
-| Google OAuth client | DEV client | DEV client | 別の production client |
-| Convex | local backend | 共有 Preview | production deployment（#38） |
-| Cloudflare Worker | Vite / local Worker | `re-me-preview` | production Worker（#38） |
-| R2 | DEV bucket | Preview bucket | production bucket（#38） |
-| GitHub | なし | environment `preview` | environment `production`（値は Human Gate 後） |
+| Auth0 | DEV tenant / SPA | DEV + Preview callback | PROD tenant / SPA |
+| Worker | local runtime | `re-me-preview` | `re-me` |
+| D1 | `re-me-local` | `re-me-preview` | `re-me` |
+| R2 | DEV bucket | `re-me-preview-attachments` | `re-me-production-attachments` |
+| Queue | local | `re-me-preview-notifications` | `re-me-production-notifications` |
+| GitHub | なし | environment `preview` | environment `production` |
 
-- Preview の `CONVEX_PREVIEW_DEPLOY_KEY` を production に使わない
-- production deploy key / Auth0 PROD secret を Local / Preview / PR CI に入れない
-- CI の Quality gates は live Convex を使わない。E2E だけ Preview へ `convex deploy` する
-- PR CI から production Convex へは deploy しない
+- ProductionのAPI token、capability secret、VAPID private keyをLocal / Previewへ入れない
+- Previewの `E2E_ALLOW_FORCE_DELIVERY=1` はPreview configだけに置き、Productionは `0`
+- CIのQuality gatesはlive backendへ接続せず、Worker / migration / legacy compatibility testを実行する
+- CIのEnd-to-endはCloudflare Preview Workerへdeployしたrevisionを対象にする
 
-検証は `tests/unit/ci-convex-boundary.test.ts`。値はテストにも docs にも書かない。
+検証の正本は `tests/unit/ci-convex-boundary.test.ts` と `tests/worker/` や。ファイル名はlegacy boundaryの互換性を表すだけで、runtime接続先はWorkerやで。
 
 ## Secret inventory / rotation
 
-名前だけを持つ。値は GitHub / Convex / Cloudflare / Auth0 の各コンソールに置く。
-
-**Browser に出してよい**
+Browser に出してよい:
 
 - `VITE_AUTH0_DOMAIN`
 - `VITE_AUTH0_CLIENT_ID`
-- `VITE_CONVEX_URL`
+- `VITE_API_BASE_URL`
 - `VITE_WEB_PUSH_VAPID_PUBLIC_KEY`
 
-**Browser に出さない**
+Browser に出さない:
 
-- Auth0 client secret / Management API token（SPA では通常使わない）
-- Convex deploy key（Preview / production を分ける）
-- Convex 上の `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID`（server 検証用）
-- R2 access key / secret / endpoint
-- Web Push VAPID **private** key
-- Cloudflare API token
-- E2E Auth0 database の email / password（GitHub `preview` secret と local `.env.local` のみ）
+- `CLOUDFLARE_API_TOKEN`
+- `CAPABILITY_SECRET`
+- `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`
+- Auth0 client secret / Management API token
+- E2E Auth0 email / password
+- production export、R2 credential、D1 dump
 
-回転:
-
-1. provider 側で新しい値を発行する
-2. 対象 environment / Convex deployment だけを更新する
-3. 古い値を無効化する
-4. 値を Issue / PR / chat / git に貼らない
+回転は providerで新しい値を発行 →対象環境だけ更新 →health / capability / push smoke →旧値無効化の順や。値はIssue、PR、ログへ出さへん。
 
 ## Backup / export / restore
 
-- Convex: Dashboard の export を cutover 前と rollback window 中の正本にする。手順と Human Gate は [legacy-migration.md](legacy-migration.md)
-- R2: cutover 前に inventory を取り、copy は cutover prefix に閉じる。失敗時は **その prefix / inventory だけ** を消す
-- Auth0: ユーザー作成は rollback できないことがある。data を戻しても login が残る場合は記録する
-- git に production dump を置かない
-
-Restore は production への書き込みなので Human Gate。Preview へ production export を流し込まない。
+- Convex exportはcutover前とrollback window中のsource snapshotとして保持する
+- R2 inventoryはsource key、target key、etag、byte sizeを持ち、copyはcutover prefixに閉じる
+- D1 import SQL / rollback SQL / manifest はartifact storeへ置き、gitへproduction dumpをcommitしない。git に production dump を置かない
+- Restore は production への書き込みなので Human Gate が必要や
+- Previewへproduction exportを流し込まない。Preview へ production export を流し込まない
 
 ## 監視
 
-運用者が Convex Dashboard / internal query で見る。public function に exact `scheduledAt` や本文を出さない。
+Workerのinternal operator query / D1 consoleでは次を確認する。Browser responseには本文、写真object key、exact `scheduledAt`を出さへん。
 
-- 最古の `letterDeliveries.status = pending` かつ due
-- `notificationJobs` は status ごとに最古の `availableAt`（`pending` / `failed` / `processing`）
-- 同じ letter の job が複数ないこと（delivery test が回帰を止める）
-- claim は `pending` → `failed` → `processing` の順で、各 status 内だけ `availableAt` の古い順。全 status 横断の最古順は保証しない。retry は `nextNotificationAvailableAt` の backoff
+- 最古のpending deliveryでdueになったもの
+- `notificationJobs` の pending / failed / processing 各status内で最古の `availableAt`
+- 同じletterのnotification jobが複数ないこと
+- claim は `pending` → `failed` → `processing` の順で、各 status 内だけ `availableAt` の古い順
+- processing lock timeoutが再claimされ、delivered letterがtravelingへ戻らないこと
+- deleting attachmentがR2失敗時にreconcileへ残ること
 
 ## アカウント復旧 / provider 継続
 
-- Production は Auth0 PROD + production Google client（#38）
-- Google アカウント側の復旧は Google / Auth0 の手順に従う。Re:Me は password を持たない
-- DEV test identity を production にコピーしない
-- ログアウト後は通常 client から保護データを見えない。E2E は Auth0 database session で確認する
+- ProductionはAuth0 PROD + production Google clientを使う
+- Re:Meはpasswordを保持せず、Google / Auth0の復旧手順に従う
+- logout後は通常clientから保護データを読めない
+- Auth0障害時にDEVへproduction userを逃がさない
 
 ## Data export / 削除
 
-- 手紙の削除は論理削除。誤送信・プライバシーの救済を優先する（プロダクト原則）
-- 本文 / 添付 / delivery は既存の delete mutation の契約に従う
-- アカウント全体の物理削除・backup からの抹消期間はプライバシーポリシー確定後。それまでは operator Human Gate
-- 通知 payload に本文・写真を載せない契約は変えない
+- 手紙の削除は論理削除で、誤送信・プライバシーの救済を優先する
+- account全体の物理削除・backupからの抹消期間はprivacy policy確定後に別Human Gateで決める
+- notification payloadに本文・写真を載せない
+- Convex production data、旧credential、旧resourceの削除はrollback window終了後の別PR + Human Gateや
 
 ## Vendor outage
 
-障害時に Agent が production を作り直したり、Preview を production の代わりにしたりしない。
+障害時にAgentがProductionを作り直したり、PreviewをProductionの代わりにしたりせえへん。
 
 | 依存 | 影響 | 復旧の向き |
 |---|---|---|
-| Auth0 | ログイン不能 | tenant の status を待つ。DEV へ production ユーザーを逃がさない |
-| Convex | 読書き・cron・push outbox が止まる | Convex status。due な配送は復旧後の idempotent cron に任せる |
-| Cloudflare Worker / R2 | 静的配信・写真 | Preview と production を取り違えない |
-| Push service | 通知だけ遅延 | letter は delivered のまま。outbox を retry する。delivered を戻さない |
+| Auth0 | login不能 | PROD tenantのstatusを待つ。DEVへ逃がさない |
+| Cloudflare Worker / D1 | API / lifecycle停止 | version、D1 migration、healthを確認し、必要ならrollback gate |
+| R2 | 写真のupload / read停止 | capability、bucket、対象prefixを確認。既存objectを消さない |
+| Queue / Push service | 通知だけ遅延 | letterはdeliveredのまま。outboxをretryする |
 
-復旧 sweep: 最古の pending delivery / failed notification を数え、checksum が変なら [legacy-migration.md](legacy-migration.md) の rollback を検討する。書き込みは Human Gate。
+復旧sweepでは最古のpending delivery / failed notification / deleting attachmentを数え、checksumが変なら移行runbookのrollbackを検討する。書き込みと削除はHuman Gateや。
 
-## #30 との関係
+## 完了条件
 
-- いまの棚卸しは `no_production_import`（#38 未着手）
-- production 行が生まれたら `import_required`
-- cutover / rollback / R2 prefix 削除は #30 の Human Gate を使う
-- この文書は rehearsal の代わりにならない
+- production export / R2 inventory / checksumが保存済み
+- Previewでcritical E2Eとaccess-controlがPASS
+- Production D1のimport row countとR2 object countが一致
+- Workerのhealth、Auth0、sealed、reply、notification outboxを確認
+- traffic切替後のrollback windowを開始し、legacy sourceを保持
+- window終了後のcleanupは別Human Gateで実施

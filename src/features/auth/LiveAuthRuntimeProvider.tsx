@@ -1,15 +1,25 @@
 import { useAuth0 } from '@auth0/auth0-react'
-import { useConvexAuth } from 'convex/react'
-import { useMemo, type ReactNode } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
 
+import { ApiClientProvider } from '../../shared/api/client'
+import { readAuth0IdToken } from '../../shared/api/auth-token'
 import { resolveAuthReadiness } from './auth-readiness'
 import type { AuthLoginOptions } from './auth-runtime'
 import { AuthRuntimeProvider } from './AuthRuntimeProvider'
 import { CurrentUserSession } from './CurrentUserSession'
 
-export function LiveAuthRuntimeProvider({ children }: { children: ReactNode }) {
+export function LiveAuthRuntimeProvider({
+  children,
+  apiBaseUrl,
+}: {
+  children: ReactNode
+  apiBaseUrl: string
+}) {
   const auth0 = useAuth0()
-  const convexAuth = useConvexAuth()
+  const getToken = useCallback(
+    () => readAuth0IdToken(auth0.getAccessTokenSilently),
+    [auth0.getAccessTokenSilently],
+  )
 
   const runtime = useMemo(
     () => ({
@@ -17,8 +27,8 @@ export function LiveAuthRuntimeProvider({ children }: { children: ReactNode }) {
         auth0Error: auth0.error,
         auth0IsAuthenticated: auth0.isAuthenticated,
         auth0IsLoading: auth0.isLoading,
-        convexIsAuthenticated: convexAuth.isAuthenticated,
-        convexIsLoading: convexAuth.isLoading,
+        backendIsAuthenticated: auth0.isAuthenticated,
+        backendIsLoading: false,
       }),
       async loginWithRedirect(options?: AuthLoginOptions): Promise<void> {
         await auth0.loginWithRedirect({
@@ -35,13 +45,15 @@ export function LiveAuthRuntimeProvider({ children }: { children: ReactNode }) {
         })
       },
     }),
-    [auth0, convexAuth],
+    [auth0],
   )
 
   return (
-    <AuthRuntimeProvider value={runtime}>
-      <CurrentUserSession />
-      {children}
-    </AuthRuntimeProvider>
+    <ApiClientProvider options={{ baseUrl: apiBaseUrl, getToken }}>
+      <AuthRuntimeProvider value={runtime}>
+        <CurrentUserSession />
+        {children}
+      </AuthRuntimeProvider>
+    </ApiClientProvider>
   )
 }

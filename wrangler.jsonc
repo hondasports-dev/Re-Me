@@ -14,6 +14,9 @@
   },
   "vars": {
     "APP_ENV": "local",
+    "WEB_ORIGINS": "http://127.0.0.1:4173,http://localhost:4173,http://127.0.0.1:5173,http://localhost:5173",
+    "E2E_ALLOW_TEST_AUTH": "1",
+    "E2E_ALLOW_FORCE_DELIVERY": "1",
   },
   "d1_databases": [
     {
@@ -35,6 +38,11 @@
         "queue": "re-me-local-notifications",
       },
     ],
+    "consumers": [
+      {
+        "queue": "re-me-local-notifications",
+      },
+    ],
   },
   "triggers": {
     "crons": ["*/5 * * * *"],
@@ -48,11 +56,15 @@
       "preview_urls": false,
       "vars": {
         "APP_ENV": "preview",
+        "WEB_ORIGINS": "https://re-me-preview.hondasports.workers.dev,http://127.0.0.1:4173,http://localhost:4173",
+        "E2E_ALLOW_TEST_AUTH": "0",
+        "E2E_ALLOW_FORCE_DELIVERY": "1",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "re-me-preview",
+          "database_id": "d688b3a0-a948-4f9e-9e21-49050e2f79c8",
           "migrations_dir": "./migrations",
         },
       ],
@@ -69,6 +81,11 @@
             "queue": "re-me-preview-notifications",
           },
         ],
+        "consumers": [
+          {
+            "queue": "re-me-preview-notifications",
+          },
+        ],
       },
       "triggers": {
         "crons": ["*/5 * * * *"],
@@ -80,11 +97,15 @@
       "preview_urls": false,
       "vars": {
         "APP_ENV": "production",
+        "WEB_ORIGINS": "https://re-me.hondasports.workers.dev",
+        "E2E_ALLOW_TEST_AUTH": "0",
+        "E2E_ALLOW_FORCE_DELIVERY": "0",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "re-me",
+          "database_id": "e129d7d0-2f45-4b17-9ebb-0eb5f781498f",
           "migrations_dir": "./migrations",
         },
       ],
@@ -98,6 +119,11 @@
         "producers": [
           {
             "binding": "NOTIFICATION_QUEUE",
+            "queue": "re-me-production-notifications",
+          },
+        ],
+        "consumers": [
+          {
             "queue": "re-me-production-notifications",
           },
         ],

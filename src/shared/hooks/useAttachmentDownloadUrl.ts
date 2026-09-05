@@ -1,8 +1,5 @@
-import { useAction } from 'convex/react'
+import { api, useAction } from '../api/react'
 import { useEffect, useState } from 'react'
-
-import { api } from '../../../convex/_generated/api'
-import type { Id } from '../../../convex/_generated/dataModel'
 
 const REFRESH_MS = 45_000
 
@@ -20,7 +17,7 @@ export function useAttachmentDownloadUrl(
       const currentRequestId = ++requestId
       try {
         const capability = await createDownloadCapability({
-          attachmentId: attachmentId as Id<'letterAttachments'>,
+          attachmentId,
           generationToken,
         })
         if (active && currentRequestId === requestId) {

@@ -12,7 +12,7 @@ function readRepoFile(relativePath: string) {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8')
 }
 
-describe('CI and local Convex boundary', () => {
+describe('CI and Cloudflare Worker boundary', () => {
   const ci = readRepoFile('.github/workflows/ci.yml')
   const preview = readRepoFile('.github/workflows/preview.yml')
   const packageJson = readRepoFile('package.json')
@@ -26,24 +26,20 @@ describe('CI and local Convex boundary', () => {
     expect(quality).not.toContain('VITE_CONVEX_URL')
   })
 
-  it('deploys the PR checkout to shared Preview Convex before Playwright', () => {
+  it('deploys the PR checkout to shared Preview Worker before Playwright', () => {
     const e2e = ci.slice(ci.indexOf('name: End-to-end'))
     expect(e2e).toContain('environment: preview')
     expect(e2e).toContain('needs: quality')
     expect(e2e).toContain('group: shared-preview-backend')
     expect(e2e).toContain('cancel-in-progress: false')
-    expect(e2e).toContain('CONVEX_PREVIEW_DEPLOY_KEY')
-    expect(e2e).toContain('pnpm exec convex deploy')
-    const forceDelivery = e2e.indexOf('pnpm exec convex env set E2E_FORCE_DELIVERY 1')
+    expect(e2e).toContain('CLOUDFLARE_API_TOKEN')
+    expect(e2e).toContain('pnpm deploy:preview')
+    const deploy = e2e.indexOf('name: Deploy Cloudflare Preview')
     const playwright = e2e.indexOf('name: End-to-end tests')
-    expect(forceDelivery).toBeGreaterThan(-1)
-    expect(playwright).toBeGreaterThan(forceDelivery)
-    const forceLine = e2e
-      .split('\n')
-      .find((line) => line.includes('pnpm exec convex env set E2E_FORCE_DELIVERY 1'))
-    expect(forceLine?.trim().startsWith('#')).toBe(false)
+    expect(deploy).toBeGreaterThan(-1)
+    expect(playwright).toBeGreaterThan(deploy)
     expect(e2e).toContain('pnpm test:e2e')
-    expect(e2e).toMatch(/VITE_CONVEX_URL: \$\{{\s*vars\.VITE_CONVEX_URL\s*}}/)
+    expect(e2e).toMatch(/VITE_API_BASE_URL: \$\{{\s*vars\.PREVIEW_BASE_URL\s*}}/)
   })
 
   it('documents both CI jobs as required merge checks', () => {
@@ -89,12 +85,12 @@ describe('CI and local Convex boundary', () => {
     expect(smoke.lastIndexOf('exit 1')).toBeGreaterThan(smoke.indexOf('exit 0'))
   })
 
-  it('points local Convex scripts at the local backend wrapper', () => {
-    expect(packageJson).toContain('"convex:dev": "node scripts/convex-dev-target.mjs"')
+  it('uses an explicit Cloudflare build target for each deploy environment', () => {
+    expect(packageJson).toContain('"build": "node scripts/cloudflare-build.mjs local"')
+    expect(packageJson).toContain('"build:preview": "node scripts/cloudflare-build.mjs preview"')
     expect(packageJson).toContain(
-      '"dev:full": "node scripts/convex-dev-target.mjs --start \\"vite dev\\""',
+      '"build:production": "node scripts/cloudflare-build.mjs production"',
     )
-    expect(packageJson).toContain('"convex:check": "node scripts/convex-dev-target.mjs --once"')
   })
 
   it('ignores local Convex backend state', () => {
@@ -140,19 +136,13 @@ describe('CI and local Convex boundary', () => {
     expect(uploadSteps[0]).toContain('playwright-report/')
   })
 
-  it('does not send production Convex deploy through PR CI or Preview', () => {
-    expect(ci).not.toContain('convex deploy --prod')
-    expect(preview).not.toContain('convex deploy --prod')
-    expect(preview).toContain('environment: preview')
-    expect(preview).toContain('secrets.CONVEX_PREVIEW_DEPLOY_KEY')
-    expect(ci).toContain('secrets.CONVEX_PREVIEW_DEPLOY_KEY')
-    expect(ci).not.toMatch(/\$\{\{\s*secrets\.CONVEX_DEPLOY_KEY\s*}}/)
-    expect(preview).not.toMatch(/\$\{\{\s*secrets\.CONVEX_DEPLOY_KEY\s*}}/)
-    expect(ci).not.toContain('environment: production')
-    expect(preview).not.toContain('environment: production')
-    expect(ci).not.toContain('CONVEX_PRODUCTION_DEPLOY_KEY')
-    expect(preview).not.toContain('CONVEX_PRODUCTION_DEPLOY_KEY')
+  it('does not send production Worker deploy through PR CI or Preview', () => {
     expect(ci).not.toContain('wrangler deploy --env production')
     expect(preview).not.toContain('wrangler deploy --env production')
+    expect(preview).toContain('environment: preview')
+    expect(preview).toContain('secrets.CLOUDFLARE_API_TOKEN')
+    expect(ci).toContain('secrets.CLOUDFLARE_API_TOKEN')
+    expect(ci).not.toContain('environment: production')
+    expect(preview).not.toContain('environment: production')
   })
 })

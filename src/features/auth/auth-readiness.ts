@@ -8,8 +8,11 @@ export interface AuthReadinessInput {
   auth0Error?: Error
   auth0IsAuthenticated: boolean
   auth0IsLoading: boolean
-  convexIsAuthenticated: boolean
-  convexIsLoading: boolean
+  backendIsAuthenticated?: boolean
+  backendIsLoading?: boolean
+  /** Compatibility fields for tests and the pre-migration runtime. */
+  convexIsAuthenticated?: boolean
+  convexIsLoading?: boolean
 }
 
 export function resolveAuthReadiness(input: AuthReadinessInput): AuthReadiness {
@@ -25,11 +28,14 @@ export function resolveAuthReadiness(input: AuthReadinessInput): AuthReadiness {
     return { status: 'unauthenticated' }
   }
 
-  if (input.convexIsLoading) {
+  const backendIsLoading = input.backendIsLoading ?? input.convexIsLoading ?? false
+  const backendIsAuthenticated = input.backendIsAuthenticated ?? input.convexIsAuthenticated ?? true
+
+  if (backendIsLoading) {
     return { status: 'loading' }
   }
 
-  if (!input.convexIsAuthenticated) {
+  if (!backendIsAuthenticated) {
     return { reason: 'session_restore_failed', status: 'error' }
   }
 

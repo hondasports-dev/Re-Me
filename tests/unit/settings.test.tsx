@@ -7,10 +7,12 @@ import { PUSH_PERMISSION_COPY } from '../../src/features/settings/model/push'
 import { SettingsPage } from '../../src/features/settings/pages/SettingsPage'
 import { reMeTheme } from '../../src/styles/theme'
 
-vi.mock('convex/react', () => ({
-  useMutation: () => vi.fn(),
-  useQuery: () => undefined,
-}))
+vi.mock('../../src/shared/api/react', async () => {
+  const actual = await vi.importActual<typeof import('../../src/shared/api/react')>(
+    '../../src/shared/api/react',
+  )
+  return { ...actual, useMutation: () => vi.fn(), useQuery: () => undefined }
+})
 
 describe('settings page', () => {
   it('explains quiet notifications before any permission request and keeps the app usable', async () => {

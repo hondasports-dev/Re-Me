@@ -23,7 +23,7 @@ setup('authenticate with Auth0 test identity', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'ログアウト' })).toBeVisible({
     timeout: 30_000,
   })
-  await expect(page.getByTestId('convex-session')).toHaveAttribute('data-state', 'ready', {
+  await expect(page.getByTestId('api-session')).toHaveAttribute('data-state', 'ready', {
     timeout: 30_000,
   })
   await page.context().storageState({ path: authStatePath })

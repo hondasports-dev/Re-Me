@@ -1,9 +1,7 @@
-import { useAction, useMutation, useQuery } from 'convex/react'
+import { api, useAction, useMutation, useQuery } from '../../../shared/api/react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { useAutosaveDraft } from '../hooks/useAutosaveDraft'
 import { canAdvanceToSend } from '../model/compose'
 import { sanitizePhoto, uploadPhoto } from '../model/photo'
@@ -23,7 +21,7 @@ export function ComposeDraftEditor({
   }
   eyebrow?: string
   heading?: string
-  letterId: Id<'letters'>
+  letterId: string
   nextPath: string
 }) {
   const navigate = useNavigate()
@@ -31,7 +29,7 @@ export function ComposeDraftEditor({
   const setDraftLocation = useMutation(api.attachments.setDraftLocation)
   const removeDraftLocation = useMutation(api.attachments.removeDraftLocation)
   const createAttachmentIntent = useMutation(api.attachments.createAttachmentIntent)
-  const finalizeAttachment = useAction(api.attachmentActions.finalizeAttachment)
+  const finalizeAttachment = useAction(api.attachments.finalizeAttachment)
   const removeDraftPhoto = useMutation(api.attachments.removeDraftPhoto)
   const attachments = useQuery(api.attachments.listReadableAttachments, { letterId })
   const [locationDraft, setLocationDraft] = useState('')
@@ -92,7 +90,7 @@ export function ComposeDraftEditor({
     setPhotoError(null)
     setPhotoUploadProgress(0)
     let intent: {
-      attachmentId: Id<'letterAttachments'>
+      attachmentId: string
       generationToken: string
       uploadUrl: string
       expiresAt: number
@@ -100,17 +98,18 @@ export function ComposeDraftEditor({
 
     try {
       const sanitized = await sanitizePhoto(file)
-      intent = await createAttachmentIntent({
+      const createdIntent = await createAttachmentIntent({
         letterId,
         mimeType: 'image/jpeg',
         byteSize: sanitized.blob.size,
         width: sanitized.width,
         height: sanitized.height,
       })
-      await uploadPhoto(intent.uploadUrl, sanitized.blob, setPhotoUploadProgress)
+      intent = createdIntent
+      await uploadPhoto(createdIntent.uploadUrl, sanitized.blob, setPhotoUploadProgress)
       await finalizeAttachment({
-        attachmentId: intent.attachmentId,
-        generationToken: intent.generationToken,
+        attachmentId: createdIntent.attachmentId,
+        generationToken: createdIntent.generationToken,
       })
     } catch (error) {
       if (intent) {

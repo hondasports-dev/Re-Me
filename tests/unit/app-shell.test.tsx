@@ -7,10 +7,16 @@ import { AppProviders } from '../../src/app/providers'
 import { createTestAuthRuntime } from '../../src/features/auth/auth-runtime'
 import { createTestRouter } from '../../src/router'
 
-vi.mock('convex/react', () => ({
-  useMutation: () => vi.fn(() => new Promise(() => undefined)),
-  useQuery: () => undefined,
-}))
+vi.mock('../../src/shared/api/react', async () => {
+  const actual = await vi.importActual<typeof import('../../src/shared/api/react')>(
+    '../../src/shared/api/react',
+  )
+  return {
+    ...actual,
+    useMutation: () => vi.fn(() => new Promise(() => undefined)),
+    useQuery: () => undefined,
+  }
+})
 
 function renderApp(
   status: 'unauthenticated' | 'loading' | 'authenticated',

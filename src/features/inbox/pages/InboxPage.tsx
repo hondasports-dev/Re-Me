@@ -1,6 +1,4 @@
-import { useQuery } from 'convex/react'
-
-import { api } from '../../../../convex/_generated/api'
+import { api, useQuery } from '../../../shared/api/react'
 import { InboxErrorBoundary } from '../components/InboxErrorBoundary'
 import { InboxLetterList } from '../components/InboxLetterList'
 import { useCalendarClock } from '../model/useCalendarClock'

@@ -1,15 +1,13 @@
-import { useQuery } from 'convex/react'
+import { api, useQuery } from '../../../shared/api/react'
 import { useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { ComposeDraftEditor } from '../components/ComposeDraftEditor'
 import { ComposeUnavailableScreen } from '../components/ComposeUnavailableScreen'
 
 export function ComposeEditorPage() {
   const { letterId } = useParams()
-  const typedLetterId = letterId as Id<'letters'> | undefined
+  const typedLetterId = letterId as string | undefined
   const draft = useQuery(api.letters.getDraft, typedLetterId ? { letterId: typedLetterId } : 'skip')
   const metadata = useQuery(
     api.letters.getLetterMetadata,

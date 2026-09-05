@@ -1,16 +1,14 @@
-import { useQuery } from 'convex/react'
+import { api, useQuery } from '../../../shared/api/react'
 import { useRef } from 'react'
 import { Link, useParams } from 'react-router'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { StatusScreen } from '../../../shared/components/StatusScreen'
 import { ComposeUnavailableScreen } from '../components/ComposeUnavailableScreen'
 import { ComposeSendSession } from './ComposeSendPage'
 
 export function ReplySendPage() {
   const { letterId } = useParams()
-  const parentId = letterId as Id<'letters'> | undefined
+  const parentId = letterId as string | undefined
   const parent = useQuery(api.letters.getLetterMetadata, parentId ? { letterId: parentId } : 'skip')
   const draftId = parent?.nextLetterId ?? null
   const draft = useQuery(api.letters.getDraft, draftId ? { letterId: draftId } : 'skip')

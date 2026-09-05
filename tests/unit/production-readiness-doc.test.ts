@@ -8,7 +8,7 @@ describe('production readiness checklist', () => {
   it('keeps production writes behind Human Gate and links migration rehearsal', () => {
     expect(checklist).toContain('Issue #38')
     expect(checklist).toContain('legacy-migration.md')
-    expect(checklist).toContain('CONVEX_PREVIEW_DEPLOY_KEY')
+    expect(checklist).toContain('CLOUDFLARE_API_TOKEN')
     expect(checklist).toMatch(/Restore は production への書き込みなので Human Gate/)
     expect(checklist).toContain('Preview へ production export を流し込まない')
     expect(checklist).not.toMatch(/convex deploy --prod/)
