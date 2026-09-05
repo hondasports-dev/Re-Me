@@ -13,16 +13,32 @@ description: PREPAREのcompact contract（AC/IV/TC、Risk、Controls、Coverage 
 - AC / relevant IVがID付き
 - material assumptions解消済み
 - Risk / Required Controls / Verification plan記録済み
-- required Human Gateがimplementation前に必要なら承認済み
+- specific Human Gate triggerがimplementation前に発生した場合だけ承認済み
 
 前工程を長く再要約せず `task-state.prepare` を参照する。
 
 Issue全文・chat履歴・Requirements Skill全文は、contractが無効化された根拠が出た時だけ再読する。
 
+## Authorized execution
+
+ユーザーがすでに許可したreversible repository edit、review/fix、tests、branch/PR作業について追加permissionを要求せず、ACを満たす具体的な差分まで進める。
+
+R4分類だけを理由にImplementationをHuman Gateで止めない。production / irreversible write等のspecific triggerがある時だけ止める。
+
+## Mid-turn steering
+
+作業中に追加指示が来たら、その指示をcurrent explicit user instructionとして取り込む。
+
+- affected Goal / scope / AC / IV / TC / Risk / Controlsだけ更新
+- unaffected implementationとsame-content Evidenceは保持
+- 全Implementationを最初からやり直さない
+- material choiceが新たに発生した場合だけPREPARE / Human Gateへ戻る
+
 ## Writer境界
 
 - same shared diffのwriterは原則1体
-- 複数writerはpath-disjointを証明できる時だけ
+- 複数writerはpath-disjointを証明でき、wall-clock短縮にmaterialに効く時だけ
+- cheap sequential workをsubagentへ分割しない
 - 他taskの差分を混ぜない
 - secret / local env / generated local artifactをcommitしない
 
@@ -30,7 +46,8 @@ Issue全文・chat履歴・Requirements Skill全文は、contractが無効化さ
 
 - AC / IVに必要な最小変更
 - scope外refactorを混ぜない
-- behavior change / bug fixでは必要ならRED/GREEN
+- behavior change / bug fixではobservable contractを証明する必要がある時だけRED/GREENを使う
+- reversible / low-impact変更でimplementation detailを鏡写しするだけのtestを先回りして増やさない
 - Re:Meの既存Product / Architecture contractを優先する
 - Coverage Mapに無いbehaviorが必要と分かったら暗黙追加せずPREPAREへ戻す
 
@@ -40,11 +57,13 @@ Issue全文・chat履歴・Requirements Skill全文は、contractが無効化さ
 
 - owning `tsconfig`
 - direct callerの引数 / 戻り値
-- Convex validator / schema / persistence shape
-- Auth0 / Convex authorization前提
+- Worker route / validator / D1 schema / persistence shape
+- Auth0 / Worker authorization前提
 - sealed/unsealed visibility境界
 - delivery / notification state transition
 - existing testの境界条件
+
+legacy Convex → D1 migration taskでは、Convexはsource / rollback対象として必要な範囲だけ確認する。
 
 material assumptionが誤りなら、押し切らずAC / IV / Risk / Controls / TCを更新する。
 
@@ -53,7 +72,7 @@ material assumptionが誤りなら、押し切らずAC / IV / Risk / Controls / 
 Implementation終了時にbehavior-changing diffをcontractへ逆引きする。
 
 ```text
-convex/letters.ts#get → AC01
+worker/routes/letters.ts#get → AC01
 src/features/letters/Open.tsx → AC02, IV01
 ```
 
