@@ -4,20 +4,20 @@ session:
 
 revision:
   current:
-    commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-    tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+    commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+    tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
   verified:
-    commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-    tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+    commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+    tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
   reviewed:
-    commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-    tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+    commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+    tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
   published:
-    commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
-    tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
+    commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+    tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
   observed:
-    commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
-    tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
+    commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+    tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
 
 task:
   id: "issue-60"
@@ -25,7 +25,7 @@ task:
   objective: "Issue #60のD1移行基盤とConvex exportからのデータ移行リハーサルを実装する"
   base_branch: main
   delivery_target: merge_ready
-  current_state: delivery
+  current_state: done
 
 prepare:
   status: PASS
@@ -193,7 +193,7 @@ implementation:
 
 verification:
   status: PASS
-  evidence_snapshot: "origin/main@4263ee7; codex/issue-60-cloudflare-migration dedicated worktree; local D1 schema and migration rehearsal completed"
+  evidence_snapshot: "origin/main@4263ee7; codex/issue-60-cloudflare-migration dedicated worktree; latest delta verification at cc5eb41 completed"
   affected_scope:
     - migrations/0001_initial_schema.sql
     - scripts/convex-to-d1-migration.ts
@@ -237,6 +237,7 @@ verification:
     - { check: "Worker D1 schema tests", reason: "Initial worker pool had an empty D1 because migrations were not applied by setup.", invalidated_by: "Added readD1Migrations/applyD1Migrations setup; all Worker tests pass." }
     - { check: "reply self-reference ordering unit test", reason: "Initial assertion matched rollback link-clearing SQL instead of the DELETE statement.", invalidated_by: "Scoped assertion to letter DELETE statements; targeted test and full suite pass." }
     - { check: "pnpm typecheck", reason: "Artifact-output helper refactor left a stale utf8 argument on the manifest call.", invalidated_by: "Removed the stale argument; typecheck and full regression pass." }
+    - { check: "migration idempotency/review delta", reason: "CodeRabbit identified sequential partial-target recovery and switch-case declaration gaps.", invalidated_by: "cc5eb41 adds safe three-stage recovery/conflict handling, wraps the delivery case, and passes targeted/full local verification." }
   evidence:
     - "pnpm lint: PASS"
     - "pnpm format:check: PASS (186 files)"
@@ -246,9 +247,10 @@ verification:
     - "pnpm build: PASS; existing chunk-size warning only"
     - "wrangler deploy --dry-run: PASS for local, preview, production bindings"
     - "check-local-e2e-gate baseRef origin/main: PASS, required: no"
+    - "latest cc5eb41 delta: migration targeted 6/6, full suite 139+58+3, lint/format/typecheck/build/loop all PASS"
 
 review:
-  status: pending # pending | not_required | pass | blocked
+  status: pass # pending | not_required | pass | blocked
   required_by: ["risk:r3_high"]
   reviewers:
     - name: Godel
@@ -275,9 +277,12 @@ review:
     evidence:
       - "Godel first review BLOCKED on missing real-DB migration evidence; node:sqlite test was added and rerun review returned PASS with no material finding."
       - "Nash re-review identified six material findings; all were addressed in 29b72c0 and Averroes fresh re-review returned PASS with no material finding."
+      - "CodeRabbit raised three PR threads; two were fixed in cc5eb41 and the resource provisioning thread was reconciled as an out-of-scope Human Gate prerequisite."
   evidence:
     - "Independent reviewer Godel: PASS; no material findings after the node:sqlite import/rerun/checksum/rollback/reply-chain test was added."
     - "Independent reviewer Averroes: PASS on 29b72c0; all six prior findings and AC01-AC07/IV01-IV05 coverage were confirmed."
+    - "Independent reviewer Averroes: PASS on cc5eb41; the idempotency/switch delta and all prior AC/IV coverage were confirmed with no material finding."
+    - "CodeRabbit threads are resolved with verified rationale."
     - "Review confirmed foundation/rehearsal scope and production Human Gate boundary are documented."
 
 finding_record_schema:
@@ -522,36 +527,126 @@ findings:
     verified_revision:
       commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
       tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+  - id: REV-008
+    source: review
+    observed_revision:
+      commit_sha: "f8b3faba35c39e6551f9a8ab9034be8723be985e"
+      tree_sha: "655459a95b8a3f2ab200fef297f1421f022427ac"
+    status: resolved
+    category: maintainability
+    finding: "letterDeliveries switch caseのconst宣言がcase block外にあり、switch declaration lint違反になる。"
+    failure_scenario: "lint設定や別caseの宣言追加時にcase間のTDZ/可読性問題が発生し、CI lintが失敗する。"
+    affected_acceptance_criteria: [AC03, AC06]
+    affected_invariants: []
+    risk_domains: [reliability]
+    evidence:
+      - "CodeRabbit inline review thread PRRT_kwDOT8SJfM6ffJGM"
+    recommended_action: "letterDeliveries caseをblockで囲む。"
+    disposition: resolved
+    rationale: "既存のcase block構造とlint契約に合わせる小さな修正として適用した。"
+    mitigation: "letterDeliveries caseを独立blockへ移動した。"
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "cc5eb41で修正。local lint/typecheckとCI run 151のQuality gatesで検証済み。"
+    verified_revision:
+      commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+      tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
+  - id: REV-009
+    source: review
+    observed_revision:
+      commit_sha: "f8b3faba35c39e6551f9a8ab9034be8723be985e"
+      tree_sha: "655459a95b8a3f2ab200fef297f1421f022427ac"
+    status: resolved
+    category: reliability
+    finding: "逐次CLI実行のtarget row先行残存時に、map未登録の同一target conflictを安全に復旧または明示拒否する必要がある。"
+    failure_scenario: "target insert後の中断でmapが欠けた状態を再実行すると、単純なguard変更では重複採用またはPRIMARY KEY failureになり得る。"
+    affected_acceptance_criteria: [AC04, AC06]
+    affected_invariants: [IV01, IV04]
+    risk_domains: [reliability, persistence_state_transition, concurrency_idempotency, data_integrity]
+    evidence:
+      - "CodeRabbit inline review thread PRRT_kwDOT8SJfM6ffJGR"
+    recommended_action: "同一内容の残存rowのみmapを復旧し、異なるrowはconflictで停止する。"
+    disposition: resolved
+    rationale: "CodeRabbitの単純AND案は予期せぬtargetを無検証で採用し得るため、安全な部分復旧として実装した。"
+    mitigation: "import insert、mismatch conflict guard、map upsertの3段階で内容一致を確認する。"
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "cc5eb41でpartial target recovery / unexpected conflict / missing target recoveryのSQLiteテストを追加し、local full suiteとPR CIがPASSした。"
+    verified_revision:
+      commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+      tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
+  - id: REV-010
+    source: review
+    observed_revision:
+      commit_sha: "f8b3faba35c39e6551f9a8ab9034be8723be985e"
+      tree_sha: "655459a95b8a3f2ab200fef297f1421f022427ac"
+    status: resolved
+    category: scope
+    finding: "Preview D1 database IDとQueue resourceが未作成で、実remote preview deployのbinding provisioningが未完了。"
+    failure_scenario: "placeholder resource名のままremote deployを実行すると、Cloudflare側でbindingが解決できない可能性がある。"
+    affected_acceptance_criteria: [AC02, AC07]
+    affected_invariants: [IV01, IV05]
+    risk_domains: [service_ops, current_scope, data_integrity]
+    evidence:
+      - "CodeRabbit inline review thread PRRT_kwDOT8SJfM6ffJGU"
+      - "No real Preview/Production D1, R2, or Queue resource IDs are available in this worktree; wrangler dry-run only validates config shape."
+    recommended_action: "OperatorがPreview resourceを作成してdatabase_id/Queueを設定し、remote deployを別Human Gateで検証する。"
+    disposition: not_applicable
+    rationale: "このPRはresource creationやremote migrationを含まないfoundation scopeであり、ID捏造や未承認のCloudflare writeは安全境界に反する。runbookに明示した後続運用で扱う。"
+    mitigation: "named environment分離、placeholder resource名、dry-run、Production/remote操作禁止をdocsとテストで明示した。"
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "PR threadへscope外とHuman Gate境界の根拠を返信し、resolvedにした。resource provisioningは後続operator task。"
+    verified_revision:
+      commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
+      tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
 
 delivery:
   status: pass
   branch: "codex/issue-60-cloudflare-migration"
-  commit: "29b72c04b00b8be1684ffc854602895dca031a4f"
+  commit: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
   pull_request: "https://github.com/hondasports/Re-Me/pull/61"
   base: main
   evidence:
     - "Dedicated branch pushed to origin with implementation commit 9a5d1ca and loop evidence commit 807329b."
     - "PR #61 created against main with base SHA 4263ee7e7f032c1085901ad4f1097f29ffadd272 and initial head SHA 807329b7c1b3041cb9dffa51ebe8e8d7e163e813."
     - "PR metadata-only delivery update is published at head 3fd16418507a1dd78e0e077b433a86bff90fb8a8."
-    - "Review fixes are ready at code head 29b72c0; PR update and latest aftercare are still pending."
+    - "Code head cc5eb41 is published to PR #61; latest CI and aftercare passed."
 
 pr_aftercare:
-  status: pending
+  status: pass
   checks:
-    - "GitHub CI run 33935218497: success for head 3fd16418507a1dd78e0e077b433a86bff90fb8a8; Quality gates and End-to-end jobs passed."
-    - "CodeRabbit status: success; repository auto-review is skipped because the repository has fewer than 10 stars."
-    - "Review submissions: none; inline review threads: none."
-    - "Pending: re-run after PR #61 is updated to 29b72c0."
+    - "GitHub CI run 33937148934 (run 151): success for head cc5eb41158ae13b208d8c7a0e3e45d2138b261ee; Quality gates and End-to-end jobs passed."
+    - "CodeRabbit confirmed the two code findings addressed and the resource provisioning finding out-of-scope/Human Gate; all three threads are resolved."
+    - "Review submissions: none; unresolved inline review threads: none."
   requested_changes: []
   approval_required: false
   approval_status: not_required # pending | pass | not_required | blocked
   approval_evidence: []
-  revision_consistency: pending # pending | pass | blocked
-  conflict_status: pending
-  mergeable: pending
+  revision_consistency: pass # pending | pass | blocked
+  conflict_status: pass
+  mergeable: pass
   evidence:
-    - "PR info: open, not draft, mergeable true, base main, head 3fd1641."
-    - "No requested changes, review submissions, or unresolved inline review threads."
+    - "PR info: open, not draft, mergeable true, base main, head cc5eb41."
+    - "No requested changes, review submissions, or unresolved inline review threads; pnpm loop:aftercare PASS."
     - "All required GitHub CI jobs completed successfully; no production deploy or data operation was performed."
 
 telemetry:
@@ -574,10 +669,10 @@ telemetry:
     invariant_count: 5
     test_case_count: 11
     required_control_count: 6
-    findings_added: 1
+    findings_added: 10
     retries: 4
-    full_suite_runs: 4
-    review_cycles: 3
+    full_suite_runs: 5
+    review_cycles: 5
   summary:
     total_elapsed_seconds: null
     total_external_wait_seconds: 0
@@ -637,6 +732,5 @@ learning:
       verification_evidence: []
 
 completion:
-  status: in_progress
-  blockers:
-    - "PR #61 must be updated to 29b72c0 and latest required CI/aftercare must pass."
+  status: complete
+  blockers: []
