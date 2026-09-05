@@ -25,6 +25,21 @@ description: PREPAREを所有し、Spec Confidence、scope、ID付きAcceptance 
 
 `C0` のままImplementationへ進まない。
 
+## Instruction priority / autonomy
+
+current explicit user instructionを、一般的なSkill guidanceより優先する。Safety invariantは別。
+
+ユーザーがすでに許可したread-only discovery、reversible repository edit、review / fix、tests / verification、branch作成、requested / implied PR create/updateについて、このSkillだけを理由に追加permissionを要求しない。
+
+質問やHuman Gateの前に、まず次を終える。
+
+1. cheapな許可済みdiscovery
+2. source priorityに沿った仕様復元
+3. reversibleな準備
+4. concrete alternativesとmaterial differenceの提示
+
+その上でmaterial choiceが残る時だけC0としてHuman Gateへ進む。
+
 ## Context discipline
 
 PREPARE後にsource本文を後工程へコピーしない。
@@ -44,6 +59,15 @@ PREPARE後にsource本文を後工程へコピーしない。
 
 「漏れが怖いから最初から全repoを読む」はdefaultにしない。
 
+## Mid-turn steering
+
+作業中に追加ユーザー指示が来たら、current explicit user instructionとして取り込む。
+
+- affected Goal / scope / AC / IV / TC / Risk / Controlsだけ更新
+- unaffected contractとsame-content Evidenceは保持
+- PREPAREを最初から無条件にやり直さない
+- material choiceが新たに発生した時だけHuman Gateを検討
+
 ## Workspace Preflight
 
 repository fileを変更するlocal taskでは `skills/workspace-preflight/SKILL.md` を使う。
@@ -54,8 +78,8 @@ GitHub connector等のAPI writeでは、専用task branch・base=`main`・task i
 
 - `C2 confirmed`: 目的・期待結果・主要ACが明確でmaterial conflictなし
 - `C1 reconstructed`: docs / tests / current patternからmaterial choiceなしに復元可能
-- `C0 unclear`: 複数の妥当な成果物がありmaterial choiceが残る
-- `C0 conflicted`: desired stateについてauthoritative sourceが矛盾
+- `C0 unclear`: authorized discovery後も複数の妥当な成果物がありmaterial choiceが残る
+- `C0 conflicted`: source reconciliation後もdesired stateについてauthoritative sourceが矛盾
 
 Source priority:
 
@@ -74,7 +98,7 @@ Source priority:
 
 - cheapに確認できる → 実装前に確認
 - sourceから一意に復元できる → C1 evidence
-- 複数のmaterial choiceが残る → C0
+- authorized discovery後も複数のmaterial choiceが残る → C0
 
 特にRe:Meでは次の意味を推測で決めない。
 
@@ -125,9 +149,11 @@ IV01: notification payloadにletter contentを含めない
 runtime behavior変更、Required Controlあり、またはR2以上では作成する。
 
 ```text
-AC01 → convex/letters.ts#get → TC01, TC02
-IV01 → notification outbox   → TC03
+AC01 → worker/routes/letters.ts#get → TC01, TC02
+IV01 → notification outbox           → TC03
 ```
+
+legacy Convex → D1 migration taskでは、Convexはsource / rollback対象として必要なsurfaceだけCoverage Mapへ含める。通常runtimeの正本として扱わない。
 
 ### Forward coverage
 
@@ -153,6 +179,8 @@ TCはrelevant dimensionから必要なものだけ作る。
 - regression
 - functional E2E
 
+reversible / low-impact変更では、implementation detailを鏡写しするだけのTCを増やさない。observable AC/IVをmaterialに証明するものだけ作る。
+
 user-visible画面・遷移・操作を変える場合は、変更した画面そのものを踏むPlaywrightをTCへ含める。
 
 既存critical 3本があることを理由に、新規画面E2Eを省略しない。
@@ -166,7 +194,7 @@ user-visible画面・遷移・操作を変える場合は、変更した画面�
 
 Reviewerへ渡すのはsource参照 + Goal/scope + AC/IV + material assumptions + relevant dimensions + TC案のcompact packet。
 
-Riskが高いだけでreviewerを増やさない。
+Riskが高いだけでreviewerを増やさない。R4だけを理由にspecialistを追加しない。
 
 ## Risk / Required Controls
 
@@ -182,7 +210,9 @@ Required ControlsはRiskとは別に選ぶ。
 - `human_gate`
 - `prompt_injection_guard`
 
-Auth0 / Convex / schemaに触れただけで全High ceremonyにせず、必要なControlを追加する。
+Auth0 / Worker / D1 / R2 / legacy Convex migrationに触れただけで全High ceremonyにせず、必要なControlだけ追加する。
+
+**R4分類だけではHuman Gateを追加しない。** Human Gateはproduction / irreversible / unresolved material choice等の具体的triggerへ束縛する。
 
 ## PREPARE PASS
 
