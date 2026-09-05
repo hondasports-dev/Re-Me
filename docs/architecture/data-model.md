@@ -1,197 +1,80 @@
 # データモデル
 
-current runtime の実装上の正本は `convex/schema.ts` と function validators、Issue #60 の D1 target schema の正本は `migrations/0001_initial_schema.sql` とする。この文書は両者で維持する model の設計意図を説明する。現行 `supabase/migrations/` は移行完了までの legacy ソースである。
+## Source of truth
 
-## モデル
+Cloudflare D1 の schema は `migrations/*.sql` を正本とする。時刻はすべて UTC の
+epoch milliseconds で保存し、UI でユーザーの timezone へ変換する。既存 migration
+は書き換えず、schema 変更は番号付き migration を追加する。
 
-```mermaid
-erDiagram
-    USER ||--|| USER_SETTINGS : has
-    USER ||--o{ THREAD : owns
-    THREAD ||--o{ LETTER : contains
-    LETTER ||--|| LETTER_CONTENT : has
-    LETTER ||--o{ LETTER_ATTACHMENT : has
-    LETTER o|--o| LETTER : replies_to
-    USER ||--o{ PUSH_SUBSCRIPTION : owns
-    LETTER ||--|| LETTER_DELIVERY : scheduled_by
-    LETTER ||--o| NOTIFICATION_JOB : creates
-```
+## エンティティ
 
-## 中核エンティティ
+| table | 役割 |
+|---|---|
+| `users` | Auth0 subject と Re:Me 内部 user の対応 |
+| `user_settings` | timezone、push / email 設定 |
+| `threads` | 一本道の返信スレッド |
+| `letters` | 手紙 metadata、status、配送 window、ライフサイクル |
+| `letter_contents` | 本文。metadata と分離 |
+| `letter_attachments` | 写真 / location と R2 metadata |
+| `attachment_finalization_attempts` | R2 finalize の generation / reconcile state |
+| `letter_deliveries` | exact `scheduled_at` と delivery status |
+| `notification_jobs` | 通知 outbox、claim、retry state |
+| `push_subscriptions` | owner ごとの Web Push endpoint |
 
-### users
+## 手紙と本文
 
-- `_id`
-- `tokenIdentifier`（一意な外部 identity 検索キー）
-- 安全なプロフィール field
-- `createdAt` / `updatedAt`
+`letters` は一覧に必要な metadata を持ち、本文は `letter_contents` に分離する。
+`owner_id` を両方に持たせ、Worker が一致を検証する。
 
-ドメインの所有権は `_id` を使い、Auth0 subject を各 table に直接保存しない。
-
-### userSettings
-
-- `userId`
-- `timezone`
-- `pushEnabled`
-- `emailNotificationEnabled`
-
-### threads
-
-- `ownerId`
-- `createdAt` / `updatedAt` / `deletedAt`
-
-### letters
-
-本文を除く metadata。
-
-- `threadId`
-- `ownerId`
-- `parentLetterId`
-- `nextLetterId`
-- `status`: `draft | traveling | delivered`
-- `sealed`
-- `deliveryMode`
-- `deliveryWindowStart` / `deliveryWindowEnd`
-- `sentAt` / `deliveredAt` / `openedAt` / `repliedAt`
-- `createdAt` / `updatedAt` / `deletedAt`
-
-`opened` / `replied` は status に混ぜず timestamp とする。
-
-### letterContents
-
-- `letterId`
-- `ownerId`
-- `body`
-
-metadata と本文を分け、一覧 query が封をした本文を読み込まない返り値にする。
-
-### letterAttachments
-
-- `letterId`
-- `ownerId`
-- `kind`: `photo | location`
-- `status`: `pending | ready | deleting`
-- 非公開 R2 object id
-- 安全な MIME / byte size / width / height
-- 表示専用の場所ラベル
-
-正確な緯度経度と EXIF は恒久保存しない。
-
-### attachmentFinalizationAttempts
-
-- `attachmentId` / `generationToken`
-- copy 前に確定する一意な非公開 R2 object key
-- `state`: `claimed | winner | deleting`
-- 削除試行 / 次回復旧 / 伏せたエラー metadata
-
-外部 copy 直後に処理が止まっても候補 key を見失わず、winner 以外を削除成功まで追跡する。
-
-### letterDeliveries
-
-- `letterId`
-- `ownerId`
-- `scheduledAt`
-- 配送試行 / 復旧 metadata
-
-`scheduledAt` は due index に使うが、ブラウザ向け query からは返さない。
-
-### notificationJobs
-
-- `letterId`
-- `ownerId`
-- `status`: `pending | processing | sent | failed`
-- `attemptCount`
-- `generationToken`
-- `availableAt` / `lockedAt` / `sentAt`
-- 伏せた `lastErrorCode`
-
-配送と外部通知を分ける outbox。
-
-### pushSubscriptions
-
-- `ownerId`
-- endpoint / p256dh / auth
-- 作成 / 更新 / 無効化 metadata
-
-## 必須 indexes
-
-少なくとも以下の読み取り経路を index で支える。
-
-- users: tokenIdentifier
-- threads: ownerId と updatedAt
-- letters: ownerId と status
-- letters: threadId と sentAt
-- letters: parentLetterId
-- letterContents: letterId
-- letterAttachments: letterId
-- attachmentFinalizationAttempts: attachmentId
-- attachmentFinalizationAttempts: state と nextReconcileAt
-- letterDeliveries: 配送状態と scheduledAt
-- notificationJobs: status と availableAt
-- pushSubscriptions: ownerId
-- pushSubscriptions: ownerId と disabledAt
-
-増える table を件数無制限の `.collect()` や `.filter()` で走査しない。一覧 query は paginate / 件数上限つき `take` を使う。
-
-## 状態遷移
+status は次の3つだけや。
 
 ```text
-draft
-  │ sendLetter
-  ▼
-traveling
-  │ deliverDueLetters
-  ▼
-delivered
+draft → traveling → delivered
 ```
 
-別軸:
+送信時に body、添付、sealed、delivery mode / window、`sent_at` を固定する。D1
+trigger と Worker の専用 state transition が、送信後の編集を二重に防ぐ。削除は
+論理削除で、誤送信・プライバシー上の救済を優先する。
 
-```text
-delivered
-  │ openLetter
-  ▼
-openedAt != null
-  │ 返信を未来へ送信
-  ▼
-repliedAt != null
-```
+## 返信スレッド
 
-## スレッドの不変条件
+`threads` は owner ごとの一本道を表す。`letters.parent_letter_id` と
+`next_letter_id` で親子関係を持ち、active parent の unique index で同じ手紙への
+返信競合を拒否する。返信作成は、親が owner の delivered letter、内容取得可能、
+未返信であることを D1 transaction 内で確認する。
 
-返信は同じ `threadId` に所属し、`parentLetterId` で直前の手紙を指す。MVP は一つの未削除手紙に次の未削除手紙を最大一通とする。削除された手紙は thread 上で本文・写真・場所を出さないプレースホルダとして残す。
+## 配送
 
-Convex に SQL の partial unique index はない。返信下書き作成 mutation 内で親の状態を transaction で検証し、親に `nextLetterId` を記録して競合を OCC で拒否する。`repliedAt` は返信を未来へ送ったときに記録する。
+`letter_deliveries` は letter ごとに一意で、`scheduled_at` は browser-facing
+projection に含めない。ユーザーが見るのは `delivery_mode` と window start / end
+だけや。
 
-## 編集不可の境界
+due index と条件付き update で scheduled sweep を claim する。同じ job が再実行
+されても delivery row と letter status は一度だけ consumed / delivered へ進む。
 
-送信後は本文 / 添付 / 関係 / 配送設定を更新する public function を持たない。ライフサイクル metadata は専用 mutation / internal mutation だけが変更する。
+## 通知 outbox
 
-## public function の面
+`notification_jobs` は delivery status と分離する。letter ごとに一意な job を作り、
+`generation_token`、lock、attempt count、`available_at` で Queue retry と stale
+runner を管理する。
 
-認証済み client:
+Push が失敗しても delivered letter は traveling に戻さない。404 / 410 endpoint は
+無効化し、一時失敗は指数 backoff で再試行する。
 
-- `createDraft`
-- `saveDraft`
-- `getLetterMetadata`
-- `listMyLetterMetadata`
-- `listTravelingLetters`
-- `getReadableContent`
-- `sendLetter`
-- `openLetter`
-- `deleteLetter`
-- `createAttachmentIntent`
-- `attachmentActions.finalizeAttachment`
+## 添付と R2
 
-internal のみ:
+写真本体は private R2、D1 は object key と検証済み metadata だけを持つ。
+`letter_attachments` は draft 中だけ候補 metadata を更新できる。finalize は
+generation token、ETag、single-flight claim、R2 HEAD を再検証し、競合した候補は
+reconcile state に残す。
 
-- `deliverDueLetters`
-- `claimNotificationJobs`
-- `completeNotificationJob`
-- `reconcileAttachmentDeletion`
+sealed / 未開封の本文と添付は Worker が capability を発行しない。削除途中の object
+は `deleting` と attempt / next reconcile を保持し、scheduled sweep で後始末する。
 
-すべて args / return validator を持ち、private field を document ごと返さず明示的に map する。
+## Migration
 
-## schema 進化 / 移行
-
-Convex の schema 変更はデータが入った deployment を前提に、optional field → backfill → required の順で行う。D1 側は numbered migration と SQLite constraint / trigger を正本にする。DEV → PROD の data コピーを通常作業にしない。Production data の移行は棚卸し、export、dry-run、R2 checksum、rollback を含む [専用 runbook](../development/convex-d1-migration.md) と Human Gate で実施する。
+`0001` が初期 D1 schema、`0002` が draft の delivery settings 修正、`0003` が
+初期移行用の一時 bookkeeping table を撤去する。Preview は Cloudflare runtime へ
+移行済みで、Production は未デプロイ・未投入のため、本番データ import は不要や。
+将来、本番に既存データが発生した場合は別の inventory / export / dry-run / rollback /
+Human Gate 付き task を起こす。

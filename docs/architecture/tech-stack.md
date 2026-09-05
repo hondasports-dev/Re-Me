@@ -7,88 +7,88 @@
 | Runtime | Node.js 24 LTS | ローカル tooling / CI |
 | パッケージ管理 | pnpm | 依存関係 / script 管理 |
 | フロントエンド | React + TypeScript + Vite | モバイルファースト SPA / PWA |
-| ルーティング | React Router | URL / 画面遷移 / ログイン UX |
+| ルーティング | React Router | URL / 画面遷移 / login UX |
 | UI | Mantine + Re:Me design system | 操作 UI のアクセシビリティ基盤 / ブランド UI |
 | 認証 | Auth0 + Google OAuth | Universal Login、token / session |
-| バックエンド | Convex | functions、database、realtime、scheduler |
-| クライアントデータ | Convex React client | reactive query / transactional mutation |
-| ファイル保存 | Cloudflare R2（`@convex-dev/r2`） | 非公開の写真オブジェクト |
-| ホスティング | Cloudflare Workers Static Assets | SPA / PWA、CDN、edge 保護 |
-| 通知 | Convex action からの Web Push | 本文を出さない到着通知 |
+| API / backend | Cloudflare Worker + Hono | JWT 検証、認可、ドメイン処理、HTTP API |
+| Database | Cloudflare D1 | domain data、private schedule、outbox |
+| File storage | private Cloudflare R2 | 写真 object |
+| Async processing | Cloudflare Scheduled Worker + Queues | 配送 sweep、通知 retry、attachment reconcile |
+| Client data | HTTP API + TanStack Query | server state の取得・cache・mutation |
+| Hosting | Cloudflare Workers Static Assets | SPA / PWA、CDN、edge 保護 |
 | Toolchain | Oxlint + Oxfmt + `tsc --noEmit` | lint / format / typecheck |
-| テスト | Vitest + React Testing Library + Playwright | unit / integration / E2E |
+| Test | Vitest + React Testing Library + Playwright | unit / Worker integration / E2E |
 
 ## 原則として入れないもの
 
-- Supabase Auth / PostgreSQL / RLS
-- Hono の application API
-- 手紙配送用の Cloudflare Cron
-- R2 bucket への直接公開アクセス
-- Convex data 向けの TanStack Query
+- Supabase Auth / runtime PostgreSQL / RLS client path
+- ブラウザからの D1 / R2 直接アクセス
+- generic な状態 patch API
 - 必要性が出る前の Redux / Zustand
 - Oxc 系と並べて入れる ESLint / Prettier
 
-これらは runtime から外す。`supabase` CLI は `supabase/migrations/` の比較用にだけ残す。
+`supabase/migrations/` は過去 schema の比較 artifact として残るが、runtime の
+接続先や通常品質ゲートではない。
 
 ## フロントエンドの provider
 
 ```text
-MantineProvider
-  └─ Auth0Provider
-      └─ ConvexProviderWithAuth0
-          └─ React Router
+QueryClientProvider
+  └─ MantineProvider
+      └─ ApiClientProvider
+          └─ Auth0Provider
+              └─ LiveAuthRuntimeProvider
+                  └─ React Router
 ```
 
-ログイン / ログアウト / 表示用の identity は `useAuth0()`、Convex へ認証済みリクエストできるかは `useConvexAuth()` を使う。ルート状態やブラウザが渡したユーザー識別子を認可の根拠にしない。
+`useAuth0()` は login / logout / identity を担当し、`LiveAuthRuntimeProvider` は
+Auth0 access token を API client へ渡す。server state は feature hook と TanStack
+Query に閉じ込め、global store へ複製しない。
 
-## Convex function のルール
+## Worker API のルール
 
-- 登録する function はすべて args / return validator を持つ
-- 既定は internal。React が直接呼ぶものだけ public にする
-- ログイン必須の public function は現在ユーザーを解決し、所有権を強制する
-- 増える読み取り経路は index と件数上限つき query / pagination を使う
-- 状態遷移は mutation、外部副作用は action
-- 正確な配送時刻と封をした本文は、許可されない return shape に含めない
-- バックエンドの正本は `convex/` 配下の schema と functions
-
-## サーバー状態の扱い
-
-Convex の `useQuery` / `useMutation` / `useAction` を標準の data 取得経路にする。reactive query が cache と更新を持つので、`useEffect` での再取得ループや第二の query cache は入れない。
-
-フォーム、モーダル、下書きエディタの一時状態は React state / context に置く。永続下書きは mutation で Convex へ保存する。
+- request / response の境界で入力と返却値を検証する
+- 認証が必要な route は Auth0 JWT を検証し、D1 の内部 user と所有権を解決する
+- 状態遷移は専用 domain function と D1 transaction に限定する
+- exact `scheduledAt`、R2 object key、notification secret を browser response に含めない
+- 外部副作用は durable な D1 state と outbox を先に記録する
+- scheduled / queue handler は再実行されても二重到着・二重通知を起こさない
 
 ## Cloudflare の方針
 
-Workers Static Assets を React SPA のデプロイ単位とする。
+`wrangler.jsonc` の各 environment を deploy 単位とする。
 
 - `assets.not_found_handling = "single-page-application"`
-- ハッシュ付き asset は Cloudflare cache を使う
-- secret を browser bundle に含めない
-- application API / database / scheduler は Convex に置く
-- edge 固有のコードが必要になるまで Worker の入口は最小にする
+- `/api/*` は Worker が先に処理する
+- D1 migrations は numbered SQL を正本とする
+- Local / Preview / Production の Worker、D1、R2、Queue、secret は分離する
+- Production deploy は `pnpm deploy:production` に限定し、未構築状態では実行しない
 
 ## R2 の方針
 
 - bucket は非公開
-- object id / metadata / 所有権は Convex document に保存する
-- Local と Preview は別 bucket・別 credential を使う。local Convex は DEV bucket を参照する。Production は別 Issue とする
-- upload 前に JPEG / PNG / WebP、10 MiB 以下を検証し、Canvas 再 encode 後の JPEG を長辺 4096 px、5 MiB 以下にする
-- upload 権限は5分、download 権限は60秒とする
-- upload URL は5分だけ有効な staging key、Content-Length、`If-None-Match: *` に限定し、同じ権限での上書きを拒否する。finalize 時の HEAD でも intent の byte size と 5 MiB 上限へ一致することを強制する。検証後は attempt ごとの一意な final key を copy 前に永続登録し、ETag 条件付き copy のあと Convex の atomic winner だけを attachment へ確定する。負けた attempt は最大 action 時間を超える tombstone 期間中に再削除し、cron が削除成功まで追跡する
-- finalize 時に MIME、size、dimension、EXIF / XMP / IPTC metadata が無いことをサーバー側で再検証する
-- CORS は既知の Local / Preview origin と `PUT, GET, HEAD`、`Content-Type`・`Content-Length`・`If-None-Match` header だけを許可する。Preview bucket は Worker origin に加えて CI Playwright の `http://127.0.0.1:4173` / `http://localhost:4173` を含む。正本は `ops/r2-cors-preview.json`
-- 封をした / 未開封コンテンツの URL を client query に返さない
+- object metadata と所有権は D1 に保存する
+- upload / download capability は Worker が発行し、短い TTL と owner / letter
+  state を束縛する
+- JPEG / PNG / WebP、サイズ、dimension、metadata を client と Worker の両方で検証する
+- finalize は generation token と single-flight claim で冪等にする
+- sealed / 未開封の attachment に対する download capability は発行しない
+- 削除失敗は D1 の reconcile state と scheduled sweep で再試行する
 
-Convex File Storage の恒久 bearer URL は、あとからアクセス条件が変わる sealed media と相性が悪い。MVP の写真は R2 integration を採用する。
+## 配送・通知
 
-## 環境の方針
+Worker の `scheduled()` が due delivery を D1 から claim し、到着状態を確定して
+通知 outbox を Queue へ送る。Queue consumer は push endpoint ごとに送信し、失敗は
+job state と retry 時刻へ反映する。通知 payload は本文・写真・場所・正確な時刻を
+含めない。
 
-- Auth0: DEV tenant/application と PROD tenant/application を分離
-- Google OAuth: DEV client と PROD client を分離
-- Convex: local backend / preview / production deployment を分離する。日常の local 開発は local backend を正とし、cloud developer deployment の無料枠を消費しない。CI E2E は共有 Preview の remote Convex を参照する。手順は [Local / Preview 環境](../development/preview-environment.md)
-- Cloudflare: preview / production environment を分離
-- 環境変数は provider ごとに設定し、Git に secret を保存しない
+## 環境と legacy artifact
 
-## 移行メモ
+- Local: local Worker / D1 / R2 / Queue と Auth0 DEV
+- Preview: `re-me-preview` Worker と専用 Cloudflare resources
+- Production: `re-me` の設定はあるが、Auth0 PROD と Worker の初回 deploy は未実施
+- `supabase/` は比較・履歴確認に限定し、新しい runtime client や Service Role path
+  を追加しない
 
-Runtime は Auth0 + Convex。`supabase/migrations/` は production data の移行 / rollback 方針が固まるまで比較用に残す。通常の `pnpm test` は local Supabase を起動しない。最終削除は別 Issue と Human Gate で行う。
+関連手順は [Local / Preview 環境](../development/preview-environment.md)、
+[Production 環境](../development/production-environment.md) を参照する。

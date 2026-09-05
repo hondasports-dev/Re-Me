@@ -71,7 +71,7 @@
 
 ### NFR-01 プライバシー
 - ユーザー A はユーザー B の手紙を取得できない。
-- Backend では Convex function によるサーバー側アクセス制御を必須とする。
+- Backend では Cloudflare Worker API によるサーバー側アクセス制御を必須とする。
 - 通知にプライベート内容を表示しない。
 
 ### NFR-02 信頼性

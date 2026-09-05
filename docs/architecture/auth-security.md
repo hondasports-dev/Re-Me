@@ -2,65 +2,53 @@
 
 ## 認証
 
-Auth0 を identity provider とし、MVP は Google OAuth connection + Universal Login を使う。
+Auth0 を identity provider とし、MVP は Google OAuth connection + Universal Login
+を使う。
 
 ```text
 React SPA
   ↓ redirect
 Auth0 Universal Login
   ↓ Google OAuth 2.0
-Auth0 callback / token
-  ↓
-ConvexProviderWithAuth0
-  ↓ token 検証
-Convex functions
+Auth0 callback / access token
+  ↓ Bearer token
+Cloudflare Worker API
+  ↓ issuer / audience / signature 検証
+D1 の内部 user と所有権
 ```
 
-Re:Me は Google アカウントの password / OAuth credential を持たない。Auth0 custom domain は DEV に不要で、Production でも初回リリースの必須条件にしない。
+Re:Me は Google の password / OAuth credential を持たない。Auth0 custom domain は
+DEV の必須条件にしない。
 
-### Google OAuth の redirect 境界
-
-Redirect は二段階で分ける。
-
-```text
-Google OAuth 2.0
-  → https://<auth0-domain>/login/callback
-Auth0
-  → https://<re-me-domain>/auth/callback
-```
+## Google OAuth の redirect 境界
 
 - Google Cloud の Authorized redirect URI には Auth0 domain の `/login/callback` を登録する
 - Auth0 SPA の Allowed Callback URLs には Re:Me の `/auth/callback` を登録する
-- Local / DEV と Production は Google OAuth client、Auth0 tenant、callback URL を共有しない
-- MVP の login に必要な scope は `openid profile email` を基本とし、Google API の追加 scope を要求しない
+- Local / DEV / Preview と Production は Google OAuth client、Auth0 tenant、callback
+  URL を共有しない
+- MVP の scope は `openid profile email` を基本とし、Google API の追加 scope を要求しない
 
 ## Session / ルート
 
 - `Auth0Provider`: login、logout、Auth0 session、プロフィール表示
-- `ConvexProviderWithAuth0`: Auth0 token を Convex client へ渡す
-- `useConvexAuth()`: 認証済み Convex リクエストが可能かを UI で判定する
-- React Router ガード: 未認証ユーザーを `/login` へ案内する
+- `LiveAuthRuntimeProvider`: token 取得と API client への受け渡し
+- React Router guard: 未認証ユーザーを `/login` へ案内する
 
-Router ガードは認可の正本ではない。
+Router guard は認可の正本ではない。API request ごとに Worker が token と D1 所有権を
+再検証する。
 
 ## 認可
 
-Convex には Supabase RLS 相当の自動 row policy がない。代わりに public function の入口で明示的に強制する。
+Worker の認証済み API では次を順に強制する。
 
-1. `ctx.auth.getUserIdentity()` が存在する
-2. identity の `tokenIdentifier` を内部の `users` document に解決する
-3. 操作対象の `ownerId` が現在の `users._id` と一致する
-4. status / 封 / 開封 / 削除状態が操作を許可する
-5. 許可された field だけを return validator に合わせて返す
+1. Bearer token の issuer / audience / 署名 / 有効期限を検証する
+2. token の `sub` を D1 `users.token_identifier` へ解決または ensure する
+3. 操作対象の `owner_id` が現在の内部 user と一致することを確認する
+4. status / 封 / 開封 / 削除状態が操作を許可することを確認する
+5. browser response は許可された field だけを組み立てる
 
-共通の認証済み query / mutation wrapper を使い、function ごとの所有権チェック抜けを防ぐ。client から送られた `userId` / 所有者の自己申告は信用しない。
-
-## ユーザー identity モデル
-
-- Auth0 `sub` / Convex `tokenIdentifier`: 外部 identity の検索キー
-- `users._id`: ドメイン上の所有権キー
-
-手紙や設定は `users._id` を参照する。将来の provider 紐づけ / アカウント復旧で、外部 subject をドメイン行全体へ直接埋め込まないためである。
+client から送られた `userId` / 所有者の自己申告は信用しない。重要な状態遷移は
+専用 route と D1 transaction で強制する。
 
 ## 環境の分離
 
@@ -68,109 +56,95 @@ Convex には Supabase RLS 相当の自動 row policy がない。代わりに p
 
 - Auth0 DEV tenant / SPA application
 - Auth0 Google OAuth の DEV connection / client
-- localhost と Preview の callback / logout / web origin
-- 日常開発の Convex はマシン上の local backend。CI E2E と共有 Preview Worker は Preview deployment
-- 個人の cloud developer deployment を local / CI の正本にしない。手順は [Local / Preview 環境](../development/preview-environment.md)
+- localhost と固定 Preview URL の callback / logout / web origin
+- Cloudflare の Preview Worker / D1 / R2 / Queue / secret
 
 ### Production
 
-- Auth0 PROD tenant / SPA application
-- Auth0 Google OAuth の PROD connection / client
-- production の callback / logout / web origin
-- Convex production deployment
+- Auth0 PROD tenant / SPA application（未作成）
+- Auth0 Google OAuth の PROD connection / client（未作成）
+- Production Worker / D1 / R2 / Queue（未デプロイ）
 
-Auth0 domain / client id はブラウザに出してよい設定値であり、secret ではない。Google OAuth client secret、Auth0 Management API credential、Convex deploy key、R2 credential、VAPID private key は browser bundle / Git / log に出さない。
-
-## Token 検証
-
-Convex `auth.config.ts` は環境ごとの Auth0 issuer domain と application id を使う。token の issuer / audience が一致しない場合は拒否する。
-
-Custom Auth0 domain へ切り替えると issuer が変わる。Convex auth config、callback URL、session の切り替えを同じ production 変更として扱う。
+Auth0 domain、client id、API base URL、VAPID public key は browser に出してよい設定値
+やが、Cloudflare API token、capability secret、VAPID private key、Auth0 Management
+API credential は browser bundle / Git / log に出さない。
 
 ## 封をした手紙
 
-封をした本文は、本人にも次の条件を満たすまで返さない。
+封をした本文・写真は、次をすべて満たすまで Worker API が返さない。
 
 ```text
 所有者
 AND 到着済み
-AND openedAt != null
-AND deletedAt == null
+AND opened_at != null
+AND deleted_at == null
 ```
 
-`openLetter` mutation が本人、到着済み、未開封を確認して `openedAt` を設定する。本文取得 query は開封済み状態を再検証する。
-
-これはアプリケーション層のアクセス制御であり、E2EE ではない。Auth0 / Convex / R2 の運用権限者から暗号学的に隠す保証はしない。
+`open` route は本人、到着済み、未開封を D1 上で確認してから `opened_at` を記録する。
+本文・添付の取得 route は response 直前にも同じ条件を再検証する。これは E2EE では
+なく、アプリケーション層のアクセス制御である。
 
 ## 正確な配送時刻の秘匿
 
-正確な `scheduledAt` は `letterDeliveries` に保存し、ブラウザ向け query の返り値に含めない。返すのは配送レンジだけである。
-
-Debug endpoint、エラー詳細、log、analytics に正確な配送時刻を誤って出さない。
+正確な `letter_deliveries.scheduled_at` は内部 D1 row に保存し、browser response、
+debug endpoint、error、analytics、log に含めない。ユーザーへ返すのは配送 window
+だけや。
 
 ## 送信後の編集不可
 
 送信後に変更できないもの:
 
-- 本文
-- 添付
-- スレッド / 親手紙
-- 封
-- 配送モード / レンジ / 正確な時刻
-- sentAt
+- 本文、添付、スレッド / 親手紙
+- 封、配送 mode / window / 正確な時刻
+- `sent_at`
 
-汎用 patch mutation を公開しない。下書き mutation は `status === "draft"` を検証し、送信 / 開封 / 削除は専用 mutation にする。
+draft route は `status = 'draft'` を検証し、send / open / delete は専用 route と
+transaction にする。D1 trigger は Worker authorization の補助線として immutable
+field を保護する。
 
 ## 写真 / R2 のプライバシー
 
 - bucket は非公開
-- Convex は R2 object id と所有権 metadata を保持する
+- Worker が upload / download capability を発行し、owner、letter、generation、
+  TTL、byte size を束縛する
 - 1通あたり最大3枚。入力は JPEG / PNG / WebP、10 MiB 以下
-- client の Canvas で JPEG に再 encode し、長辺 4096 px、5 MiB 以下へ縮小して EXIF / XMP / IPTC を除去する
-- upload intent 作成時に所有者 / 下書き状態を検証し、Content-Length と `If-None-Match: *` を束縛した、5分だけ有効な staging object 単位の署名 PUT URL を発行する。同じ権限の再利用は既存 object への上書き前に失敗させ、finalize 時の HEAD と完全 JPEG 検査でも intent の byte size・5 MiB 上限・content type を強制する
-- finalize 前に R2 HEAD で MIME / size、取得後に JPEG の dimension と APP1 / APP13 metadata が無いことをサーバー側で再検証する
-- finalize は attachment ごとの single-flight とし、有効な claim 中は別 runner を拒否して candidate key の並行上書きを防ぐ。外部 copy 前に候補 key を Convex へ永続登録し、検証した staging ETag を条件に一意な immutable final key へ copy する。atomic mutation に勝った key だけを採用し、負けた attempt や copy 後に止まった attempt は durable state と cron retry で削除完了まで追跡する
-- 封をした / 未開封 attachment の download URL を返さない
-- download 権限は60秒にし、送信後は開封まで新規発行せず、application log に残さない
-- 削除は先に `deleting` 状態を記録し、R2 / Convex metadata の部分失敗を15分 cron と指数 backoff で復旧する
+- client 再 encode と Worker の JPEG / metadata 検査で EXIF / XMP / IPTC を除去する
+- finalize は R2 HEAD、ETag、generation token、single-flight claim を再検証する
+- sealed / 未開封 attachment の download capability は発行しない
+- deleting state は scheduled reconcile が R2 と D1 の後始末を完了するまで保持する
 
 ## 通知のプライバシー
 
-Push / Email に本文、写真、場所、ユーザー入力テキストを含めない。
+Push / Email に本文、写真、場所、ユーザー入力テキスト、正確な時刻を含めない。
 
-> Re:Me  
+> Re:Me
 > あなた宛ての手紙が届いています。
 
-Push subscription の endpoint / key は本人だけが管理できる。ログでは endpoint と auth secret を伏せる。
+Push endpoint と key は本人だけが管理し、log では endpoint host 以外を出さない。
 
 ## 削除 / 長期利用
 
-送信後も削除は可能。client からのアクセスと配送対象から即時除外する論理削除を基本とし、Convex document、R2 object、backup の物理削除・保持期間はプライバシーポリシーと [legacy data migration](../development/legacy-migration.md) で確定する。
-
-Re:Me は数年後の利用を正常系とするため、Auth0 のアカウント復旧、provider 紐づけ、data の export / 削除、Convex の export / backup、基盤移行を本番準備の必須検討にする。チェックリストは [production-readiness.md](../development/production-readiness.md)。構成手順は [production-environment.md](../development/production-environment.md)。
+送信後も削除は可能。client からのアクセスと配送対象から即時除外する論理削除を
+基本とし、object の物理削除は D1 の reconcile state と保持方針に従う。
 
 ## テスト方針
 
-通常の自動 E2E は Google OAuth UI を通さず、Auth0 の database test identity で Universal Login を完了し、`e2e/.auth/` の `storageState` から認証済み状態を復元する。少数の smoke test だけが以下を確認する。
+通常の自動 E2E は Google OAuth UI を通さず、Auth0 database test identity の
+storage state から認証済み状態を復元する。少数の OAuth smoke test だけが次を確認する。
 
 ```text
 Google OAuth login
   → Auth0 callback
-  → Auth0 token
-  → Convex token 検証
-  → 認証済み query
+  → Auth0 access token
+  → Worker authenticated API
 ```
 
-## 必須のセキュリティテスト
+必須の security / access-control case:
 
-- 未認証の public function を拒否する
-- ユーザー A からユーザー B の metadata / 本文 / 添付を取得・変更できない
-- 封をした traveling の本文 / 添付を本人が取得できない
-- 封をした到着済み・未開封の本文 / 添付を本人が取得できない
-- `openLetter` 後だけ本文を取得できる
-- 送信後コンテンツの変更が失敗する
-- 正確な `scheduledAt` が public の結果 / log / エラーに出ない
-- scheduled / internal function をブラウザから呼べない
-- 期限切れ / 世代違いの upload / download 権限を拒否する
-- Auth0 の issuer / audience 不一致を拒否する
-- Google OAuth smoke で Convex の認証済み query まで成功する
+- 未認証、issuer / audience 不一致、期限切れ token を拒否する
+- user A から user B の metadata / 本文 / 添付を取得・変更できない
+- sealed traveling / 未開封 delivery の本文・添付を拒否する
+- open 後だけ本文・添付を取得できる
+- 送信後コンテンツ変更を拒否する
+- exact `scheduledAt`、secret、R2 key を response / log に出さない
+- 期限切れ / 世代違い capability と無効 endpoint を安全に処理する

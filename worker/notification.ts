@@ -13,18 +13,18 @@ export function arrivalNotificationPayload(): string {
   })
 }
 
-export function nextNotificationAvailableAt(now: number, attemptCount: number): number {
-  const cappedAttempt = Math.min(Math.max(attemptCount, 1), 6)
-  const delayMinutes = Math.min(60, 2 ** cappedAttempt)
-  return now + delayMinutes * 60_000
-}
-
 export function sanitizeNotificationErrorCode(code: string | undefined): NotificationErrorCode {
   if (code && allowedErrorCodes.has(code)) {
     return code as NotificationErrorCode
   }
 
   return 'push_failed'
+}
+
+export function nextNotificationAvailableAt(now: number, attemptCount: number): number {
+  const cappedAttempt = Math.min(Math.max(attemptCount, 1), 6)
+  const delayMinutes = Math.min(60, 2 ** cappedAttempt)
+  return now + delayMinutes * 60_000
 }
 
 export function isPermanentlyInvalidPushEndpoint(error: unknown): boolean {
@@ -34,12 +34,4 @@ export function isPermanentlyInvalidPushEndpoint(error: unknown): boolean {
 
   const statusCode = error.statusCode
   return statusCode === 404 || statusCode === 410
-}
-
-export function isStaleNotificationLock(
-  lockedAt: number | undefined,
-  now: number,
-  lockTimeoutMs: number,
-): boolean {
-  return lockedAt !== undefined && lockedAt <= now - lockTimeoutMs
 }

@@ -1,4 +1,8 @@
-# ADR-0009: Auth0 + Convex + Cloudflare をアプリ基盤にする
+# ADR-0009: Auth0 + Cloudflare をアプリ基盤にする（旧設計記録）
+
+> Historical record. This design was superseded by the Cloudflare-only runtime decision in
+> [ADR-0012](0012-cloudflare-only-preview-runtime.md). The backend-specific sections below
+> are retained only to explain earlier decisions and are not implementation instructions.
 
 - 状態: 採用
 - 日付: 2026-08-22

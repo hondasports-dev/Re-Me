@@ -122,4 +122,7 @@ pnpm exec wrangler r2 bucket cors set re-me-preview-attachments --file ops/r2-co
 - credential漏洩: PreviewのCloudflare token / Worker secretだけをrotateする
 - Auth0 callback error: 固定Preview URLの3項目を確認する
 
-Convexのlegacy source / testはcutoverとrollback windowが終わるまで保持するが、Preview runtimeのAPI接続先ではない。
+Preview の application runtime は Cloudflare Worker / D1 / R2 / Queue だけを使う。
+この repository から旧 backend の source、client、scheduler、依存、CI deploy は撤去済みや。
+外部に残る Preview deployment の停止は、Production と取り違えないことを確認してから
+別途実施する。Preview の D1 / R2 / Queue data は移行元にせえへん。

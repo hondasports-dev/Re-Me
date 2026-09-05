@@ -2,16 +2,11 @@ import { render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { RouterProvider } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { AppProviders } from '../../src/app/providers'
 import { createTestAuthRuntime, type AuthRuntime } from '../../src/features/auth/auth-runtime'
 import { createTestRouter } from '../../src/router'
-
-vi.mock('convex/react', () => ({
-  useMutation: () => vi.fn(() => new Promise(() => undefined)),
-  useQuery: () => undefined,
-}))
 
 function renderAt(path: string, runtime: AuthRuntime) {
   const router = createTestRouter([path])
@@ -49,7 +44,7 @@ describe('auth router guards', () => {
     })
   })
 
-  it('replaces to the protected home route once Auth0 and Convex are authenticated', async () => {
+  it('replaces to the protected home route once Auth0 and the Worker API are authenticated', async () => {
     const view = renderAt(
       '/auth/callback?code=one-time-code',
       createTestAuthRuntime({ status: 'authenticated' }),
@@ -108,7 +103,7 @@ describe('auth router guards', () => {
     })
   })
 
-  it('does not treat router state as enough to show protected data while Convex is still loading', async () => {
+  it('does not treat router state as enough to show protected data while auth is still loading', async () => {
     const { router, getByRole, queryByRole } = renderAt(
       '/',
       createTestAuthRuntime({ status: 'loading' }),

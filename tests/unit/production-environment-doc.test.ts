@@ -12,11 +12,13 @@ describe('production environment runbook', () => {
     expect(runbook).toContain('Human Gate')
     expect(runbook).toContain('https://re-me.hondasports.workers.dev')
     expect(runbook).toContain('https://re-me-preview.hondasports.workers.dev')
-    expect(runbook).toContain('Re:Me PROD')
+    expect(runbook).toContain('Auth0 PROD')
     expect(runbook).toContain('CLOUDFLARE_API_TOKEN')
     expect(runbook).toContain('re-me-production-attachments')
     expect(runbook).toContain('pnpm deploy:production')
-    expect(runbook).not.toMatch(/convex deploy --prod/)
+    expect(runbook).toContain('legacy data import')
+    expect(runbook).toContain('Production deploy は未実施')
+    expect(runbook).toContain('業務 data は未投入')
   })
 
   it('keeps production example env files committable and out of the default deploy script', () => {

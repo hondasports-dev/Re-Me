@@ -74,7 +74,7 @@ Conditional:
 ```text
 cheap static / owning tsconfig
 → targeted unit / contract
-→ affected Convex / integration
+→ affected Worker / D1 integration
 → required functional Playwright
 → repo-wide regression = CI Aftercare
 ```
@@ -152,10 +152,9 @@ Scriptと正本contractが矛盾した場合は、文書をScriptへ合わせて
 - React Router
 - Mantine
 - Auth0 + Google OAuth connection
-- Convex database / functions / realtime / scheduler
-- Convex React client + `ConvexProviderWithAuth0`
+- Cloudflare Worker / Hono + D1 / R2 / Queues / Cron
+- HTTP API client + TanStack Query
 - Cloudflare Workers Static Assets + `@cloudflare/vite-plugin`
-- Private Cloudflare R2 via `@convex-dev/r2`
 - Oxlint
 - Oxfmt
 - TypeScript (`tsc --noEmit`)
@@ -167,8 +166,7 @@ Scriptと正本contractが矛盾した場合は、文書をScriptへ合わせて
 - ESLint を追加しない。必要なら先に ADR / Issue で判断する。
 - Prettier を追加しない。formatter は Oxfmt を正とする。
 - npm / yarn lockfile を作らない。`pnpm-lock.yaml` のみコミットする。
-- Redux / Zustand などの global state library を先回りして追加しない。server state は Convex reactive query、認証は Auth0 + Convex auth state、local UI state は React state / context を基本とする。
-- Convex data に TanStack Query を重ねない。別の remote API が実際に必要な場合だけ責務を限定して再検討する。
+- Redux / Zustand などの global state library を先回りして追加しない。server state は HTTP API + TanStack Query、認証は Auth0 + Worker の JWT 検証、local UI state は React state / context を基本とする。
 - Mantine の default 見た目を完成デザインとして扱わない。`docs/design/re-me-mobile-flow.jpg` と Re:Me theme / design token を優先する。
 
 ## Project structure rules
@@ -179,23 +177,23 @@ feature-first を基本とする。
 - Cross-feature code: `src/shared/`
 - App bootstrap / providers: `src/app/`
 - Router: `src/router/`
-- Convex backend: `convex/`
+- Cloudflare-only backend: `worker/` / `migrations/`
 - Cloudflare-only hosting / edge code: `worker/`
 
 feature 内だけで使う code を安易に `shared/` へ移動しない。
-React component に generated Convex API / complex domain logic を直接大量に書かず、feature hook / pure function へ分離する。
-Convex reactive data を別の query cache や global store に複製しない。
+React component に API 呼び出し / complex domain logic を直接大量に書かず、feature hook / pure function へ分離する。
+HTTP server state は feature hook と TanStack Query に閉じ込め、global store へ複製しない。
 
 ## Architecture rules
 
-- Auth0 は authentication、Convex function は authorization の source of truth とする。
+- Auth0 は authentication、Cloudflare Worker の API は authorization の source of truth とする。
 - `letters` は metadata、本文は `letterContents` に分離する。
-- sealed letter の本文 / attachment は Convex public function で到着・開封前の本人からも隠す。
+- sealed letter の本文 / attachment は Worker API で到着・開封前の本人からも隠す。
 - exact `scheduledAt` は `letterDeliveries` に置き、browser-facing return shape へ含めない。
-- Auth0 / Convex / Cloudflare の秘密情報をブラウザへ公開しない。
+- Auth0 / Cloudflare の秘密情報をブラウザへ公開しない。
 - 到着判定・配送状態遷移・通知送信は信頼できるサーバー側処理で行う。
-- 重要な状態遷移は専用 Convex mutation / internal mutation を使い、generic client patch にしない。
-- 写真は DB 本文に保存せず private R2 へ保存し、access intent は Convex で認可する。
+- 重要な状態遷移は専用 Worker API / D1 transaction を使い、generic client patch にしない。
+- 写真は DB 本文に保存せず private R2 へ保存し、access intent は Worker で認可する。
 - 写真アップロード時は EXIF / 位置情報漏えいを考慮する。
 - 日付・時刻は DB では UTC、UI ではユーザーのタイムゾーンに変換する。
 - 配送処理は冪等にする。同じ job が複数回実行されても二重到着・二重通知を起こさない。
@@ -203,15 +201,15 @@ Convex reactive data を別の query cache や global store に複製しない�
 
 ## Environment / auth rules
 
-- Auth0 DEV / PROD tenant/application、Convex local / preview / production deployment、Cloudflare preview / production environment を分離する。日常の local 開発は Convex local backend を使い、CI E2E は共有 Preview の remote Convex を参照する。cloud developer deployment を local の正本にしない。
+- Auth0 DEV / PROD tenant/application、Cloudflare local / preview / production environment を分離する。Local / Preview / Production の Worker、D1、R2、Queue、secret は共有しない。Production は未デプロイのため、初回構築・データ投入は別 Human Gate とする。
 - Google OAuth の DEV client と production client を分離する。
 - 通常の automated E2E は Google OAuth の UI に依存させず、Auth0 test identity / session または backend test harness を使う。
 - Google OAuth の実連携は少数の smoke test で検証する。
-- router guard は UX 上の入口制御であり、認可の source of truth にしない。Convex function 側で強制する。
+- router guard は UX 上の入口制御であり、認可の source of truth にしない。Worker API 側で強制する。
 
-## Convex data change rules
+## D1 data change rules
 
-- `convex/schema.ts`、indexes、function validators が schema / API contract の source of truth。
+- `migrations/*.sql`、indexes、Worker の request / response validators が schema / API contract の source of truth。
 - populated table の field は optional → backfill → required の順で変更する。
 - production data migration は inventory / export / dry-run / rollback と Human Gate を必要とする。
 - public function / ownership / sealed visibility の変更には access-control test を追加する。
@@ -246,7 +244,7 @@ pnpm test:loop
 ```
 
 critical user flow を変更する場合は該当 Playwright E2E も実行する。
-Convex schema / authorization を変更する場合は access-control test（`pnpm test:convex`）を必須にする。local の schema push 検証は `pnpm convex:check`（local backend）。CI E2E は共有 Preview へ `convex deploy` してから Playwright する。個人の cloud developer deployment を CI / 日常 local の正本にしない。手順は `docs/development/preview-environment.md`。
+Worker API / D1 schema / authorization を変更する場合は Worker の access-control / migration test（`pnpm test:worker`）を必須にする。local の schema 検証は `pnpm d1:migrations:apply:local` と Worker test で行う。CI E2E は共有 Cloudflare Preview Worker へ deploy してから Playwright する。手順は `docs/development/preview-environment.md`。
 
 最低限の critical E2E（draft→send / 開封 / 返信）は MVP の下限であり、E2E 対象の上限ではない。
 新しい user-visible 画面を足したら、その画面を踏む Playwright が mandatory である。
@@ -259,7 +257,7 @@ Convex schema / authorization を変更する場合は access-control test（`pn
 2. sealed letter 到着 → open
 3. open → reply → send to future
 
-Google OAuth 自体は automated critical E2E へ毎回含めず、Auth0 callback / Convex authenticated query までの smoke test を別に持つ。
+Google OAuth 自体は automated critical E2E へ毎回含めず、Auth0 callback / Worker authenticated API までの smoke test を別に持つ。
 テストは実装詳細より user-observable behavior を優先する。
 
 ## Documentation rules
@@ -269,7 +267,7 @@ Google OAuth 自体は automated critical E2E へ毎回含めず、Auth0 callbac
 - Product concept / UX → `docs/product/`
 - Architecture / data / security → `docs/architecture/`
 - 重要な設計判断 → `docs/architecture/decisions/`
-- Backend / data → `convex/` + 必要に応じて `docs/architecture/`
+- Backend / data → `worker/` / `migrations/` + 必要に応じて `docs/architecture/`
 - Agent process → `AGENTS.md` / `.loop/` / `skills/` / `scripts/check-*.mjs`
 
 確定していない仕様を勝手に確定扱いしない。未決定事項は `TBD` または Open Question として明示する。

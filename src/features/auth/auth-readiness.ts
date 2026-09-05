@@ -10,9 +10,6 @@ export interface AuthReadinessInput {
   auth0IsLoading: boolean
   backendIsAuthenticated?: boolean
   backendIsLoading?: boolean
-  /** Compatibility fields for tests and the pre-migration runtime. */
-  convexIsAuthenticated?: boolean
-  convexIsLoading?: boolean
 }
 
 export function resolveAuthReadiness(input: AuthReadinessInput): AuthReadiness {
@@ -28,8 +25,8 @@ export function resolveAuthReadiness(input: AuthReadinessInput): AuthReadiness {
     return { status: 'unauthenticated' }
   }
 
-  const backendIsLoading = input.backendIsLoading ?? input.convexIsLoading ?? false
-  const backendIsAuthenticated = input.backendIsAuthenticated ?? input.convexIsAuthenticated ?? true
+  const backendIsLoading = input.backendIsLoading ?? false
+  const backendIsAuthenticated = input.backendIsAuthenticated ?? true
 
   if (backendIsLoading) {
     return { status: 'loading' }

@@ -6,7 +6,7 @@ import {
   isPermanentlyInvalidPushEndpoint,
   nextNotificationAvailableAt,
   sanitizeNotificationErrorCode,
-} from '../../convex/lib/notificationPolicy'
+} from '../../worker/notification'
 
 describe('notificationPolicy', () => {
   it('keeps the arrival payload free of letter content and exact schedule', () => {
