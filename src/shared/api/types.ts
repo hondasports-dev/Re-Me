@@ -82,6 +82,10 @@ export interface ApiPushStatus {
   enabled: boolean
 }
 
+export interface ApiPushConfig {
+  publicKey: string | null
+}
+
 export interface ApiPushDisableResult {
   enabled: false
   owned: boolean

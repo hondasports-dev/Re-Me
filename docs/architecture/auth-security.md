@@ -66,8 +66,9 @@ client から送られた `userId` / 所有者の自己申告は信用しない�
 - Production Worker / D1 / R2 / Queue（未デプロイ）
 
 Auth0 domain、client id、API base URL、VAPID public key は browser に出してよい設定値
-やが、Cloudflare API token、capability secret、VAPID private key、Auth0 Management
-API credential は browser bundle / Git / log に出さない。
+やが、VAPID public key は Worker の `/api/push/config` から実行時に返し、browser bundle
+へ build-time 注入せえへん。Cloudflare API token、capability secret、VAPID private key、
+Auth0 Management API credential は browser bundle / Git / log に出さない。
 
 ## 封をした手紙
 

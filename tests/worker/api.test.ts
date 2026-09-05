@@ -1,11 +1,22 @@
 import { exports } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
+import { app } from '../../worker/app'
+
 type Worker = typeof exports.default
 
 const worker = exports.default as Worker
 
 describe('Worker domain API', () => {
+  it('exposes only the browser-safe VAPID public key without authentication', async () => {
+    const response = await app.fetch(new Request('http://example.com/api/push/config'), {
+      VAPID_PUBLIC_KEY: 'public-key',
+    } as never)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ publicKey: 'public-key' })
+  })
+
   it('provisions a user, keeps metadata private, and sends an immutable letter', async () => {
     const identity = `api-user-${crypto.randomUUID()}|api@example.com|API User`
     const ensured = await request('/api/users/ensure', { method: 'POST', body: '{}' }, identity)
