@@ -14,7 +14,7 @@ description: security_review control が発火した REVIEW stage でだけ読�
 - external write boundary
 - destructive or production security behavior
 
-通常の REVIEW reviewer が十分に扱える場合は別エージェントを増やさへん。**materially distinctなsecurity Controlを独立に確認する価値がある場合だけ** specialist reviewer を追加する。
+通常の REVIEW reviewer が十分に扱える場合は別エージェントを増やさない。**materially distinctなsecurity Controlを独立に確認する価値がある場合だけ** specialist reviewer を追加する。
 
 R4分類だけを理由にspecialistを増やさない。specialist追加がwall-clock短縮または独立coverage改善にmaterialに効かない場合はroot reviewer内で扱う。
 
