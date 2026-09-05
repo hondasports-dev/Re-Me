@@ -77,7 +77,6 @@ describe('assertBrowserSafeViteEnv', () => {
         VITE_AUTH0_CLIENT_ID: 'spa-client-id',
         VITE_AUTH0_DOMAIN: 're-me-dev.auth0.com',
         VITE_API_BASE_URL: 'https://re-me.example.com',
-        VITE_WEB_PUSH_VAPID_PUBLIC_KEY: 'vapid-public',
       }),
     ).not.toThrow()
   })

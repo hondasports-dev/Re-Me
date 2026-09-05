@@ -29,7 +29,7 @@ Browser に出してよい:
 - `VITE_AUTH0_DOMAIN`
 - `VITE_AUTH0_CLIENT_ID`
 - `VITE_API_BASE_URL`
-- `VITE_WEB_PUSH_VAPID_PUBLIC_KEY`
+- Worker `/api/push/config` が返すVAPID公開鍵
 
 Browser に出さない:
 
