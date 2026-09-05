@@ -1,6 +1,6 @@
 # データモデル
 
-実装上の正本は `convex/schema.ts` と function validators とする。この文書は target model の設計意図を説明する。現行 `supabase/migrations/` は移行完了までの legacy ソースである。
+current runtime の実装上の正本は `convex/schema.ts` と function validators、Issue #60 の D1 target schema の正本は `migrations/0001_initial_schema.sql` とする。この文書は両者で維持する model の設計意図を説明する。現行 `supabase/migrations/` は移行完了までの legacy ソースである。
 
 ## モデル
 
@@ -194,4 +194,4 @@ internal のみ:
 
 ## schema 進化 / 移行
 
-Convex の schema 変更はデータが入った deployment を前提に、optional field → backfill → required の順で行う。DEV → PROD の data コピーを通常作業にしない。Production data の移行は棚卸し、export、dry-run、rollback を別 task で設計する。
+Convex の schema 変更はデータが入った deployment を前提に、optional field → backfill → required の順で行う。D1 側は numbered migration と SQLite constraint / trigger を正本にする。DEV → PROD の data コピーを通常作業にしない。Production data の移行は棚卸し、export、dry-run、R2 checksum、rollback を含む [専用 runbook](../development/convex-d1-migration.md) と Human Gate で実施する。

@@ -22,6 +22,8 @@
     "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "migrate:convex-to-d1": "node scripts/convex-to-d1-migration.ts",
+    "d1:migrations:apply:local": "wrangler d1 migrations apply re-me-local --local",
     "test:loop": "vitest run --config vitest.loop.config.mjs",
     "loop:preflight": "node scripts/check-task-worktree.mjs --require-clean",
     "loop:e2e-env": "node scripts/sync-worktree-e2e-env.mjs",
