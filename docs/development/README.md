@@ -3,6 +3,7 @@
 - [セットアップ](setup.md)
 - [Local / Preview 環境](preview-environment.md)（Convex の local / CI / Preview の使い分けを含む）
 - [Legacy data migration](legacy-migration.md)（棚卸し / mapping / dry-run / rollback / Human Gate）
+- [Convex → D1 移行リハーサル](convex-d1-migration.md)（D1 schema / export validation / R2 manifest / rollback）
 - [Issue 計画](issue-plan.md)
 - [品質ゲート](quality-gates.md)
 - [本番準備](production-readiness.md)

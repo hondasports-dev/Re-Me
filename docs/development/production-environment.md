@@ -13,6 +13,8 @@
 | Google OAuth production client | 未作成 |
 | Convex production deployment | 未作成 |
 | Cloudflare production Worker | 未作成。設定上の名前だけ `wrangler.jsonc` の `env.production`（Worker 名 `re-me`） |
+| Cloudflare production D1 | 未作成。設定上の database 名だけ `re-me` |
+| Cloudflare production notification Queue | 未作成。設定上の queue 名だけ `re-me-production-notifications` |
 | custom domain | 初回リリースの必須ではない |
 
 ## 公開 URL（初回）
@@ -82,7 +84,9 @@ CONVEX_PRODUCTION_DEPLOY_KEY
 1. `pnpm exec wrangler deploy --env production` は Human Gate 後だけ。`wrangler deploy` 単体や `--env preview` で production Worker を更新しない
 2. Worker 名は `re-me`。Preview の `re-me-preview` と共有しない
 3. private R2 は `re-me-production-attachments`。DEV / Preview bucket に production 写真を入れない
-4. CORS origin は Production URL だけ
+4. D1 は `re-me`。schema は `migrations/` から適用し、Convex export / R2 copy / D1 import は [移行リハーサル手順](convex-d1-migration.md) と Human Gate を通す
+5. notification Queue は `re-me-production-notifications`。Preview / Local の queue と共有しない
+6. CORS origin は Production URL だけ
 
 ## Rollback
 

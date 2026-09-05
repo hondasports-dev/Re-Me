@@ -37,7 +37,7 @@ flowchart TB
 |---|---|---|
 | Auth0 | Google OAuth、Universal Login、token / session、アカウントセキュリティ | 手紙の認可、ドメインデータ |
 | Convex | schema、認可、query / mutation / action、realtime、scheduler、outbox | frontend hosting、identity credential の保管 |
-| Cloudflare | React SPA / PWA 配信、CDN、custom domain、edge 保護、非公開 R2 | application database、配送の状態機械 |
+| Cloudflare | React SPA / PWA 配信、CDN、custom domain、edge 保護、非公開 R2。移行後は D1 / Cron / Queues も担当 | Auth0 identity、domain authorization の正本 |
 
 ## フロントエンド
 
@@ -144,7 +144,9 @@ Convex の接続先は次で固定する。詳細手順は [Local / Preview 環�
 
 ## 移行状況
 
-この文書は target architecture の正本である。repository の runtime は Auth0 + Convex + Cloudflare Workers Static Assets。通常 E2E は Auth0 の database test identity を使い、人が触る login 入口は Google のままにする。legacy `supabase/migrations/` は production data の移行まで比較用に残す。production 用 Google Cloud OAuth client と data migration は後続 Issue である。移行順は [実装順](../development/implementation-order.md) と [ADR-0009](decisions/0009-auth0-convex-cloudflare.md) を参照する。
+この文書は target architecture の正本である。repository の current runtime は Auth0 + Convex + Cloudflare Workers Static Assets。通常 E2E は Auth0 の database test identity を使い、人が触る login 入口は Google のままにする。legacy `supabase/migrations/` は production data の移行まで比較用に残す。
+
+Issue #60 の foundation として、D1 schema、環境別 D1 / R2 / Queue / Cron binding、Convex export の dry-run / idempotent SQL / rollback artifact を追加した。API / frontend の cutover が完了するまで application backend の正本は Convex のままや。production 用 resource 作成、export、R2 copy、D1 import、traffic cutover、Convex cleanup は別 Human Gate の対象や。手順は [Convex → D1 移行リハーサル](../development/convex-d1-migration.md) と [ADR-0010](decisions/0010-cloudflare-d1-migration-foundation.md) を参照する。
 
 ## 参照
 

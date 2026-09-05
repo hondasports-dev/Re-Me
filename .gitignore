@@ -18,6 +18,8 @@ playwright-report/
 test-results/
 e2e/.auth/
 *.tsbuildinfo
+*.convex-export*
+migration-artifacts/
 .agents/
 .claude/
 agent/
