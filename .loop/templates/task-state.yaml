@@ -4,14 +4,14 @@ session:
 
 revision:
   current:
-    commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
-    tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
+    commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+    tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
   verified:
-    commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
-    tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
+    commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+    tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
   reviewed:
-    commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
-    tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
+    commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+    tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
   published:
     commit_sha: "3fd16418507a1dd78e0e077b433a86bff90fb8a8"
     tree_sha: "967fc38346f62ca9dc8f919551174306c37e7348"
@@ -25,7 +25,7 @@ task:
   objective: "Issue #60のD1移行基盤とConvex exportからのデータ移行リハーサルを実装する"
   base_branch: main
   delivery_target: merge_ready
-  current_state: done
+  current_state: delivery
 
 prepare:
   status: PASS
@@ -248,7 +248,7 @@ verification:
     - "check-local-e2e-gate baseRef origin/main: PASS, required: no"
 
 review:
-  status: pass # pending | not_required | pass | blocked
+  status: pending # pending | not_required | pass | blocked
   required_by: ["risk:r3_high"]
   reviewers:
     - name: Godel
@@ -256,6 +256,14 @@ review:
       viewpoints:
         - "AC/IV omission scan across schema, migration planner, tests, docs, and explicit scope deviation"
         - "risk-aware review of ownership/FK/state/privacy/checksum/idempotency/reply ordering/rollback"
+    - name: Nash
+      independence_attested: true
+      viewpoints:
+        - "independent re-review of parser, ownership, R2 mapping checksum, lifecycle state, attachment finalization, and push endpoint validation"
+    - name: Averroes
+      independence_attested: true
+      viewpoints:
+        - "fresh read-only re-review of the resolved state-matrix and endpoint non-disclosure findings plus all prior migration findings"
   coverage:
     - "AC01-AC07"
     - "IV01-IV05"
@@ -266,8 +274,10 @@ review:
     checked_dimensions: [happy_path, boundary, error_failure, auth_ownership, persistence_state_transition, caller_compatibility, concurrency_idempotency]
     evidence:
       - "Godel first review BLOCKED on missing real-DB migration evidence; node:sqlite test was added and rerun review returned PASS with no material finding."
+      - "Nash re-review identified six material findings; all were addressed in 29b72c0 and Averroes fresh re-review returned PASS with no material finding."
   evidence:
     - "Independent reviewer Godel: PASS; no material findings after the node:sqlite import/rerun/checksum/rollback/reply-chain test was added."
+    - "Independent reviewer Averroes: PASS on 29b72c0; all six prior findings and AC01-AC07/IV01-IV05 coverage were confirmed."
     - "Review confirmed foundation/rehearsal scope and production Human Gate boundary are documented."
 
 finding_record_schema:
@@ -332,31 +342,213 @@ findings:
     verified_revision:
       commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
       tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
+  - id: REV-002
+    source: review
+    observed_revision:
+      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
+      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
+    status: resolved
+    category: correctness
+    finding: "table指定ありの単一行JSON objectがexport rootとして扱われ、JSONLの最終1行が空exportになり得る。table指定なしの未知rootも明示的に拒否する必要がある。"
+    failure_scenario: "1行だけのConvex JSONLをtable指定で読み込むと、_id等を無視して空のmigration planが生成される。"
+    affected_acceptance_criteria: [AC03, AC06]
+    affected_invariants: [IV04]
+    risk_domains: [reliability, persistence_state_transition]
+    evidence:
+      - "Nash independent review: parseTableExport 146-177"
+    recommended_action: "既知table envelopeとsingle documentを判別し、単一行JSONLとunknown rootのテストを追加する。"
+    disposition: resolved
+    rationale: "入力を黙って捨てるため、移行前検証のfail-closed要件に反する。"
+    mitigation: "parseTableExport now distinguishes known table envelopes from a single JSON document and rejects unknown roots without a table hint."
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "Added single-line JSONL/unknown-root tests; targeted migration tests and Averroes re-review passed."
+    verified_revision:
+      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+  - id: REV-003
+    source: review
+    observed_revision:
+      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
+      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
+    status: resolved
+    category: security
+    finding: "letterのthread存在だけでなく、thread ownerとletter ownerの一致を検証する必要がある。"
+    failure_scenario: "異なるownerのthreadへletterを紐付けたexportを受け入れると、D1上のownership boundaryが壊れる。"
+    affected_acceptance_criteria: [AC03, AC06]
+    affected_invariants: [IV02, IV04]
+    risk_domains: [data_security, auth_ownership]
+    evidence:
+      - "Nash independent review: migration planner 757-797, 1055-1069"
+    recommended_action: "thread owner mapを作り、letter ownerとの一致を検証するテストを追加する。"
+    disposition: resolved
+    rationale: "認可のsource of truthをexport users/relationshipsに固定する要件に直結する。"
+    mitigation: "thread owner map is checked against every letter owner before normalization and SQL generation."
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "Added mismatched thread/letter owner test; targeted migration tests and Averroes re-review passed."
+    verified_revision:
+      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+  - id: REV-004
+    source: review
+    observed_revision:
+      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
+      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
+    status: resolved
+    category: reliability
+    finding: "R2 target prefix/cutover mappingがrow checksumに含まれず、別prefixのD1/R2 artifactを同じtargetへ混在させ得る。"
+    failure_scenario: "r2CutoverIdだけを変えた再生成SQLがsource checksum一致として扱われ、D1 rowとR2 manifestのtarget keyが不整合になる。"
+    affected_acceptance_criteria: [AC04, AC06]
+    affected_invariants: [IV01, IV04]
+    risk_domains: [reliability, persistence_state_transition, destructive_or_stateful]
+    evidence:
+      - "Nash independent review: migration planner 190, 393, 514-517, 1113-1116"
+    recommended_action: "R2 object-bearing rowのchecksumへtarget mappingを含め、prefix変更の実DB再適用を拒否するテストを追加する。"
+    disposition: resolved
+    rationale: "R2 copyとD1 metadataは同じcutover artifactとして扱う必要がある。"
+    mitigation: "attachment and finalization import-row checksums include r2CutoverId and generated target keys."
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "Real node:sqlite test proves an alternate R2 prefix is rejected by migration_checksum_drift; Averroes re-review passed."
+    verified_revision:
+      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+  - id: REV-005
+    source: review
+    observed_revision:
+      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
+      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
+    status: resolved
+    category: correctness
+    finding: "letter status、delivery status、openedAt/repliedAt、sent contentの組み合わせを状態マトリクスとして検証する必要がある。"
+    failure_scenario: "traveling letterがconsumed deliveryやopenedAtを持つ、またはsent letterのbodyが空のまま移行されると、配送/開封状態と本文が矛盾する。"
+    affected_acceptance_criteria: [AC03, AC06]
+    affected_invariants: [IV03, IV04]
+    risk_domains: [persistence_state_transition, reliability]
+    evidence:
+      - "Nash independent review: migration planner 850-906, 976-993"
+    recommended_action: "traveling/deleted traveling/deliveredのdelivery status、openedAt/repliedAt、sent bodyをfail-closedで検証し、各境界をテストする。"
+    disposition: resolved
+    rationale: "配送と開封の状態遷移を壊れたままD1へ取り込まないため。"
+    mitigation: "Draft openedAt/repliedAt are rejected before the draft return; delivery status is matched to traveling, deleted-traveling, or delivered lifecycle and sent content must be non-empty."
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "Added invalid draft and valid deleted-traveling/delivered/replied cases; targeted migration tests and Averroes re-review passed."
+    verified_revision:
+      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+  - id: REV-006
+    source: review
+    observed_revision:
+      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
+      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
+    status: resolved
+    category: correctness
+    finding: "attachmentFinalizationAttemptが対象attachmentのphoto kindとgeneration tokenに一致することを検証する必要がある。"
+    failure_scenario: "location attachmentや古いgenerationのfinalization attemptを取り込むと、R2 finalization stateが別世代/別種別のobjectに接続される。"
+    affected_acceptance_criteria: [AC03, AC06]
+    affected_invariants: [IV04]
+    risk_domains: [reliability, data_security]
+    evidence:
+      - "Nash independent review: migration planner 945-953"
+    recommended_action: "attachment mapを参照してkind=photoとgeneration token一致を検証し、kind/token不一致テストを追加する。"
+    disposition: resolved
+    rationale: "R2 object lifecycleの対象を安全に固定する必要がある。"
+    mitigation: "Finalization attempts require an existing photo attachment and an identical generation token."
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "Added kind and generation mismatch tests; targeted migration tests and Averroes re-review passed."
+    verified_revision:
+      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
+  - id: REV-007
+    source: review
+    observed_revision:
+      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
+      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
+    status: resolved
+    category: security
+    finding: "push endpointをHTTPSへ制限し、validation errorへraw endpointを含めない必要がある。"
+    failure_scenario: "HTTP endpointや重複endpointがraw error/logへ出ると、push subscription情報が不要に露出する。"
+    affected_acceptance_criteria: [AC03, AC06]
+    affected_invariants: [IV02, IV05]
+    risk_domains: [data_security, auth_ownership]
+    evidence:
+      - "Nash independent review: migration planner 1021-1030, 1529-1533"
+    recommended_action: "HTTPS URLとcredential-less URLを検証し、エラーはsource IDのみを含めるテストを追加する。"
+    disposition: resolved
+    rationale: "Push endpointは外部credentialに近いprivate dataであり、エラー経路にも漏らさない。"
+    mitigation: "Push endpoints are restricted to HTTPS without URL credentials, and duplicate/invalid errors contain only the source ID."
+    follow_up_issue: ""
+    human_approval:
+      required: false
+      status: not_required
+      approver: ""
+      approved_at: ""
+      scope: ""
+      evidence: ""
+    resolution: "Tests inspect actual exception messages and prove HTTP rejection plus raw endpoint non-disclosure; Averroes re-review passed."
+    verified_revision:
+      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
+      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
 
 delivery:
   status: pass
   branch: "codex/issue-60-cloudflare-migration"
-  commit: "807329b7c1b3041cb9dffa51ebe8e8d7e163e813"
+  commit: "29b72c04b00b8be1684ffc854602895dca031a4f"
   pull_request: "https://github.com/hondasports/Re-Me/pull/61"
   base: main
   evidence:
     - "Dedicated branch pushed to origin with implementation commit 9a5d1ca and loop evidence commit 807329b."
     - "PR #61 created against main with base SHA 4263ee7e7f032c1085901ad4f1097f29ffadd272 and initial head SHA 807329b7c1b3041cb9dffa51ebe8e8d7e163e813."
     - "PR metadata-only delivery update is published at head 3fd16418507a1dd78e0e077b433a86bff90fb8a8."
+    - "Review fixes are ready at code head 29b72c0; PR update and latest aftercare are still pending."
 
 pr_aftercare:
-  status: pass
+  status: pending
   checks:
     - "GitHub CI run 33935218497: success for head 3fd16418507a1dd78e0e077b433a86bff90fb8a8; Quality gates and End-to-end jobs passed."
     - "CodeRabbit status: success; repository auto-review is skipped because the repository has fewer than 10 stars."
     - "Review submissions: none; inline review threads: none."
+    - "Pending: re-run after PR #61 is updated to 29b72c0."
   requested_changes: []
   approval_required: false
   approval_status: not_required # pending | pass | not_required | blocked
   approval_evidence: []
-  revision_consistency: pass # pending | pass | blocked
-  conflict_status: pass
-  mergeable: pass
+  revision_consistency: pending # pending | pass | blocked
+  conflict_status: pending
+  mergeable: pending
   evidence:
     - "PR info: open, not draft, mergeable true, base main, head 3fd1641."
     - "No requested changes, review submissions, or unresolved inline review threads."
@@ -384,8 +576,8 @@ telemetry:
     required_control_count: 6
     findings_added: 1
     retries: 4
-    full_suite_runs: 3
-    review_cycles: 2
+    full_suite_runs: 4
+    review_cycles: 3
   summary:
     total_elapsed_seconds: null
     total_external_wait_seconds: 0
@@ -445,5 +637,6 @@ learning:
       verification_evidence: []
 
 completion:
-  status: complete
-  blockers: []
+  status: in_progress
+  blockers:
+    - "PR #61 must be updated to 29b72c0 and latest required CI/aftercare must pass."
