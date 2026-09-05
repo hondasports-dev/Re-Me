@@ -7,13 +7,15 @@ Re:Me Agent Loop v5 は、v4 の Risk / Evidence / deterministic enforcement 方
 3. **Mid-turn steering** — 作業途中の追加指示で全loopをrestartせず、affected contract / Evidenceだけdelta更新する
 4. **Calibrated verification** — low-impact変更で実装を鏡写しするだけのtestや、PASS後の無根拠なfull check拡大を避ける
 5. **Focused delegation** — subagentはwall-clock短縮か独立coverage改善にmaterialに効く時だけ使う
-6. **Re:Me protected behavior** — sealed content、immutability、authorization、delivery idempotency、private R2等の強い境界は削らない
+6. **Task-state isolation** — tracked templateとcurrent task instanceを分離し、過去taskの文脈汚染を防ぐ
+7. **Re:Me protected behavior** — sealed content、immutability、authorization、delivery idempotency、private R2等の強い境界は削らない
 
 正本:
 
 - `AGENTS.md` — 常時保持する最小のloop不変条件 + Re:Me固有Product/Architecture contract
 - `.loop/process.yaml` — compactな機械可読contract
-- `.loop/templates/task-state.yaml` — Coverage Map / Finding / telemetry
+- `.loop/templates/task-state.yaml` — trackedな再利用用schema/template。task固有値を入れない
+- `.loop/state/<task-id>.yaml` — current task instance / Coverage Map / Finding / telemetry（worktree-local・ignored）
 - `skills/*/SKILL.md` — current stateの詳細
 - `scripts/check-loop-evidence.mjs` / `scripts/check-task-worktree.mjs` / `scripts/check-local-e2e-gate.mjs` / `scripts/sync-worktree-e2e-env.mjs` / `scripts/check-pr-aftercare.mjs` — deterministic enforcement
 
@@ -88,6 +90,14 @@ Human Gateは次のような**具体的trigger**へ束縛する。
 - unaffected contractとsame-content Evidenceは保持
 - 全loopを無条件にrestartしない
 - material choiceが新規発生した時だけPREPARE / Human Gateへ戻る
+
+## Task-state isolation
+
+`.loop/templates/task-state.yaml` はtrackedな再利用用schema/templateで、task固有値を記録しない。
+
+task開始時はtemplateを `.loop/state/<task-id>.yaml` へコピーしてcurrent stateとして使う。`.loop/state/` はworktree-local・ignoredで、PRへcommitしない。
+
+Finding Ledger、Coverage Map、telemetryのcurrent valueはcurrent instanceだけを正本とする。過去taskの値をtemplateへ残して次taskへ持ち越さない。
 
 ## Compact contract
 
@@ -235,7 +245,7 @@ Specialist追加はmaterially distinctなControlがある時だけ。R4だけを
 
 ## Finding Ledger
 
-`.loop/templates/task-state.yaml` の `findings[]` が唯一の正本。
+current task instance（`.loop/state/<task-id>.yaml`）の `findings[]` が唯一の正本。
 
 requirements gap / test gap / Review / CI findingを別表へ複製しない。
 
