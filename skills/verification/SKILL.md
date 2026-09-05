@@ -11,6 +11,15 @@ description: AC/IV/TCのCoverage Map、max observed Risk、Required Controlsに�
 
 PREPAREのCoverage Mapを使い、ここで仕様やtest caseをゼロから再導出しない。
 
+required checksが通った後にcheckを広げたり繰り返したりするのは、次の時だけ。
+
+- new content change
+- material failure
+- unresolved concern
+- Required Controlが追加Evidenceを要求
+
+それ以外はtask completionへ進む。
+
 ## Context discipline
 
 通常読むのは:
@@ -28,13 +37,27 @@ Issue全文・chat履歴・Requirements Skill全文はcontract conflict / requir
 
 1. scopeable static / owning `tsconfig`
 2. targeted unit / contract test
-3. affected Convex / integration test
+3. affected Worker / D1 integration test
 4. required functional Playwright E2E
 5. repo-wide regressionは原則CI Aftercare
 
 上流失敗で下流結果が無意味になる場合、高価なcheckを先に走らせない。
 
 修正後はdeltaで無効化されたcheckだけ再実行する。
+
+## Low-impact test policy
+
+reversible / low-impact変更で、implementation detailを鏡写しするだけの新規testを要求しない。
+
+追加するtestはobservable AC / IVまたはRequired Controlをmaterialに証明するものだけにする。
+
+ただし次は省略しない。
+
+- Re:Me protected behaviorのboundary proof
+- auth / ownership denial
+- destructive / stateful failure path
+- required browser E2E
+- migration / data compatibility control
 
 ## Forward coverage
 
@@ -79,15 +102,17 @@ PREPAREで`relevant`になったものだけ確認する。
 
 ### Auth / access
 
-Auth0 / authorization / ownership変更では許可経路だけでなくdenial / cross-userを確認する。
+Auth0 / Worker authorization / ownership変更では許可経路だけでなくdenial / cross-userを確認する。
 
 sealed letterは到着・開封前の本人にも本文/attachmentを返さないことをserver boundaryで検証する。
 
 ### Data / state
 
-Convex schema / validator / ownership / delivery state変更ではaffected query / mutation / callerを確認する。
+D1 schema / validator / ownership / delivery state変更ではaffected route / query / mutation相当のAPI path / callerを確認する。
 
 sent letter immutability、delivery idempotency、notification separation、exact schedule privacyを関連変更時に検証する。
+
+legacy Convex → D1 migrationではsource export / mapping / rollbackに必要な範囲だけConvex側Evidenceを取る。
 
 ### R2+
 
@@ -108,7 +133,7 @@ user-visible画面・遷移・操作を変更した場合、**その画面・遷
 次はEvidenceにならない。
 
 - 変更していないlogin/別画面E2Eの成功
-- unit / component / Convex testだけ
+- unit / component / Worker testだけ
 - 該当Playwright specが既存に無いこと
 
 required credential / environment不足はNOT_REQUIREDにせずBLOCKED / Incident。
@@ -139,7 +164,7 @@ blind retryをしない。失敗原因を分類し、deltaに依存するcheck�
 
 requirements gapはPREPAREへ戻す。test gapは解決までPASS不可。Human Gateで迂回しない。
 
-## Revision
+## Revision / mid-turn steering
 
 same content Evidence再利用にはprevious/currentの非空tree SHA一致を必要とする。
 
@@ -147,6 +172,8 @@ same content Evidence再利用にはprevious/currentの非空tree SHA一致を�
 - identity不明 → content changed扱い
 - content changed → delta verification
 - protected behavior / AC coverage / Risk / Controls change、またはdeltaをbound不能 → affected scope full rerun
+
+作業中に追加ユーザー指示が来た場合も、affected contract / contentだけを再検証し、unaffected Evidenceを破棄しない。
 
 ## PASS
 
