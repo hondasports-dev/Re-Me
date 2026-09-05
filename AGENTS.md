@@ -14,11 +14,30 @@
 PREPARE → IMPLEMENT → VERIFY → REVIEW? → DELIVER → PR AFTERCARE → DONE
 ```
 
-Human Gate / Incident / Process Learningは必要時だけ。
+Human Gate / Incident / Process Learningは具体的trigger時だけ。
+
+### Instruction priority / autonomy
+
+優先順位:
+
+1. platform / non-bypassable safety
+2. current explicit user instruction
+3. latest explicitly approved spec / ADR
+4. `AGENTS.md` / `.loop/process.yaml`
+5. current / triggered Skill
+6. explanatory docs
+
+Skillは、すでにユーザーが許可したreversible/read-only/review/fix/PR作業を独自に狭める権限として扱わない。
+
+ユーザーが許可済みのread-only discovery、reversible repository edit、review/fix、tests/verification、branch作成、requested/implied PR create/updateは追加permissionなしでconcrete resultまで進める。
+
+質問や承認要求の前に、cheapな許可済みdiscoveryとreversibleな準備を終える。authorized discovery後もmaterial choiceが残る時だけHuman Gateを使う。
+
+Skillがpermission確認・停止・未完了を要求すると解釈した場合は、exact `SKILL.md` pathと該当指示を示す。Safety invariantはこの優先順位で上書きしない。
 
 ### Core invariants
 
-- `C0 unclear / conflicted`のままImplementationへ進まない。
+- `C0 unclear / conflicted`のままImplementationへ進まない。ただしC0判定前にauthorized discoveryを完了する。
 - local repository変更はWorkspace Preflightを通す。GitHub connector writeは専用branch + base=`main` + task identity確認を同等Evidenceとする。
 - same shared diffのwriterは原則1体。
 - Acceptance Criteria=`ACxx`、Preserve/Invariant=`IVxx`、Verification case=`TCxx`で短く参照する。
@@ -27,12 +46,22 @@ Human Gate / Incident / Process Learningは必要時だけ。
 - **reverse coverage**: 全behavior-changing diffをAC/IV/design deviationへ対応させる。
 - requirements gapはPREPAREへ戻す。test gapは解消またはRequirements正式変更までVerification PASS不可。
 - RiskとRequired Controlsを分離し、Implementation開始後の`max observed Risk`をcompletion floorとする。
+- **R4分類だけを理由にHuman Gateを起動しない。** Human Gateはproduction / irreversible / unresolved material choice等のspecific triggerへ束縛する。
 - required Verification / ReviewがFAIL・BLOCKEDのまま進まない。
 - `PR created`はcheckpoint。通常targetはlatest PR contentの`merge_ready`。`pnpm loop:aftercare` が PASS するまで DONE にしない。required CI の pending/fail と unresolved review thread（レビューツール含む）は飛ばせない。
 - `task-state.findings`をfindingの唯一のsource of truthとする。protected findingはAgent単独defer不可。
 - same tree/contentのEvidenceは再利用し、content deltaだけ再検証する。
 - Process Learningはevent-driven。R3/R4だけを理由に起動しない。
 - scope外改善を勝手に同じPRへ混ぜない。
+
+### Mid-turn steering
+
+作業途中で新しいユーザー指示が来たらcurrent explicit user instructionとして取り込む。
+
+- affected Goal / scope / AC / IV / TC / Risk / Controlsだけ更新
+- unaffected contractとsame-content Evidenceは保持
+- loop全体を無条件にrestartせず必要なdelta stageだけ再実行
+- material choiceが新規発生した時だけPREPARE / Human Gateへ戻る
 
 ### Context discipline
 
@@ -69,6 +98,14 @@ Conditional:
 - learning event → `skills/process-learning/SKILL.md`
 - next task context → `skills/task-transition/SKILL.md`
 
+### Delegation
+
+same shared diffのwriterは原則1体。
+
+subagent / independent reviewerは、read-only discoveryの並列化でwall-clock短縮にmaterialに効く、required independent reviewでcoverageを改善する、またはpath-disjoint analysisを安全に分離できる時だけ使う。
+
+cheap sequential work、simple search、duplicate summary / same Evidenceには使わない。R4だけを理由にreviewer / specialistを増やさない。
+
 ### Fail-fast Verification
 
 ```text
@@ -81,6 +118,10 @@ cheap static / owning tsconfig
 
 same contentのfull suiteをlocal/CIで理由なく重複しない。
 
+required checksが通った後にcheckを広げたり繰り返したりするのは、new content change / material failure / unresolved concern / Required Control追加Evidenceの時だけ。
+
+reversible / low-impact変更ではimplementation detailを鏡写しするだけの新規testを要求しない。ただしRe:Me protected behaviorとrequired browser E2Eは省略しない。
+
 ### Omission-first Review
 
 全履歴ではなくcompact packetをreviewerへ渡し、styleより先に次を確認する。
@@ -91,6 +132,8 @@ same contentのfull suiteをlocal/CIで理由なく重複しない。
 - boundary / denial / failure漏れ
 - Preserve経路のregression
 - scope外behavior
+
+materialな不足だけfindingにする。PASS済みEvidenceの再要求や「念のため全部追加」はしない。
 
 ### Timing telemetry
 
@@ -258,7 +301,7 @@ Worker API / D1 schema / authorization を変更する場合は Worker の acces
 3. open → reply → send to future
 
 Google OAuth 自体は automated critical E2E へ毎回含めず、Auth0 callback / Worker authenticated API までの smoke test を別に持つ。
-テストは実装詳細より user-observable behavior を優先する。
+テストは実装詳細より user-observable behavior を優先する。reversible / low-impact変更では実装を鏡写しするだけの新規testを増やさない。
 
 ## Documentation rules
 
