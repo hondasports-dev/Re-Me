@@ -236,6 +236,16 @@ function countRows(database: DatabaseSync, table: string): number {
   return result.count
 }
 
+function captureError(action: () => void): Error {
+  try {
+    action()
+  } catch (error) {
+    if (error instanceof Error) return error
+    throw error
+  }
+  throw new Error('expected action to throw')
+}
+
 describe('Convex to D1 migration plan', () => {
   it('maps the full export while keeping private fields out of public metadata', () => {
     const plan = buildMigrationPlan(makeExport(), {
@@ -479,15 +489,56 @@ describe('Convex to D1 migration plan', () => {
     insecurePush.pushSubscriptions = [
       { ...insecurePush.pushSubscriptions![0], endpoint: 'http://push.example/subscription-1' },
     ]
-    expect(() => buildMigrationPlan(insecurePush)).toThrow('push_endpoint_invalid:push-1')
+    const insecurePushError = captureError(() => buildMigrationPlan(insecurePush))
+    expect(insecurePushError.message).toBe('push_endpoint_invalid:push-1')
+    expect(insecurePushError.message).not.toContain('http://push.example')
 
     const duplicatePush = makeExport()
     duplicatePush.pushSubscriptions = [
       ...duplicatePush.pushSubscriptions!,
       { ...duplicatePush.pushSubscriptions![0], _id: 'push-2' },
     ]
-    expect(() => buildMigrationPlan(duplicatePush)).toThrow('duplicate_push_endpoint:push-2')
-    expect(() => buildMigrationPlan(duplicatePush)).not.toThrow('https://push.example')
+    const duplicatePushError = captureError(() => buildMigrationPlan(duplicatePush))
+    expect(duplicatePushError.message).toBe('duplicate_push_endpoint:push-2')
+    expect(duplicatePushError.message).not.toContain('https://push.example')
+
+    const draftOpened = makeExport()
+    draftOpened.letters = [makeDraftLetter('letter-1', 'thread-1')]
+    draftOpened.letters[0].openedAt = baseTime + 1
+    draftOpened.letterDeliveries = []
+    draftOpened.notificationJobs = []
+    expect(() => buildMigrationPlan(draftOpened)).toThrow('draft_state_inconsistent:letter-1')
+
+    const draftReplied = makeExport()
+    draftReplied.letters = [makeDraftLetter('letter-1', 'thread-1')]
+    draftReplied.letters[0].repliedAt = baseTime + 1
+    draftReplied.letterDeliveries = []
+    draftReplied.notificationJobs = []
+    expect(() => buildMigrationPlan(draftReplied)).toThrow('draft_state_inconsistent:letter-1')
+
+    const deletedTraveling = makeExport()
+    deletedTraveling.letters = [makeLetter('letter-1', { deletedAt: baseTime + 1 })]
+    deletedTraveling.letterDeliveries = [
+      { ...deletedTraveling.letterDeliveries![0], status: 'canceled' },
+    ]
+    expect(() => buildMigrationPlan(deletedTraveling)).not.toThrow()
+
+    const delivered = makeExport()
+    delivered.letters = [makeLetter('letter-1', { status: 'delivered', deliveredAt: baseTime + 1 })]
+    delivered.letterDeliveries = [{ ...delivered.letterDeliveries![0], status: 'consumed' }]
+    expect(() => buildMigrationPlan(delivered)).not.toThrow()
+
+    const replied = makeReplyExport()
+    replied.letters = [
+      makeLetter('z-parent', {
+        status: 'delivered',
+        deliveredAt: baseTime + 200,
+        nextLetterId: 'a-child',
+        repliedAt: baseTime + 300,
+      }),
+      makeDraftLetter('a-child', 'z-parent'),
+    ]
+    expect(() => buildMigrationPlan(replied)).not.toThrow()
 
     const branching = makeExport()
     branching.letters = [

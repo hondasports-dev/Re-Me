@@ -880,7 +880,9 @@ function assertLetterState(letter: LetterRecord): void {
       letter.deliveredAt !== null ||
       letter.deliveryMode !== null ||
       letter.deliveryWindowStart !== null ||
-      letter.deliveryWindowEnd !== null
+      letter.deliveryWindowEnd !== null ||
+      letter.openedAt !== null ||
+      letter.repliedAt !== null
     ) {
       throw new Error(`draft_state_inconsistent:${letter.id}`)
     }
