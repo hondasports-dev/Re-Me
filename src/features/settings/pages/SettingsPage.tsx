@@ -15,13 +15,20 @@ import {
 export function SettingsPage() {
   const upsertMine = useMutation(api.pushSubscriptions.upsertMine)
   const disableMine = useMutation(api.pushSubscriptions.disableMine)
+  const pushConfig = useQuery(api.pushSubscriptions.getConfig)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [permission, setPermission] = useState<NotificationPermission | 'unknown'>(() =>
     typeof Notification === 'undefined' ? 'unknown' : Notification.permission,
   )
   const [localEndpoint, setLocalEndpoint] = useState<string | null | undefined>(undefined)
-  const capability = readPushClientCapability()
+  const vapidPublicKey = readPushVapidPublicKey(pushConfig?.publicKey)
+  const capability = readPushClientCapability({
+    notification: typeof Notification === 'undefined' ? undefined : Notification,
+    pushManager: typeof PushManager === 'undefined' ? undefined : PushManager,
+    serviceWorker: typeof navigator === 'undefined' ? undefined : navigator.serviceWorker,
+    vapidPublicKey,
+  })
   const status = useQuery(
     api.pushSubscriptions.getMyPushStatus,
     capability.kind !== 'supported' || !localEndpoint ? 'skip' : { endpoint: localEndpoint },
@@ -72,7 +79,7 @@ export function SettingsPage() {
         return
       }
 
-      const vapid = readPushVapidPublicKey()
+      const vapid = vapidPublicKey
       if (!vapid) {
         throw new Error('push_config_missing')
       }

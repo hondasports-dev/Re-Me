@@ -75,6 +75,9 @@ app.onError((error, context) => {
 
 app.get('/api/health', (context) => context.json({ status: 'ok' }))
 app.get('/api/health/', (context) => context.json({ status: 'ok' }))
+app.get('/api/push/config', (context) =>
+  context.json({ publicKey: context.env.VAPID_PUBLIC_KEY?.trim() || null }),
+)
 
 // Upload and download URLs are short-lived, signed capabilities. They do not
 // carry the Auth0 bearer token, so the capability itself is the only access

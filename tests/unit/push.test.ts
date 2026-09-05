@@ -46,7 +46,8 @@ describe('push client model', () => {
         vapidPublicKey: 'key',
       }),
     ).toEqual({ kind: 'unsupported', reason: 'no_notification' })
-    expect(readPushVapidPublicKey({})).toBeNull()
+    expect(readPushVapidPublicKey()).toBeNull()
+    expect(readPushVapidPublicKey('  public-key  ')).toBe('public-key')
     expect(shouldReleaseBrowserPush(false)).toBe(false)
     expect(shouldReleaseBrowserPush(true)).toBe(true)
   })

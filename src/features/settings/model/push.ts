@@ -10,13 +10,9 @@ export type PushClientCapability =
     }
   | { kind: 'supported'; permission: NotificationPermission }
 
-export function readPushVapidPublicKey(
-  env: { VITE_WEB_PUSH_VAPID_PUBLIC_KEY?: string } = {
-    VITE_WEB_PUSH_VAPID_PUBLIC_KEY: import.meta.env.VITE_WEB_PUSH_VAPID_PUBLIC_KEY,
-  },
-): string | null {
-  const value = env.VITE_WEB_PUSH_VAPID_PUBLIC_KEY?.trim() ?? ''
-  return value.length > 0 ? value : null
+export function readPushVapidPublicKey(value?: string | null): string | null {
+  const normalized = value?.trim() ?? ''
+  return normalized.length > 0 ? normalized : null
 }
 
 export function readPushClientCapability(
@@ -29,7 +25,7 @@ export function readPushClientCapability(
     notification: typeof Notification === 'undefined' ? undefined : Notification,
     pushManager: typeof PushManager === 'undefined' ? undefined : PushManager,
     serviceWorker: typeof navigator === 'undefined' ? undefined : navigator.serviceWorker,
-    vapidPublicKey: readPushVapidPublicKey(),
+    vapidPublicKey: null,
   },
 ): PushClientCapability {
   if (!globals.serviceWorker) {

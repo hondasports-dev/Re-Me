@@ -12,6 +12,7 @@ import type {
   ApiDraft,
   ApiLetterMetadata,
   ApiPhotoIntent,
+  ApiPushConfig,
   ApiPushDisableResult,
   ApiPushStatus,
   ApiSentLetter,
@@ -175,6 +176,11 @@ export const api = {
     ),
   },
   pushSubscriptions: {
+    getConfig: endpoint<void, ApiPushConfig>(
+      'pushSubscriptions.getConfig',
+      'GET',
+      () => '/api/push/config',
+    ),
     getMyPushStatus: endpoint<{ endpoint?: string }, ApiPushStatus>(
       'pushSubscriptions.getMyPushStatus',
       'GET',
