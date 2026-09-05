@@ -247,6 +247,35 @@ function captureError(action: () => void): Error {
 }
 
 describe('Convex to D1 migration plan', () => {
+  it('reports zero rows and emits executable no-op artifacts for an empty export', () => {
+    const plan = buildMigrationPlan({})
+
+    expect(plan.counts).toEqual({
+      users: 0,
+      user_settings: 0,
+      threads: 0,
+      letters: 0,
+      letter_contents: 0,
+      letter_attachments: 0,
+      attachment_finalization_attempts: 0,
+      letter_deliveries: 0,
+      notification_jobs: 0,
+      push_subscriptions: 0,
+    })
+    expect(plan.rows).toHaveLength(0)
+
+    const importSql = buildImportSql(plan)
+    const rollbackSql = buildRollbackSql(plan)
+    expect(importSql).toContain('SELECT 1;')
+    expect(rollbackSql).toContain('SELECT 1;')
+
+    const database = openMigrationDatabase()
+    expect(() => database.exec(importSql)).not.toThrow()
+    expect(() => database.exec(importSql)).not.toThrow()
+    expect(() => database.exec(rollbackSql)).not.toThrow()
+    database.close()
+  })
+
   it('maps the full export while keeping private fields out of public metadata', () => {
     const plan = buildMigrationPlan(makeExport(), {
       now: baseTime + 1,
