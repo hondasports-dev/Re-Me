@@ -1,5 +1,8 @@
+# SCHEMA TEMPLATE ONLY: copy to .loop/state/<task-id>.yaml for a current task instance.
+# Do not fill task-specific values in this tracked reusable template.
+
 session:
-  current_task_id: "issue-60-runtime-cleanup"
+  current_task_id: ""
   active_delivery_pr: ""
 
 revision:
@@ -18,426 +21,108 @@ revision:
   observed:
     commit_sha: ""
     tree_sha: ""
-  previous_cutover:
-    commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-    tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
 
 task:
-  id: "issue-60-runtime-cleanup"
-  source: "https://github.com/hondasports/Re-Me/issues/60"
-  objective: "PreviewをCloudflare-only runtimeに固定し、旧backendの処理・依存・CI・migration toolingを撤去する"
+  id: ""
+  source: ""
+  objective: ""
   base_branch: main
   delivery_target: merge_ready
-  current_state: implementation
-
-# Current follow-up scope. The detailed stage records below retain evidence from
-# the preceding cutover; this block is the active cleanup contract.
-cleanup_follow_up:
-  status: in_progress
-  objective: "PreviewのCloudflare Worker/D1/R2/Queue runtimeを残し、Convexの実行経路と一時移行bookkeepingをrepositoryから撤去する。"
-  trigger: "User will delete the external Convex project; repository cleanup and Preview verification remain in scope."
-  material_assumptions:
-    - "Production Workerは未デプロイで、Production D1はschema-only / application rows zeroのinventory結果を前提にする。"
-    - "Previewの現行runtimeはCloudflare Worker/D1/R2/Queueであり、Preview dataは移行元にしない。"
-    - "Convex Dashboardの削除・停止・secret変更はユーザーが行い、このtaskからは実行しない。"
-  in_scope:
-    - "Convex source/generated code、client/provider、依存、config、scheduler、CI job、migration CLI/testを削除する。"
-    - "package scripts、TypeScript/Oxlint/gitignore、environment examples、active docsをCloudflare-onlyへ揃える。"
-    - "D1の一時 migration_import_keys bookkeeping を numbered migrationで撤去し、Worker schema testで確認する。"
-    - "local quality gates、D1 migration、Cloudflare target dry-run、Preview deploy/health/E2E evidenceを更新する。"
-  out_of_scope:
-    - "外部Convex projectの削除・停止・権限/secret変更。"
-    - "Production Worker deploy、Production data import、R2 copy、traffic cutover、Production resource deletion。"
-    - "Supabase historical comparison artifactsと過去ADRの履歴記述の書き換え。"
-  acceptance_criteria:
-    - { id: AC14, expectation: "RepositoryにConvexの実行source、generated API、client/provider、config、依存、scheduler、test、CI jobが残らない。" }
-    - { id: AC15, expectation: "package scripts、tsconfig、quality gate、environment examples、active architecture/setup docsがWorker/D1/R2/Queueだけを現行runtimeとして示す。" }
-    - { id: AC16, expectation: "D1 migrationでtemporary migration_import_keys table/index/triggerを撤去し、通常のletter/delivery/notification schemaは保持する。" }
-    - { id: AC17, expectation: "local lint/format/typecheck/test/loop/build、D1 migration、target dry-runが通り、削除後もCloudflare runtimeの境界テストがPASSする。" }
-    - { id: AC18, expectation: "Convex外部projectの削除はrepository変更と分離され、ユーザーへの明示的な運用handoffとして記録される。" }
-  invariants:
-    - { id: IV07, preserve: "Agentは外部Convex projectのdelete/stop/secret mutationを実行しない。" }
-    - { id: IV08, preserve: "Production data mutation/import/cutoverは実データinventoryとHuman Gateなしに実行しない。" }
-    - { id: IV09, preserve: "Cloudflare Workerが唯一の現行browser/backend runtimeであり、CIとdeploy helperはConvex commandを呼ばない。" }
-  relevance_dimensions:
-    happy_path: relevant
-    boundary: relevant
-    error_failure: relevant
-    empty_loading: not_applicable
-    auth_ownership: relevant
-    persistence_state_transition: relevant
-    caller_compatibility: relevant
-    concurrency_idempotency: relevant
-    navigation_accessibility: not_applicable
-  coverage_map:
-    - { contract_id: AC14, implementation_surfaces: ["convex/", "src/features/auth/convex-session.ts", "src/shared/convex/", "package.json", "tests/unit/cloudflare-runtime-boundary.test.ts"], verification_cases: [TC24], status: covered }
-    - { contract_id: AC15, implementation_surfaces: ["AGENTS.md", ".github/workflows/ci.yml", "docs/", ".env.example", ".env.preview.example", ".env.production.example"], verification_cases: [TC25], status: covered }
-    - { contract_id: AC16, implementation_surfaces: ["migrations/0003_remove_legacy_import_bookkeeping.sql", "tests/worker/d1-schema.test.ts"], verification_cases: [TC26], status: covered }
-    - { contract_id: AC17, implementation_surfaces: ["package.json", "worker/", "tests/", "scripts/"], verification_cases: [TC27, TC28], status: covered }
-    - { contract_id: AC18, implementation_surfaces: ["docs/architecture/decisions/0012-cloudflare-only-preview-runtime.md", "docs/development/legacy-migration.md"], verification_cases: [TC29], status: covered }
-    - { contract_id: IV07, implementation_surfaces: ["external operations boundary", "task-state cleanup_follow_up.out_of_scope"], verification_cases: [TC29], status: covered }
-    - { contract_id: IV08, implementation_surfaces: ["docs/development/production-environment.md", "docs/development/legacy-migration.md"], verification_cases: [TC29], status: covered }
-    - { contract_id: IV09, implementation_surfaces: ["worker/", ".github/workflows/", "package.json", "tests/unit/cloudflare-runtime-boundary.test.ts"], verification_cases: [TC24, TC25], status: covered }
-  test_cases:
-    - { id: TC24, contract_ids: [AC14, IV09], kind: regression, method: "pnpm test:unit: Cloudflare runtime boundary confirms legacy Convex files, config, dependency and browser boundary are absent." }
-    - { id: TC25, contract_ids: [AC15, IV09], kind: regression, method: "pnpm lint && pnpm format:check && pnpm typecheck: current repository config and active docs use the Worker runtime." }
-    - { id: TC26, contract_ids: [AC16], kind: boundary, method: "pnpm d1:migrations:apply:local && pnpm test:worker: temporary import bookkeeping is absent while application schema remains available." }
-    - { id: TC27, contract_ids: [AC17], kind: positive, method: "pnpm test && pnpm build: local unit/Worker regression and Cloudflare build pass." }
-    - { id: TC28, contract_ids: [AC17], kind: failure, method: "pnpm exec wrangler deploy --dry-run --env preview/production: target bindings are selected without remote mutation." }
-    - { id: TC29, contract_ids: [AC18, IV07, IV08], kind: denial, method: "Review/handoff evidence: no external Convex mutation or Production data operation is executed by this task." }
-  risk:
-    initial_level: r3_high
-    level: r3_high
-    max_observed_level: r3_high
-    reason: "大量のruntime削除とD1 bookkeeping撤去を伴うが、Production deploy/data writeは範囲外に固定する。"
-  required_controls: [workspace_preflight, destructive_or_stateful, service_ops, human_gate_for_production_data_operations]
-  verification_plan:
-    - "static/typecheck/loop enforcement"
-    - "unit + Worker/D1 schema regression"
-    - "local D1 migration and Cloudflare target dry-run"
-    - "Preview runtime smoke/E2E evidence reuse or rerun after publish"
-    - "independent omission review and PR aftercare"
-  evidence:
-    - "pnpm lint, pnpm format:check, pnpm typecheck: PASS"
-    - "pnpm test: PASS (28 unit files / 109 tests, 3 Worker files / 6 tests)"
-    - "pnpm test:loop: PASS (4 files / 42 tests)"
-    - "pnpm d1:migrations:apply:local: 0003 applied successfully"
-    - "pnpm build, build:preview, build:production: PASS; target dry-run selected local/Preview/Production bindings without remote mutation"
-    - "pnpm loop:e2e-gate: PASS; existing Preview health/API and critical E2E evidence remains valid because user-visible flow is unchanged"
+  current_state: prepare
 
 prepare:
-  status: PASS
+  status: pending
   workspace_preflight:
-    status: pass # pending | pass | not_required | blocked
-    evidence:
-      - "pnpm loop:preflight: PASS on codex/issue-60-full-migration"
-      - "baseline origin/main 12c1776 and dedicated registered worktree are clean before implementation"
+    status: pending # pending | pass | not_required | blocked
+    evidence: []
   specification:
-    confidence: c1_reconstructed # c0_unclear | c0_conflicted | c1_reconstructed | c2_confirmed
-    authoritative_sources:
-      - "user instruction in current task: Issue #60をループで対応し、データ移行を含める"
-      - "https://github.com/hondasports/Re-Me/issues/60"
-      - "convex/schema.ts and existing Convex validators/functions"
-      - "docs/architecture/overview.md and docs/architecture/data-model.md"
-      - "docs/development/legacy-migration.md for existing production-data Human Gate boundary"
+    confidence: c0_unclear # c0_unclear | c0_conflicted | c1_reconstructed | c2_confirmed
+    authoritative_sources: [] # source referenceだけを保持し、長文本文は複製しない
     conflicting_sources: []
-    material_assumptions:
-      - "Production D1/R2/Queue resources were provisioned and schema-applied, but production Auth0 values, Convex export, source R2 inventory, and GitHub deployment credentials remain separate operator inputs."
-      - "D1 keeps stable text IDs from Convex documents so foreign-key remapping is deterministic; migration_import_keys remains the audit/idempotency map."
-      - "Convex export input is JSON object/array or JSON Lines per table containing _id and _creationTime, as documented by the Convex CLI export/data formats."
+    material_assumptions: [] # 実装結果を変えうる未確認事項だけ
     unresolved_material_choices: []
-  goal: "Cloudflare Worker + D1/R2/Queueを現行runtimeとしてPreviewで検証し、production data cutoverに必要なexport/import/rollback packetを安全に実行できる状態を作る。"
-  in_scope:
-    - "D1 schema migration for all Issue #60 application tables, constraints, indexes, private schedule fields, and migration_import_keys"
-    - "local/preview/production Cloudflare binding separation for D1, private R2, notification Queue, and delivery Cron"
-    - "Convex export inventory, normalization, relationship/visibility validation, deterministic import order, checksum/idempotency map, and rollback manifest generation"
-    - "unit and Worker D1 schema tests plus migration runbook/architecture documentation"
-    - "Worker/Hono API, Auth0 JWT authorization, frontend HTTP client, R2 capability, delivery sweep, notification Queue, and production/preview deploy helpers"
-    - "Preview resource provisioning, secrets, R2 CORS, remote Worker deploy, and authenticated critical E2E"
-  out_of_scope:
-    - "Production data import, source R2 object copy, traffic cutover, and Convex production data deletion until export/inventory and explicit Human Gate are available"
-    - "Production Auth0 tenant/client creation and production secret population until the PROD values are supplied"
-  acceptance_criteria:
-    - { id: AC01, expectation: "D1 migration defines users, user_settings, threads, letters, letter_contents, letter_attachments, attachment_finalization_attempts, letter_deliveries, notification_jobs, and push_subscriptions with ownership/FK/uniqueness/state constraints and required indexes." }
-    - { id: AC02, expectation: "Wrangler configuration separates local, Preview, and Production Worker names and backend bindings without committing resource IDs or secrets, and registers bounded delivery Cron/notification Queue bindings." }
-    - { id: AC03, expectation: "The migration tool accepts Convex JSON/JSONL table exports, preserves stable IDs/timestamps/relationships/private scheduledAt, derives the single next-letter link, and rejects malformed, orphaned, branching, or inconsistent data before SQL generation." }
-    - { id: AC04, expectation: "The migration tool emits deterministic import ordering, migration_import_keys checksum records, idempotent SQL, and a rollback manifest; default execution is dry-run and production writes require an explicit Human Gate flag." }
-    - { id: AC05, expectation: "Migration output keeps sealed-content and exact-schedule data in private target columns and does not create a browser/public payload containing body or scheduledAt." }
-    - { id: AC06, expectation: "Automated tests prove schema/mapping happy paths, boundary/denial/failure cases, checksum drift, branch rejection, sealed visibility, exact-schedule privacy, idempotency, and rollback coverage." }
-    - { id: AC07, expectation: "Architecture/setup/data-migration docs describe the target mapping, environment separation, dry-run/rehearsal, rollback, and Production Human Gate." }
-    - { id: AC08, expectation: "Cloudflare Worker exposes the application API with Auth0 JWT authentication, owner authorization, sealed-content privacy, immutable sent-letter transitions, one-path replies, and no exact scheduledAt in browser responses." }
-    - { id: AC09, expectation: "The React application uses the Worker HTTP API and reactive query/mutation state without a browser Convex provider or VITE_CONVEX_URL dependency." }
-    - { id: AC10, expectation: "Private R2 photo upload/finalize/download/delete uses short-lived purpose-bound capabilities, JPEG metadata policy, owner checks, and no public bucket access." }
-    - { id: AC11, expectation: "Delivery sweep, notification outbox, Queue processing, stale-job recovery, and attachment reconciliation are server-side and idempotent, with notification content kept generic." }
-    - { id: AC12, expectation: "Preview Worker is deployed against its isolated D1/R2/Queue resources with required secrets and CORS, and the critical authenticated browser flow passes against the deployed API." }
-    - { id: AC13, expectation: "Production data cutover remains explicitly gated until Convex export, source R2 inventory, rollback evidence, Production Auth0 configuration, and CI deployment credentials are available." }
-  invariants:
-    - { id: IV01, preserve: "Production data mutation/export/import, R2 copy, resource deletion, and secret changes remain blocked unless explicitly approved by a Human Gate." }
-    - { id: IV02, preserve: "Owner identity is resolved from the exported users table and client-supplied ownership is never treated as authoritative by migration planning." }
-    - { id: IV03, preserve: "Sealed traveling or delivered-unopened content remains unreadable by the public projection, and exact scheduledAt remains absent from public metadata." }
-    - { id: IV04, preserve: "Sent-letter immutable fields and single-path reply relationships are rejected when an export cannot represent them safely." }
-    - { id: IV05, preserve: "Secrets, production dumps, identity maps, and R2 inventories stay outside tracked repository files." }
-    - { id: IV06, preserve: "The Worker is the current application runtime; Convex source remains only for rollback comparison until the production data rollback window is closed." }
+  goal: ""
+  in_scope: []
+  out_of_scope: []
+  acceptance_criteria: [] # { id: AC01, expectation: "..." }
+  invariants: [] # { id: IV01, preserve: "..." }
   relevance_dimensions:
-    happy_path: relevant # relevant | not_applicable
-    boundary: relevant
-    error_failure: relevant
-    empty_loading: relevant
-    auth_ownership: relevant
-    persistence_state_transition: relevant
-    caller_compatibility: relevant
-    concurrency_idempotency: relevant
-    navigation_accessibility: relevant
-    not_applicable_reasons:
-  coverage_map:
-    - { contract_id: AC01, implementation_surfaces: ["migrations/0001_initial_schema.sql", "tests/worker/d1-schema.test.ts"], verification_cases: [TC01, TC02], status: covered }
-    - { contract_id: AC02, implementation_surfaces: ["wrangler.jsonc", ".dev.vars.example", ".env.preview.example", ".env.production.example"], verification_cases: [TC03], status: covered }
-    - { contract_id: AC03, implementation_surfaces: ["scripts/convex-to-d1-migration.ts"], verification_cases: [TC04, TC05, TC06], status: covered }
-    - { contract_id: AC04, implementation_surfaces: ["scripts/convex-to-d1-migration.ts"], verification_cases: [TC07, TC08, TC09], status: covered }
-    - { contract_id: AC05, implementation_surfaces: ["scripts/convex-to-d1-migration.ts", "migrations/0001_initial_schema.sql"], verification_cases: [TC10], status: covered }
-    - { contract_id: AC06, implementation_surfaces: ["tests/unit/convex-to-d1-migration.test.ts", "tests/worker/d1-schema.test.ts"], verification_cases: [TC01, TC02, TC04, TC05, TC06, TC07, TC08, TC09, TC10], status: covered }
-    - { contract_id: AC07, implementation_surfaces: ["docs/architecture/overview.md", "docs/architecture/data-model.md", "docs/development/convex-d1-migration.md"], verification_cases: [TC11], status: covered }
-    - { contract_id: IV01, implementation_surfaces: ["scripts/convex-to-d1-migration.ts", "docs/development/convex-d1-migration.md"], verification_cases: [TC08, TC11], status: covered }
-    - { contract_id: IV02, implementation_surfaces: ["scripts/convex-to-d1-migration.ts"], verification_cases: [TC04, TC06], status: covered }
-    - { contract_id: IV03, implementation_surfaces: ["scripts/convex-to-d1-migration.ts"], verification_cases: [TC10], status: covered }
-    - { contract_id: IV04, implementation_surfaces: ["scripts/convex-to-d1-migration.ts"], verification_cases: [TC05, TC06], status: covered }
-    - { contract_id: IV05, implementation_surfaces: [".gitignore", "docs/development/convex-d1-migration.md"], verification_cases: [TC03, TC11], status: covered }
-    - { contract_id: AC08, implementation_surfaces: ["worker/app.ts", "worker/auth.ts", "worker/domain.ts", "tests/worker/api.test.ts"], verification_cases: [TC12, TC13, TC14], status: covered }
-    - { contract_id: AC09, implementation_surfaces: ["src/app/providers.tsx", "src/shared/api/", "src/features/"], verification_cases: [TC15, TC16], status: covered }
-    - { contract_id: AC10, implementation_surfaces: ["worker/capability.ts", "worker/photo.ts", "worker/domain.ts", "tests/unit/capability.test.ts", "tests/unit/worker-photo.test.ts"], verification_cases: [TC14, TC17], status: covered }
-    - { contract_id: AC11, implementation_surfaces: ["worker/index.ts", "worker/domain.ts"], verification_cases: [TC18, TC19], status: covered }
-    - { contract_id: AC12, implementation_surfaces: ["wrangler.jsonc", "scripts/cloudflare-deploy.mjs", ".github/workflows/ci.yml", "e2e/"], verification_cases: [TC20, TC21], status: covered }
-    - { contract_id: AC13, implementation_surfaces: ["docs/development/production-environment.md", "docs/development/convex-d1-migration.md", ".github/workflows/ci.yml"], verification_cases: [TC22, TC23], status: covered }
-    - { contract_id: IV06, implementation_surfaces: ["src/app/providers.tsx", "docs/architecture/decisions/0011-cloudflare-worker-runtime-cutover.md"], verification_cases: [TC15, TC22], status: covered }
+    happy_path: pending # relevant | not_applicable
+    boundary: pending
+    error_failure: pending
+    empty_loading: pending
+    auth_ownership: pending
+    persistence_state_transition: pending
+    caller_compatibility: pending
+    concurrency_idempotency: pending
+    navigation_accessibility: pending
+    not_applicable_reasons: {}
+  coverage_map: []
+  # compact entries only:
   # - contract_id: AC01 | IV01
   #   implementation_surfaces: [path-or-symbol]
   #   verification_cases: [TC01]
   #   status: planned | covered | gap | not_required
-  test_cases:
-    - { id: TC01, contract_ids: [AC01], kind: positive, method: "pnpm test:worker: D1 migration applies and all target tables/indexes are queryable" }
-    - { id: TC02, contract_ids: [AC01], kind: boundary, method: "schema SQL inspection/test: FK, unique, CHECK, private schedule, and immutable triggers are present" }
-    - { id: TC03, contract_ids: [AC02, IV05], kind: regression, method: "pnpm test:unit: wrangler/env examples separate resources and contain no secret values" }
-    - { id: TC04, contract_ids: [AC03, IV02], kind: positive, method: "unit: Convex export documents map to stable D1 rows in dependency order" }
-    - { id: TC05, contract_ids: [AC03, IV04], kind: negative, method: "unit: orphan references, branching replies, invalid IDs/statuses, and conflicting nextLetterId fail closed" }
-    - { id: TC06, contract_ids: [AC03, IV02], kind: boundary, method: "unit: missing optional fields/default timestamps and duplicate identity rows are handled deterministically" }
-    - { id: TC07, contract_ids: [AC04], kind: positive, method: "unit: generated SQL has import map/checksum records and stable dependency order" }
-    - { id: TC08, contract_ids: [AC04, IV01], kind: failure, method: "unit/CLI: dry-run is default, production environment without explicit gate is rejected, rollback manifest is emitted" }
-    - { id: TC09, contract_ids: [AC04], kind: regression, method: "unit: same source plan is idempotent and checksum drift is reported" }
-    - { id: TC10, contract_ids: [AC05, IV03], kind: denial, method: "unit: public projection omits body/scheduledAt and sealed traveling/unopened content is not readable" }
-    - { id: TC11, contract_ids: [AC07, IV01, IV05], kind: regression, method: "unit/docs: migration runbook states dry-run, rollback, secret boundary, and Production Human Gate" }
-    - { id: TC12, contract_ids: [AC08], kind: positive, method: "tests/worker/api.test.ts: authenticated Worker API provisions a user and returns domain data" }
-    - { id: TC13, contract_ids: [AC08], kind: denial, method: "tests/worker/api.test.ts: missing authentication and cross-owner access are denied" }
-    - { id: TC14, contract_ids: [AC08, AC10], kind: boundary, method: "tests/worker/api.test.ts and unit: sealed content, immutable sent fields, capability purpose/expiry, and private projection rules" }
-    - { id: TC15, contract_ids: [AC09, IV06], kind: regression, method: "pnpm test:unit: providers/browser API boundary has no browser Convex dependency" }
-    - { id: TC16, contract_ids: [AC09], kind: e2e, method: "Preview Playwright: authenticated API session survives reload and logout clears access" }
-    - { id: TC17, contract_ids: [AC10], kind: failure, method: "unit/Preview E2E: malformed JPEG, metadata-bearing photo, expired capability, and private R2 attachment flow fail closed" }
-    - { id: TC18, contract_ids: [AC11], kind: regression, method: "tests/worker/api.test.ts and Worker integration: delivery/notification state separation and force-delivery path" }
-    - { id: TC19, contract_ids: [AC11], kind: regression, method: "worker/index.ts review: Queue handler acknowledges invalid/stale jobs and sends no letter content/photo payload" }
-    - { id: TC20, contract_ids: [AC12], kind: positive, method: "Preview runtime: health, SPA fallback, CORS, bindings, Worker secrets, and remote deploy" }
-    - { id: TC21, contract_ids: [AC12], kind: e2e, method: "local Playwright against deployed Preview API: 14 passed, 1 OAuth smoke skipped" }
-    - { id: TC22, contract_ids: [AC13, IV01, IV06], kind: failure, method: "Production inventory/read-only checks and runbook: missing Convex export/Auth0 PROD/CI D1 access prevent import/cutover" }
-    - { id: TC23, contract_ids: [AC13], kind: regression, method: "Production D1 read-only query: target tables remain at zero rows and no Production Worker exists" }
+  test_cases: []
   # - id: TC01
   #   contract_ids: [AC01]
   #   kind: positive | boundary | negative | failure | regression | e2e
   #   method: "test path / command / manual evidence"
   risk:
-    initial_level: r3_high
-    level: r3_high # r0_trivial | r1_low | r2_medium | r3_high | r4_critical
-    max_observed_level: r3_high
+    initial_level: pending
+    level: pending # r0_trivial | r1_low | r2_medium | r3_high | r4_critical
+    max_observed_level: pending
     axes:
-      blast_radius: { score: 2, reason: "D1 schema/config is shared by Worker environments and migration output feeds every domain table." }
-      data_security: { score: 2, reason: "The plan handles owner identity, sealed body, exact delivery time, push credentials, and private R2 keys." }
-      reversibility: { score: 2, reason: "Import/cutover can be stateful; rollback requires a new target plus D1/R2 inventory and Human Gate." }
-      uncertainty: { score: 1, reason: "Convex export/resource identifiers and production inventory are not available locally, but the source schema and export format are known." }
+      blast_radius: { score: 0, reason: "" }
+      data_security: { score: 0, reason: "" }
+      reversibility: { score: 0, reason: "" }
+      uncertainty: { score: 0, reason: "" }
     critical_triggers: []
-  required_controls:
-    - workspace_preflight
-    - security_review
-    - db_access_control
-    - destructive_or_stateful
-    - service_ops
-    - human_gate_for_production_data_operations
-  verification_plan:
-    - "cheap static/typecheck and schema SQL inspection"
-    - "targeted migration mapping unit tests"
-    - "Cloudflare Worker D1 migration integration test"
-    - "pnpm loop:e2e-gate (no UI path changed; expected not required)"
-    - "CI repository regression and PR aftercare"
-  impact_summary:
-    - "Direct: new migrations/ schema, wrangler bindings, migration planner, tests, and migration/architecture docs."
-    - "Ownership: stable Convex user/document IDs become D1 text IDs; import rejects missing owners/references rather than guessing."
-    - "Privacy: body/attachment metadata and exact scheduledAt are stored in D1 but public projection helpers omit protected values."
-    - "State: letters/deliveries/notification jobs retain lifecycle fields; import order is users→settings/threads→letters→contents/attachments→deliveries→jobs/push."
-    - "R2: photo rows retain target object-key metadata and rollback inventory requirements; no production object copy is run here."
-    - "Rollback: generated manifest identifies imported rows and R2 prefix; production deletion/cutover remains Human Gate."
-  evidence:
-    - "origin/main 4263ee7 inspected; existing runtime is Auth0 + Convex + Cloudflare Static Assets."
-    - "Convex schema and direct functions/validators inspected for ten target tables and protected fields."
-    - "Convex official export/data format checked: JSON/JSONLines documents include _id and _creationTime."
+  required_controls: []
+  verification_plan: []
+  impact_summary: []
+  evidence: []
 
 implementation:
-  status: PASS
-  changed_files:
-    - .gitignore
-    - docs/architecture/data-model.md
-    - docs/architecture/overview.md
-    - docs/architecture/decisions/0010-cloudflare-d1-migration-foundation.md
-    - docs/development/README.md
-    - docs/development/implementation-order.md
-    - docs/development/production-environment.md
-    - docs/development/convex-d1-migration.md
-    - migrations/0001_initial_schema.sql
-    - package.json
-    - scripts/convex-to-d1-migration.ts
-    - tests/unit/convex-d1-foundation.test.ts
-    - tests/unit/convex-to-d1-migration.test.ts
-    - tests/worker/d1-schema.test.ts
-    - tests/worker/setup.ts
-    - tsconfig.json
-    - vitest.worker.config.ts
-    - worker-configuration.d.ts
-    - wrangler.jsonc
-    - worker/app.ts
-    - worker/auth.ts
-    - worker/capability.ts
-    - worker/constants.ts
-    - worker/db.ts
-    - worker/domain.ts
-    - worker/errors.ts
-    - worker/index.ts
-    - worker/photo.ts
-    - worker/types.ts
-    - src/app/providers.tsx
-    - src/shared/api/
-    - src/features/auth/
-    - src/features/compose/
-    - src/features/inbox/
-    - src/features/settings/
-    - src/features/thread/
-    - src/features/traveling/
-    - scripts/cloudflare-build.mjs
-    - scripts/cloudflare-deploy.mjs
-    - migrations/0002_allow_draft_delivery_settings.sql
-    - tests/worker/api.test.ts
-    - tests/unit/capability.test.ts
-    - tests/unit/worker-photo.test.ts
-    - docs/architecture/decisions/0011-cloudflare-worker-runtime-cutover.md
-  behavior_change_map:
-    - { surface: "migrations/0001_initial_schema.sql: D1 tables, constraints, indexes, privacy and immutable guards", contract_ids: [AC01, AC05, IV03, IV04] }
-    - { surface: "scripts/convex-to-d1-migration.ts: export parser, validator, deterministic importer and rollback generator", contract_ids: [AC03, AC04, AC05, IV01, IV02, IV03, IV04] }
-    - { surface: "wrangler.jsonc and worker-configuration.d.ts: environment-specific bindings", contract_ids: [AC02, IV01, IV05] }
-    - { surface: "tests/unit and tests/worker: migration, D1 schema and guard evidence", contract_ids: [AC06, IV03, IV04] }
-    - { surface: "architecture and development runbooks", contract_ids: [AC07, IV01, IV05] }
-    - { surface: "worker/app.ts, worker/auth.ts, worker/domain.ts: authenticated HTTP API and protected D1 state transitions", contract_ids: [AC08, AC11, IV03, IV04] }
-    - { surface: "worker/capability.ts and worker/photo.ts: purpose-bound R2 capabilities and JPEG policy", contract_ids: [AC10, IV03, IV05] }
-    - { surface: "worker/index.ts: scheduled delivery, Queue notification, and attachment reconciliation", contract_ids: [AC11, IV03] }
-    - { surface: "src/app/providers.tsx and src/shared/api/: browser HTTP/query boundary replacing Convex", contract_ids: [AC09, IV06] }
-    - { surface: "scripts/cloudflare-build.mjs, scripts/cloudflare-deploy.mjs, wrangler.jsonc: explicit target deployment", contract_ids: [AC12, AC13, IV01] }
-    - { surface: "Preview resources, E2E, and production runbooks", contract_ids: [AC12, AC13, IV01, IV06] }
-  design_deviations:
-    - "Production import/cutover/Convex削除は、実export、source R2 inventory、PROD Auth0、CI Cloudflare token、Human Gateが揃う後続operator stageとして残した。"
-  newly_observed_risk:
-    - "Self-referencing reply rows cannot be imported by arbitrary ID order with immediate SQLite FKs; mitigated by parent-depth ordering, deferred next-link UPDATE, and child-first rollback after next-link clearing."
-  evidence:
-    - "pnpm exec wrangler types: PASS"
-    - "pnpm d1:migrations:apply:local: migration 0001 applied successfully"
-    - "local D1 full rehearsal: import 18 commands, rerun 18 commands, checksum drift rejected, rollback 18 commands, target rows/maps cleared"
-    - "local D1 reply-chain rehearsal: parent/child import, next link verification, rerun, rollback, target rows/maps cleared"
-    - "Preview resources provisioned and isolated: D1 re-me-preview, R2 re-me-preview-attachments, Queue re-me-preview-notifications; Worker secrets and R2 CORS configured without exposing values."
-    - "Preview Worker deployed at https://re-me-preview.hondasports.workers.dev; health 200, SPA fallback 200, CORS preflight 204, unauthenticated API 401."
-    - "Local critical E2E against deployed Preview API: 14 passed, 1 skipped (Google OAuth smoke)."
-    - "Production D1 schema 0001/0002 applied; read-only count query returned zero rows for users, letters, letter_contents, letter_attachments, and notification_jobs."
+  status: pending
+  changed_files: []
+  behavior_change_map: [] # { surface: path-or-symbol, contract_ids: [AC01, IV01] } or design_deviation reference
+  design_deviations: []
+  newly_observed_risk: []
+  evidence: []
 
 verification:
-  status: PASS
-  evidence_snapshot: "origin/main@12c1776; codex/issue-60-full-migration dedicated worktree; verified at 6cf9a64"
-  affected_scope:
-    - migrations/0001_initial_schema.sql
-    - scripts/convex-to-d1-migration.ts
-    - wrangler.jsonc
-    - tests/unit/convex-to-d1-migration.test.ts
-    - tests/worker/d1-schema.test.ts
-    - docs/development/convex-d1-migration.md
-    - worker/
-    - src/shared/api/
-    - src/features/
-    - scripts/cloudflare-*.mjs
-    - tests/worker/api.test.ts
-    - e2e/
-    - .github/workflows/
-    - docs/architecture/decisions/0011-cloudflare-worker-runtime-cutover.md
-  checks:
-    - { name: "pnpm lint", authority: local, scope: static, status: PASS }
-    - { name: "pnpm format:check", authority: local, scope: static, status: PASS }
-    - { name: "pnpm typecheck", authority: local, scope: static, status: PASS }
-    - { name: "pnpm test", authority: local, scope: full_repository, status: PASS }
-    - { name: "pnpm test:loop", authority: local, scope: full_repository, status: PASS }
-    - { name: "pnpm build", authority: local, scope: affected_scope, status: PASS }
-    - { name: "pnpm d1:migrations:apply:local", authority: local, scope: runtime, status: PASS }
-    - { name: "D1 import/rerun/checksum-drift/rollback rehearsal", authority: local, scope: runtime, status: PASS }
-    - { name: "wrangler deploy --dry-run local/preview/production", authority: local, scope: affected_scope, status: PASS }
-    - { name: "local E2E gate against origin/main", authority: local, scope: functional_e2e, status: PASS }
-    - { name: "pnpm test:e2e against deployed Preview API", authority: local, scope: functional_e2e, status: PASS }
-    - { name: "Preview Worker health/CORS/unauthenticated smoke", authority: runtime, scope: runtime, status: PASS }
-    - { name: "Production D1 read-only inventory", authority: runtime, scope: runtime, status: PASS }
-    - { name: "production data import", authority: local, scope: runtime, status: NOT_REQUIRED, not_required_reason: "No production export/resource is available and IV01 requires an explicit Human Gate; only local rehearsal is in scope." }
-  acceptance_criteria_results:
-    - "AC01 PASS: 10 D1 target tables, state/ownership/FK/unique/check constraints, indexes and immutable guards are present."
-    - "AC02 PASS: local/preview/production D1/R2/Queue/Cron bindings and Worker names are separated without IDs/secrets."
-    - "AC03 PASS: JSON/object/array/JSONL/directory exports are normalized, relationship/ownership/state/privacy checked, and invalid/orphan/branching input fails closed."
-    - "AC04 PASS: deterministic SQL, import checksum map, idempotent rerun, rollback artifact and explicit production gate are implemented."
-    - "AC05 PASS: scheduled_at and body remain private target data; public metadata helper omits both protected fields."
-    - "AC06 PASS: unit/Worker tests plus local D1 rehearsals cover positive, boundary, denial, failure, checksum, reply ordering, sealed privacy, idempotency and rollback."
-    - "AC07 PASS: ADR, architecture, environment and migration runbook document scope, rehearsal, rollback and Human Gate."
-    - "AC08 PASS: Worker API/Auth0 authorization, protected projections, immutable transitions, and reply flow are implemented and exercised by Worker tests and Preview E2E."
-    - "AC09 PASS: frontend providers and feature hooks use HTTP API + TanStack Query; browser config no longer requires VITE_CONVEX_URL."
-    - "AC10 PASS: HMAC attachment capabilities, JPEG policy, private R2 flow, and ownership/expiry checks are implemented and exercised."
-    - "AC11 PASS: scheduled delivery, notification Queue/outbox, generic push handling, and attachment reconciliation are server-side paths."
-    - "AC12 PASS: isolated Preview resources/secrets/CORS are deployed and local critical E2E passes against the remote Preview Worker."
-    - "AC13 BLOCKED: production import/cutover is intentionally waiting on Convex export, source R2 inventory, PROD Auth0, and CI Cloudflare D1 access plus Human Gate."
-  invariant_results:
-    - "IV01 PASS: CLI is dry-run by default, never calls remote D1/R2, and production SQL generation requires --human-gate; production import/copy/cutover was not run."
-    - "IV02 PASS: owner/reference validation uses exported users and rejects unknown or mismatched owners."
-    - "IV03 PASS: sealed traveling/unopened content is denied by projection helper and exact scheduledAt is not in public metadata."
-    - "IV04 PASS: sent body/attachment/settings fields are guarded and branching/cyclic reply data is rejected; self-reference import ordering is covered."
-    - "IV05 PASS: export/artifact paths are ignored and no secret/resource IDs were added to tracked config."
-    - "IV06 PASS: Worker is the current browser/runtime boundary; Convex source remains only for rollback comparison until production rollback window closure."
+  status: pending
+  affected_scope: []
+  checks: []
+  acceptance_criteria_results: []
+  invariant_results: []
   coverage_gaps: []
-  skipped_with_reason:
-    - "Production data migration: NOT_RUN by design; missing production export/source R2 inventory/PROD Auth0 and Human Gate are a safety boundary, not permission to fabricate data."
-    - "CI Preview deploy: first aftercare run failed at D1 query with Cloudflare code 7403 because the GitHub CLOUDFLARE_API_TOKEN lacks target-account D1 access; local deploy and runtime smoke passed."
-  reruns:
-    - { check: "D1 migration rehearsal", reason: "Initial generated artifact used explicit BEGIN/COMMIT rejected by wrangler d1 execute.", invalidated_by: "Removed explicit transaction wrappers; sequential D1 artifact and Worker batch guidance now pass." }
-    - { check: "Worker D1 schema tests", reason: "Initial worker pool had an empty D1 because migrations were not applied by setup.", invalidated_by: "Added readD1Migrations/applyD1Migrations setup; all Worker tests pass." }
-    - { check: "reply self-reference ordering unit test", reason: "Initial assertion matched rollback link-clearing SQL instead of the DELETE statement.", invalidated_by: "Scoped assertion to letter DELETE statements; targeted test and full suite pass." }
-    - { check: "pnpm typecheck", reason: "Artifact-output helper refactor left a stale utf8 argument on the manifest call.", invalidated_by: "Removed the stale argument; typecheck and full regression pass." }
-    - { check: "migration idempotency/review delta", reason: "CodeRabbit identified sequential partial-target recovery and switch-case declaration gaps.", invalidated_by: "cc5eb41 adds safe three-stage recovery/conflict handling, wraps the delivery case, and passes targeted/full local verification." }
-    - { check: "Preview deploy target database", reason: "The deployment helper initially applied the preview migration against the production database name.", invalidated_by: "6cf9a64 selects re-me-preview for Preview and re-me for Production; local Preview deploy completed successfully." }
-    - { check: "CI Preview deploy", reason: "GitHub environment token reached D1 query with Cloudflare code 7403.", invalidated_by: "Requires the preview CLOUDFLARE_API_TOKEN to be reissued or granted target-account D1 access before CI can run the remote migration step." }
-  evidence:
-    - "pnpm lint: PASS"
-    - "pnpm format:check: PASS (186 files)"
-    - "pnpm typecheck: PASS"
-    - "pnpm test: PASS (33 unit files/139 tests, 8 Convex files/58 tests, 2 Worker files/3 tests)"
-    - "pnpm test:loop: PASS (5 files/44 tests)"
-    - "pnpm build: PASS; existing chunk-size warning only"
-    - "wrangler deploy --dry-run: PASS for local, preview, production bindings"
-    - "check-local-e2e-gate baseRef origin/main: PASS, required: yes"
-    - "latest cc5eb41 delta: migration targeted 6/6, full suite 139+58+3, lint/format/typecheck/build/loop all PASS"
-    - "6cf9a64 local verification: typecheck, lint, format, pnpm test (35 unit files/143 tests, 8 Convex files/58 tests, 3 Worker files/6 tests), loop 44, production build/dry-run, and Preview E2E 14 passed / 1 skipped"
-    - "CI run 33941262808: Quality gates PASS; End-to-end BLOCKED before browser tests by Cloudflare D1 API code 7403"
+  skipped_with_reason: []
+  reruns: []
+  evidence: []
 
 review:
   status: pending # pending | not_required | pass | blocked
-  required_by: ["risk:r3_high"]
+  required_by: []
   reviewers: []
-  coverage:
-    - "AC01-AC13"
-    - "IV01-IV06"
-    - "happy_path, boundary, error_failure, auth_ownership, persistence_state_transition, caller_compatibility, concurrency_idempotency, navigation_accessibility"
+  coverage: []
   omission_scan:
     status: pending # pending | pass | blocked | not_required
-    checked_contract_ids: [AC01, AC02, AC03, AC04, AC05, AC06, AC07, AC08, AC09, AC10, AC11, AC12, AC13, IV01, IV02, IV03, IV04, IV05, IV06]
-    checked_dimensions: [happy_path, boundary, error_failure, auth_ownership, persistence_state_transition, caller_compatibility, concurrency_idempotency, navigation_accessibility]
-    evidence:
-      - "Foundation review history for AC01-AC07 is retained below; current Worker/API/frontend/runtime delta still requires an independent review."
-      - "CodeRabbit review for PR #62 was skipped because manual review is required for this OSS repository."
-  evidence:
-    - "Independent reviewer Godel: PASS; no material findings after the node:sqlite import/rerun/checksum/rollback/reply-chain test was added."
-    - "Independent reviewer Averroes: PASS on 29b72c0; all six prior findings and AC01-AC07/IV01-IV05 coverage were confirmed."
-    - "Independent reviewer Averroes: PASS on cc5eb41; the idempotency/switch delta and all prior AC/IV coverage were confirmed with no material finding."
-    - "CodeRabbit threads are resolved with verified rationale."
-    - "Prior review confirmed the foundation/rehearsal scope; current cutover review is pending before merge."
+    checked_contract_ids: []
+    checked_dimensions: []
+    evidence: []
+  evidence: []
 
+# Single source of truth for review findings, verification gaps, CI findings, and residual decisions.
 finding_record_schema:
   id: ""
   source: "" # verification | review | security_review | ci | human_review
   observed_revision:
     commit_sha: ""
     tree_sha: ""
-  status: open # open | resolved
-  category: "" # correctness | security | requirements_gap | test_gap | scope | reliability | maintainability | other
+  status: open # open | resolved; resolved iff disposition is resolved
+  category: "" # correctness | security | requirements_gap | test_gap | scope | reliability | maintainability | privacy | data_integrity | other
   finding: ""
   failure_scenario: ""
   affected_acceptance_criteria: []
@@ -461,462 +146,79 @@ finding_record_schema:
     commit_sha: ""
     tree_sha: ""
 
-findings:
-  - id: REV-001
-    source: review
-    observed_revision:
-      commit_sha: "uncommitted-pre-node-sqlite-test"
-      tree_sha: "uncommitted-pre-node-sqlite-test"
-    status: resolved
-    category: test_gap
-    finding: "実D1/SQLiteでの同一SQL再実行、checksum drift拒否、rollback、返信chain削除順を自動検証する証跡が不足していた。"
-    failure_scenario: "SQL文字列やtrigger名だけの検証では、importの部分失敗・二重登録・self-reference rollback失敗を回帰時に見逃す。"
-    affected_acceptance_criteria: [AC04, AC06]
-    affected_invariants: [IV01, IV04]
-    risk_domains: [reliability, persistence_state_transition, concurrency_idempotency]
-    evidence:
-      - "Independent Godel review initially returned BLOCKED with this finding."
-    recommended_action: "node:sqliteで実スキーマとgenerated statementsを二重適用し、checksum driftとrollbackを検証する。"
-    disposition: resolved
-    rationale: "本番操作をせず、Node 24 node:sqliteの自動テストで要求されたD1相当挙動を再現可能にした。"
-    mitigation: "tests/unit/convex-to-d1-migration.test.tsに実DBのimport/rerun/checksum/rollback/reply-chainテストを追加した。"
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "6 migration-plan tests and full suite pass; Godel rerun review returned PASS with no material findings."
-    verified_revision:
-      commit_sha: "9a5d1ca66237660327e2ec38559682ae7bdafe94"
-      tree_sha: "8907a1ef457ed541890174b5b00524d14dcb288f"
-  - id: REV-002
-    source: review
-    observed_revision:
-      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
-      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
-    status: resolved
-    category: correctness
-    finding: "table指定ありの単一行JSON objectがexport rootとして扱われ、JSONLの最終1行が空exportになり得る。table指定なしの未知rootも明示的に拒否する必要がある。"
-    failure_scenario: "1行だけのConvex JSONLをtable指定で読み込むと、_id等を無視して空のmigration planが生成される。"
-    affected_acceptance_criteria: [AC03, AC06]
-    affected_invariants: [IV04]
-    risk_domains: [reliability, persistence_state_transition]
-    evidence:
-      - "Nash independent review: parseTableExport 146-177"
-    recommended_action: "既知table envelopeとsingle documentを判別し、単一行JSONLとunknown rootのテストを追加する。"
-    disposition: resolved
-    rationale: "入力を黙って捨てるため、移行前検証のfail-closed要件に反する。"
-    mitigation: "parseTableExport now distinguishes known table envelopes from a single JSON document and rejects unknown roots without a table hint."
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "Added single-line JSONL/unknown-root tests; targeted migration tests and Averroes re-review passed."
-    verified_revision:
-      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
-  - id: REV-003
-    source: review
-    observed_revision:
-      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
-      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
-    status: resolved
-    category: security
-    finding: "letterのthread存在だけでなく、thread ownerとletter ownerの一致を検証する必要がある。"
-    failure_scenario: "異なるownerのthreadへletterを紐付けたexportを受け入れると、D1上のownership boundaryが壊れる。"
-    affected_acceptance_criteria: [AC03, AC06]
-    affected_invariants: [IV02, IV04]
-    risk_domains: [data_security, auth_ownership]
-    evidence:
-      - "Nash independent review: migration planner 757-797, 1055-1069"
-    recommended_action: "thread owner mapを作り、letter ownerとの一致を検証するテストを追加する。"
-    disposition: resolved
-    rationale: "認可のsource of truthをexport users/relationshipsに固定する要件に直結する。"
-    mitigation: "thread owner map is checked against every letter owner before normalization and SQL generation."
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "Added mismatched thread/letter owner test; targeted migration tests and Averroes re-review passed."
-    verified_revision:
-      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
-  - id: REV-004
-    source: review
-    observed_revision:
-      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
-      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
-    status: resolved
-    category: reliability
-    finding: "R2 target prefix/cutover mappingがrow checksumに含まれず、別prefixのD1/R2 artifactを同じtargetへ混在させ得る。"
-    failure_scenario: "r2CutoverIdだけを変えた再生成SQLがsource checksum一致として扱われ、D1 rowとR2 manifestのtarget keyが不整合になる。"
-    affected_acceptance_criteria: [AC04, AC06]
-    affected_invariants: [IV01, IV04]
-    risk_domains: [reliability, persistence_state_transition, destructive_or_stateful]
-    evidence:
-      - "Nash independent review: migration planner 190, 393, 514-517, 1113-1116"
-    recommended_action: "R2 object-bearing rowのchecksumへtarget mappingを含め、prefix変更の実DB再適用を拒否するテストを追加する。"
-    disposition: resolved
-    rationale: "R2 copyとD1 metadataは同じcutover artifactとして扱う必要がある。"
-    mitigation: "attachment and finalization import-row checksums include r2CutoverId and generated target keys."
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "Real node:sqlite test proves an alternate R2 prefix is rejected by migration_checksum_drift; Averroes re-review passed."
-    verified_revision:
-      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
-  - id: REV-005
-    source: review
-    observed_revision:
-      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
-      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
-    status: resolved
-    category: correctness
-    finding: "letter status、delivery status、openedAt/repliedAt、sent contentの組み合わせを状態マトリクスとして検証する必要がある。"
-    failure_scenario: "traveling letterがconsumed deliveryやopenedAtを持つ、またはsent letterのbodyが空のまま移行されると、配送/開封状態と本文が矛盾する。"
-    affected_acceptance_criteria: [AC03, AC06]
-    affected_invariants: [IV03, IV04]
-    risk_domains: [persistence_state_transition, reliability]
-    evidence:
-      - "Nash independent review: migration planner 850-906, 976-993"
-    recommended_action: "traveling/deleted traveling/deliveredのdelivery status、openedAt/repliedAt、sent bodyをfail-closedで検証し、各境界をテストする。"
-    disposition: resolved
-    rationale: "配送と開封の状態遷移を壊れたままD1へ取り込まないため。"
-    mitigation: "Draft openedAt/repliedAt are rejected before the draft return; delivery status is matched to traveling, deleted-traveling, or delivered lifecycle and sent content must be non-empty."
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "Added invalid draft and valid deleted-traveling/delivered/replied cases; targeted migration tests and Averroes re-review passed."
-    verified_revision:
-      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
-  - id: REV-006
-    source: review
-    observed_revision:
-      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
-      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
-    status: resolved
-    category: correctness
-    finding: "attachmentFinalizationAttemptが対象attachmentのphoto kindとgeneration tokenに一致することを検証する必要がある。"
-    failure_scenario: "location attachmentや古いgenerationのfinalization attemptを取り込むと、R2 finalization stateが別世代/別種別のobjectに接続される。"
-    affected_acceptance_criteria: [AC03, AC06]
-    affected_invariants: [IV04]
-    risk_domains: [reliability, data_security]
-    evidence:
-      - "Nash independent review: migration planner 945-953"
-    recommended_action: "attachment mapを参照してkind=photoとgeneration token一致を検証し、kind/token不一致テストを追加する。"
-    disposition: resolved
-    rationale: "R2 object lifecycleの対象を安全に固定する必要がある。"
-    mitigation: "Finalization attempts require an existing photo attachment and an identical generation token."
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "Added kind and generation mismatch tests; targeted migration tests and Averroes re-review passed."
-    verified_revision:
-      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
-  - id: REV-007
-    source: review
-    observed_revision:
-      commit_sha: "d17950dfebdce3a6b7f626ff0810bf20b78aeec5"
-      tree_sha: "0c157ac85b06a1c2726e3d6d4c8f2104f4784b0f"
-    status: resolved
-    category: security
-    finding: "push endpointをHTTPSへ制限し、validation errorへraw endpointを含めない必要がある。"
-    failure_scenario: "HTTP endpointや重複endpointがraw error/logへ出ると、push subscription情報が不要に露出する。"
-    affected_acceptance_criteria: [AC03, AC06]
-    affected_invariants: [IV02, IV05]
-    risk_domains: [data_security, auth_ownership]
-    evidence:
-      - "Nash independent review: migration planner 1021-1030, 1529-1533"
-    recommended_action: "HTTPS URLとcredential-less URLを検証し、エラーはsource IDのみを含めるテストを追加する。"
-    disposition: resolved
-    rationale: "Push endpointは外部credentialに近いprivate dataであり、エラー経路にも漏らさない。"
-    mitigation: "Push endpoints are restricted to HTTPS without URL credentials, and duplicate/invalid errors contain only the source ID."
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "Tests inspect actual exception messages and prove HTTP rejection plus raw endpoint non-disclosure; Averroes re-review passed."
-    verified_revision:
-      commit_sha: "29b72c04b00b8be1684ffc854602895dca031a4f"
-      tree_sha: "5e24b0513b6598b91a84ef78a5b21eeabd1d18f2"
-  - id: REV-008
-    source: review
-    observed_revision:
-      commit_sha: "f8b3faba35c39e6551f9a8ab9034be8723be985e"
-      tree_sha: "655459a95b8a3f2ab200fef297f1421f022427ac"
-    status: resolved
-    category: maintainability
-    finding: "letterDeliveries switch caseのconst宣言がcase block外にあり、switch declaration lint違反になる。"
-    failure_scenario: "lint設定や別caseの宣言追加時にcase間のTDZ/可読性問題が発生し、CI lintが失敗する。"
-    affected_acceptance_criteria: [AC03, AC06]
-    affected_invariants: []
-    risk_domains: [reliability]
-    evidence:
-      - "CodeRabbit inline review thread PRRT_kwDOT8SJfM6ffJGM"
-    recommended_action: "letterDeliveries caseをblockで囲む。"
-    disposition: resolved
-    rationale: "既存のcase block構造とlint契約に合わせる小さな修正として適用した。"
-    mitigation: "letterDeliveries caseを独立blockへ移動した。"
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "cc5eb41で修正。local lint/typecheckとCI run 151のQuality gatesで検証済み。"
-    verified_revision:
-      commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
-      tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
-  - id: REV-009
-    source: review
-    observed_revision:
-      commit_sha: "f8b3faba35c39e6551f9a8ab9034be8723be985e"
-      tree_sha: "655459a95b8a3f2ab200fef297f1421f022427ac"
-    status: resolved
-    category: reliability
-    finding: "逐次CLI実行のtarget row先行残存時に、map未登録の同一target conflictを安全に復旧または明示拒否する必要がある。"
-    failure_scenario: "target insert後の中断でmapが欠けた状態を再実行すると、単純なguard変更では重複採用またはPRIMARY KEY failureになり得る。"
-    affected_acceptance_criteria: [AC04, AC06]
-    affected_invariants: [IV01, IV04]
-    risk_domains: [reliability, persistence_state_transition, concurrency_idempotency, data_integrity]
-    evidence:
-      - "CodeRabbit inline review thread PRRT_kwDOT8SJfM6ffJGR"
-    recommended_action: "同一内容の残存rowのみmapを復旧し、異なるrowはconflictで停止する。"
-    disposition: resolved
-    rationale: "CodeRabbitの単純AND案は予期せぬtargetを無検証で採用し得るため、安全な部分復旧として実装した。"
-    mitigation: "import insert、mismatch conflict guard、map upsertの3段階で内容一致を確認する。"
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "cc5eb41でpartial target recovery / unexpected conflict / missing target recoveryのSQLiteテストを追加し、local full suiteとPR CIがPASSした。"
-    verified_revision:
-      commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
-      tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
-  - id: REV-010
-    source: review
-    observed_revision:
-      commit_sha: "f8b3faba35c39e6551f9a8ab9034be8723be985e"
-      tree_sha: "655459a95b8a3f2ab200fef297f1421f022427ac"
-    status: resolved
-    category: scope
-    finding: "Preview D1 database IDとQueue resourceが未作成で、実remote preview deployのbinding provisioningが未完了。"
-    failure_scenario: "placeholder resource名のままremote deployを実行すると、Cloudflare側でbindingが解決できない可能性がある。"
-    affected_acceptance_criteria: [AC02, AC07]
-    affected_invariants: [IV01, IV05]
-    risk_domains: [service_ops, current_scope, data_integrity]
-    evidence:
-      - "CodeRabbit inline review thread PRRT_kwDOT8SJfM6ffJGU"
-      - "No real Preview/Production D1, R2, or Queue resource IDs are available in this worktree; wrangler dry-run only validates config shape."
-    recommended_action: "OperatorがPreview resourceを作成してdatabase_id/Queueを設定し、remote deployを別Human Gateで検証する。"
-    disposition: not_applicable
-    rationale: "このPRはresource creationやremote migrationを含まないfoundation scopeであり、ID捏造や未承認のCloudflare writeは安全境界に反する。runbookに明示した後続運用で扱う。"
-    mitigation: "named environment分離、placeholder resource名、dry-run、Production/remote操作禁止をdocsとテストで明示した。"
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: "PR threadへscope外とHuman Gate境界の根拠を返信し、resolvedにした。resource provisioningは後続operator task。"
-    verified_revision:
-      commit_sha: "cc5eb41158ae13b208d8c7a0e3e45d2138b261ee"
-      tree_sha: "69fc1ca8976da4b4b845746423e733976fc1e57f"
-  - id: REV-011
-    source: verification
-    observed_revision:
-      commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-      tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
-    status: open
-    category: scope
-    finding: "Production data cutoverに必要なConvex production export、source R2 inventory、Production Auth0設定がまだ提供されていない。"
-    failure_scenario: "入力を推測してD1/R2へ書き込むと、owner、sealed本文、delivery時刻、写真objectの対応を復元できず、rollback不能な本番データ破壊につながる。"
-    affected_acceptance_criteria: [AC13]
-    affected_invariants: [IV01, IV05, IV06]
-    risk_domains: [data_integrity, data_security, destructive_or_stateful]
-    evidence:
-      - "migration-artifacts/ is empty and no .env.convex-production.local or deployment config is available."
-      - "Production D1 read-only inventory is schema-only with zero application rows; Production Worker does not exist."
-    recommended_action: "Convex production export、source R2 inventory/checksum、PROD Auth0 values、rollback owner/windowを用意し、runbookのHuman Gate packetを承認する。"
-    disposition: accept_with_human_gate
-    rationale: "本番data mutationとtraffic cutoverは明示Human Gateなしに実行できへん。"
-    mitigation: "PreviewでruntimeとE2Eを検証し、production resourceはschema適用だけに留め、export/import/rollback手順をdocsへ固定した。"
-    follow_up_issue: ""
-    human_approval:
-      required: true
-      status: pending
-      approver: ""
-      approved_at: ""
-      scope: "Production Convex export, R2 copy, D1 import, Worker cutover, and legacy cleanup"
-      evidence: ""
-    resolution: ""
-    verified_revision:
-      commit_sha: ""
-      tree_sha: ""
-  - id: REV-012
-    source: ci
-    observed_revision:
-      commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-      tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
-    status: open
-    category: service_ops
-    finding: "GitHub preview environmentのCLOUDFLARE_API_TOKENがtarget accountのD1 queryを許可せず、required End-to-end deployがCloudflare code 7403で停止した。"
-    failure_scenario: "D1 migrationをCIで確認できないままPreview Workerを更新すると、schemaとWorker codeの不一致をE2E前に検出できない。"
-    affected_acceptance_criteria: [AC12, AC13]
-    affected_invariants: [IV01]
-    risk_domains: [service_ops, reliability]
-    evidence:
-      - "CI run 33941262808 Quality gates passed; End-to-end failed in Deploy Cloudflare Preview at /d1/database/.../query with code 7403."
-      - "The same Preview migration/deploy completed locally with Wrangler OAuth and Preview runtime smoke passed."
-    recommended_action: "GitHub preview environmentのCloudflare tokenを対象accountのWorkers Scripts, D1, R2, Queues権限付きへ更新し、CIを再実行する。"
-    disposition: fix_now
-    rationale: "Required CI aftercareが未完了で、merge_readyの条件を満たさへん。"
-    mitigation: "Local Preview deploy/E2Eを完了し、PRへCloudflare code 7403と必要権限を記録した。"
-    follow_up_issue: ""
-    human_approval:
-      required: false
-      status: not_required
-      approver: ""
-      approved_at: ""
-      scope: ""
-      evidence: ""
-    resolution: ""
-    verified_revision:
-      commit_sha: ""
-      tree_sha: ""
+findings: []
 
 delivery:
-  status: pass
-  branch: "codex/issue-60-full-migration"
-  commit: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-  pull_request: "https://github.com/hondasports/Re-Me/pull/62"
+  status: pending
+  branch: ""
+  commit: ""
+  pull_request: ""
   base: main
-  evidence:
-    - "Dedicated branch pushed to origin with Worker runtime cutover commit 6cf9a64."
-    - "PR #62 created against main with base origin/main@12c1776 and head 6cf9a64."
-    - "Preview Worker deployment and local critical E2E completed before PR delivery."
+  evidence: []
 
 pr_aftercare:
-  status: blocked
-  checks:
-    - "GitHub CI run 33941262808: Quality gates passed for head 6cf9a64."
-    - "GitHub CI End-to-end stopped in Deploy Cloudflare Preview at D1 query code 7403; browser tests did not start."
-    - "CodeRabbit: review skipped because manual review is required for this OSS repository."
-    - "PR comment documents the required preview CLOUDFLARE_API_TOKEN account/D1 permission fix."
+  status: pending
+  checks: []
   requested_changes: []
-  approval_required: true
+  approval_required: false
   approval_status: pending # pending | pass | not_required | blocked
   approval_evidence: []
-  revision_consistency: pass # pending | pass | blocked
-  conflict_status: pass
-  mergeable: blocked
-  evidence:
-    - "PR #62 is open and not draft, but mergeStateStatus is BLOCKED because End-to-end failed and review is pending."
-    - "pnpm loop:aftercare is intentionally not PASS while required CI and review evidence are incomplete."
-    - "No Production Worker deploy, data import, traffic cutover, or Convex deletion was performed."
+  revision_consistency: pending # pending | pass | blocked
+  conflict_status: pending
+  mergeable: pending
+  evidence: []
 
 telemetry:
   enabled: true
   measurement_source: wall_clock
   stages:
-    prepare: { started_at: "2026-09-05T08:42:27.6810510+09:00", finished_at: "2026-09-05T09:33:00+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
-    implementation: { started_at: "2026-09-05T09:33:00+09:00", finished_at: "2026-09-05T09:34:00+09:00", elapsed_seconds: 60, external_wait_seconds: 0, wait_reasons: [] }
-    verification: { started_at: "2026-09-05T09:54:54+09:00", finished_at: "2026-09-05T09:55:45+09:00", elapsed_seconds: 51, external_wait_seconds: 0, wait_reasons: [] }
-    review: { started_at: "2026-09-05T09:38:15+09:00", finished_at: "2026-09-05T10:02:00+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
-    delivery: { started_at: "2026-09-05T10:04:27+09:00", finished_at: "2026-09-05T10:11:28.6925399+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
-    pr_aftercare: { started_at: "2026-09-05T10:06:00+09:00", finished_at: "2026-09-05T10:11:28.6925399+09:00", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    prepare: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    implementation: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    verification: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    review: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    delivery: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
+    pr_aftercare: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
     incident: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
-    process_learning: { started_at: "2026-09-05T09:38:14.9553166+09:00", finished_at: "2026-09-05T09:38:14.9553166+09:00", elapsed_seconds: 0, external_wait_seconds: 0, wait_reasons: [] }
+    process_learning: { started_at: "", finished_at: "", elapsed_seconds: null, external_wait_seconds: 0, wait_reasons: [] }
   counters:
-    source_reads: 15
-    skill_loads: 8
-    changed_files: 19
-    acceptance_criteria_count: 7
-    invariant_count: 5
-    test_case_count: 11
-    required_control_count: 6
-    findings_added: 10
-    retries: 4
-    full_suite_runs: 5
-    review_cycles: 5
+    source_reads: 0
+    skill_loads: 0
+    changed_files: 0
+    acceptance_criteria_count: 0
+    invariant_count: 0
+    test_case_count: 0
+    required_control_count: 0
+    findings_added: 0
+    retries: 0
+    full_suite_runs: 0
+    review_cycles: 0
   summary:
     total_elapsed_seconds: null
     total_external_wait_seconds: 0
     active_elapsed_seconds: null
-    spec_confidence: c1_reconstructed
-    risk_level: r3_high
-    max_observed_risk: r3_high
-    task_size: large # tiny | small | medium | large; changed files / contract / impacted surfaceからの粗い比較label
-    notes:
-      - "本番 Convex export / Cloudflare resource / Human Gate が無いため、data migration は local synthetic export の rehearsal と artifact generationまで。"
-      - "D1 import SQL は sequential CLI 適用、atomic Worker 適用は plan.statements の batch() を使う。"
-      - "Current runtime cutover slice deployed and verified on Preview; Production remains schema-only with zero application rows."
-      - "CI aftercare cannot complete until the preview GitHub Cloudflare token can query the target D1 account; this is an environment prerequisite, not a code failure."
+    spec_confidence: ""
+    risk_level: ""
+    max_observed_risk: ""
+    task_size: "" # tiny | small | medium | large; observed from changed files / AC / surfaces, not effort guess
+    notes: []
   optional_metrics:
-    token_usage: null
+    token_usage: null # runtimeが正確に提供する場合だけ記録する
 
 learning:
-  event: "verification retry: D1 transaction syntax and Worker migration setup assumptions"
-  status: PASS
+  event: none
+  status: not_required
   retrospective:
     unnecessary_decisions_or_actions: []
-    incorrect_decisions:
-      - "初回のD1 SQL生成でCLIが受け付けない明示transaction wrapperを含めた。"
-      - "Worker pool testにmigration適用setupを初回から接続していなかった。"
-      - "artifact出力helperへの置換時にmanifest呼び出しの古いutf8引数を残した。"
-    decisions_to_retain:
-      - "移行対象の実データが無い場合は、本番操作をせずsynthetic exportで関係・冪等性・rollbackを検証する。"
-      - "D1 CLIとWorker batchの適用経路を分け、artifactを同じsource checksumで再実行する。"
-    next_loop_adjustments:
-      - "D1 migration rehearsal checklistにCLI transaction compatibilityとtest-pool migration setupを先に含める。"
-      - "小さなCLI helper変更でもtypecheckを先に再実行してから全suiteへ進む。"
+    incorrect_decisions: []
+    decisions_to_retain: []
+    next_loop_adjustments: []
   candidate_schema:
     observed_problem: ""
     process_cause: ""
     reusable_rule: ""
     improvement_axes: [] # context | speed | precision
     proposed_target: ""
+    source_finding_ids: []
     disposition: pending # pending | applied | follow_up | no_change
     location: ""
     persistent_follow_up:
@@ -925,25 +227,8 @@ learning:
     rationale: ""
     evidence: []
     verification_evidence: []
-  candidates:
-    - observed_problem: "Wrangler D1 execute が明示 BEGIN/COMMIT を拒否し、Worker D1 testはschema migration未適用で空DBになった。"
-      process_cause: "CLI適用経路とWorker test-poolのmigration setupを初回Verificationで分けて確認していなかった。"
-      reusable_rule: "D1 rehearsalはschema setupを先に適用し、wrangler d1 execute向けSQLは明示transactionなし、atomic Worker適用はbatchとして別検証する。"
-      improvement_axes: [precision]
-      proposed_target: "docs/development/convex-d1-migration.md and tests/worker/setup.ts"
-      disposition: no_change
-      location: ""
-      persistent_follow_up: { type: "", reference: "" }
-      rationale: "今回のrunbookとWorker setupへtask-specificな対策を既に反映済みで、process-wideな追加変更は不要。"
-      evidence:
-        - "wrangler d1 execute initial failure was fixed by removing explicit transaction wrappers."
-        - "Worker test initial empty-schema failure was fixed by applying readD1Migrations in setup."
-      verification_evidence: []
+  candidates: []
 
 completion:
-  status: pending
-  blockers:
-    - "PR #62 required End-to-end is blocked by GitHub preview CLOUDFLARE_API_TOKEN / Cloudflare D1 account access (code 7403)."
-    - "Convex production export and source R2 inventory/credential are unavailable, so no real data import or R2 copy can be performed safely."
-    - "Production Auth0 tenant/client values and Production environment secrets/variables are not provisioned."
-    - "Independent review for the current Worker/API/frontend cutover delta is pending."
+  status: in_progress
+  blockers: []
