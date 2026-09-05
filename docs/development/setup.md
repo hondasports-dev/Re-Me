@@ -1,6 +1,7 @@
 # 開発セットアップ
 
-Re:Meのruntimeは Auth0 + Cloudflare Workers + D1 + private R2 + Queues で構成する。Convexはcutover / rollback window中だけ残すlegacy backendや。legacy Supabaseは比較資料で、通常のlocal / CI testはSupabase起動を要求しない。
+Re:Me の runtime は Auth0 + Cloudflare Worker + D1 + private R2 + Queues で構成する。
+過去の database artifact は比較用で、通常の local / CI test は起動を要求しない。
 
 ## 前提
 
@@ -8,19 +9,7 @@ Re:Meのruntimeは Auth0 + Cloudflare Workers + D1 + private R2 + Queues で構�
 - pnpm 11
 - Auth0 DEV tenant / SPA application
 - Cloudflare account
-- Google Cloud project（production用OAuth clientはDEVと分離）
-
-## Runtime package
-
-```text
-react / react-dom / react-router
-@mantine/core / @mantine/hooks / @mantine/notifications
-@auth0/auth0-react
-@tanstack/react-query
-hono / jose
-```
-
-Cloudflare側のruntime packageは `wrangler`、`@cloudflare/vite-plugin`、D1 / R2 / Queue bindingや。formatterはOxfmt、linterはOxlint、typecheckはTypeScriptを使う。Convex / `@convex-dev/r2` はlegacy compatibility window中だけ依存・testを保持し、new codeからimportせえへん。
+- Google Cloud project（Production 用 OAuth client は DEV と分離）
 
 ## 主な scripts
 
@@ -29,30 +18,36 @@ pnpm dev
 pnpm dev:full
 pnpm build
 pnpm deploy:preview
-pnpm deploy:production   # Human Gate後だけ
+pnpm deploy:production   # Human Gate 後だけ
 pnpm lint
 pnpm format:check
 pnpm typecheck
 pnpm test:unit
 pnpm test:worker
-pnpm test:convex         # legacy compatibility window中
 pnpm test:e2e
 pnpm cf:typegen
 ```
 
-`dev:full` と `dev` はCloudflare Vite pluginを通った同じlocal Worker runtimeを起動する。`deploy:preview` はPreview build → D1 migrations → Preview Worker deploy、`deploy:production` はProductionの同じ順や。Production commandはproduction data / trafficのHuman Gateを代替せえへん。
+`dev:full` と `dev` は Cloudflare Vite plugin を通った同じ local Worker runtime を起動する。
+`deploy:preview` は Preview build → D1 migrations → Preview Worker deploy、`deploy:production`
+も Production で同じ順や。Production command は本番構築・data import・traffic の Human
+Gate を代替せえへん。
 
 ## Provider / API
 
 ```text
-MantineProvider
-  └─ QueryClientProvider
-      └─ Auth0Provider
-          └─ API client provider
-              └─ React Router
+QueryClientProvider
+  └─ MantineProvider
+      └─ ApiClientProvider
+          └─ Auth0Provider
+              └─ LiveAuthRuntimeProvider
+                  └─ React Router
 ```
 
-Auth0はauthentication、Workerの認証済みAPIがauthorizationとdomain state transitionのsource of truthや。ブラウザはTanStack QueryでWorker APIを読むが、Convex query cacheを重ねない。`letters` metadataと本文をWorker/D1で分け、exact `scheduledAt` はbrowser responseへ出さへん。
+Auth0 は authentication、Worker の認証済み API が authorization と domain state
+transition の source of truth や。ブラウザは TanStack Query で Worker API を読む。
+`letters` metadata と本文を Worker / D1 で分け、exact `scheduledAt` は browser response
+へ出さへん。
 
 ## Browser environment
 
@@ -63,7 +58,7 @@ VITE_API_BASE_URL
 VITE_WEB_PUSH_VAPID_PUBLIC_KEY
 ```
 
-Browserへ出さない:
+Browser へ出さない:
 
 ```text
 AUTH0_AUDIENCE / CAPABILITY_SECRET
@@ -73,51 +68,58 @@ R2 credential
 E2E_AUTH0_PASSWORD
 ```
 
-`VITE_*` は公開値だけや。`VITE_API_BASE_URL` はlocalでは空（same-origin）、Preview / Productionでは固定Worker URLを指定する。
+`VITE_*` は公開値だけや。`VITE_API_BASE_URL` は local では空（same-origin）、Preview /
+Production では固定 Worker URL を指定する。
 
 ## Auth0 DEV のセットアップ
 
-1. DEV tenantの既存SPA `Re:Me DEV` を使う。新しいSPAは作らない
-2. Google OAuth connectionを有効化する
-3. local callback / logout / web originと固定Preview URLを登録する
+1. DEV tenant の既存 SPA `Re:Me DEV` を使う。新しいSPAは作らない
+2. Google OAuth connection を有効化する
+3. local callback / logout / web origin と固定 Preview URL を登録する
 4. `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` を `.env.local` に設定する
-5. Universal LoginでGoogle loginを確認する
-6. E2E用database userは `E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` としてcanonical `.env.local`だけに置く。chat / log / commitへ出さない
+5. Universal Login で Google login を確認する
+6. E2E 用 database user は `E2E_AUTH0_EMAIL` / `E2E_AUTH0_PASSWORD` として canonical
+   `.env.local` だけに置く。chat / log / commit へ出さない
+
+Auth0 domain と client id は public value や。Management API credential、client secret、
+E2E password は公開せえへん。
 
 ### `VITE_AUTH0_*` の入れ方
 
-`VITE_AUTH0_DOMAIN` と `VITE_AUTH0_CLIENT_ID` はSPAの公開値でsecretやない。Auth0 CLIを使う場合:
+Auth0 CLI を使う場合は、DEV tenant と既存 SPA を確認してから public value だけを設定する。
 
 1. `auth0 login`
-2. `auth0 tenants list` でDEV tenantを確認する
-3. `auth0 apps list` から `Re:Me DEV` のSPA `client_id` を確認する
-4. `.env.local` に次を一度だけ設定する
+2. `auth0 tenants list` で DEV tenant を確認する
+3. `auth0 apps list` から既存の `Re:Me DEV` の `client_id` を確認する
+4. `.env.local` に `VITE_AUTH0_DOMAIN` / `VITE_AUTH0_CLIENT_ID` を一度だけ設定する
+5. `pnpm loop:preflight` で E2E credential の worktree 同期状態を確認する
 
-```text
-VITE_AUTH0_DOMAIN=<DEV tenant domain。https://なし>
-VITE_AUTH0_CLIENT_ID=<Re:Me DEV client id>
-```
-
-5. `pnpm loop:preflight` はE2E credentialだけをtask worktreeへ同期する。Auth0 public valueは各環境へ明示的に設定する
-
-Auth0 CLIのtokenはworktreeの `.config/auth0/` に書かれる場合があるが、gitignore済みや。
+Auth0 CLI token は `.config/auth0/` に書かれる場合がある。この path は gitignore 済みで、
+token 値を chat、Issue、PR、log に出さへん。
 
 ## Local Worker / D1
 
 1. `.env.example` を `.env.local` へコピーする
-2. DEV Auth0 public valuesを設定する
+2. DEV Auth0 public values を設定する
 3. `pnpm exec wrangler d1 migrations apply re-me-local --local` を実行する
 4. `pnpm dev:full` を起動する
 
-初回のlocal Worker / R2 / Queue resourceは `wrangler.jsonc` のlocal bindingから作る。test-only headerとforce deliveryは `APP_ENV=local` の場合だけ有効や。Production / PreviewのWorkerがこのheaderを信用せえへんことをWorker testで確認する。
+初回の local Worker / R2 / Queue resource は `wrangler.jsonc` の local binding から作る。
+test-only header と force delivery は `APP_ENV=local` の場合だけ有効や。Preview / Production
+の Worker はこの header を信用せえへんことを Worker test で確認する。
 
 ## Preview
 
-Previewのresource、GitHub environment、Auth0 callbackは [preview-environment.md](preview-environment.md) を正とする。Preview D1へproduction exportを入れない。Preview Worker secretは `CAPABILITY_SECRET`、`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`を対象環境へ登録し、値はログへ出さへん。
+Preview の resource、GitHub environment、Auth0 callback は
+[preview-environment.md](preview-environment.md) を正とする。Preview D1 へ Production
+data を入れない。Preview Worker secret は `CAPABILITY_SECRET`、`VAPID_PUBLIC_KEY`、
+`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT` を対象環境へ登録し、値はログへ出さへん。
 
 ## E2E
 
-通常E2EはGoogle OAuth UIを毎回通さず、Auth0 database test identityでUniversal Loginを完了する。Playwrightは `storageState` を `e2e/.auth/` に保存し、Auth0 callback → Worker JWT検証 → `/api/users/ensure` → authenticated APIを検証する。
+通常 E2E は Google OAuth UI を毎回通さず、Auth0 database test identity で Universal
+Login を完了する。Playwright は `storageState` を `e2e/.auth/` に保存し、Auth0 callback
+→ Worker JWT 検証 → `/api/users/ensure` → authenticated API を検証する。
 
 最低限:
 
@@ -126,13 +128,12 @@ Previewのresource、GitHub environment、Auth0 callbackは [preview-environment
 - open → reply → send to future
 - ownership denial、sealed content denial、photo capability expiration
 
-Google OAuth自体は少数のsmoke testで検証し、critical E2Eへ毎回含めない。
+Google OAuth 自体は少数の smoke test で検証し、critical E2E へ毎回含めない。
 
-## 移行完了条件
+## 撤去後の完了条件
 
-- Worker API / D1 authorization / R2 capability / Cron / QueueがPreviewで動く
-- Convex exportのchecksum、row count、R2 inventoryが取得済み
-- local / Previewでimport、rerun、rollbackをリハーサル済み
-- Production D1 / R2へHuman Gate付きで実データを投入済み
-- Production URLでAuth0、draft→send、open、reply、notificationをsmoke済み
-- rollback window終了後にのみlegacy Convex / credential / unused resourceを別PRでcleanupする
+- Worker API / D1 authorization / R2 capability / Cron / Queue が Preview で動く
+- repository に別 backend の source、client、scheduler、dependency、CI deploy が無い
+- D1 の一時 import bookkeeping が migration で撤去されている
+- local / Preview の Worker test と critical E2E が PASS する
+- Production は未デプロイ・未投入のまま保持し、初回構築は別 Human Gate で行う

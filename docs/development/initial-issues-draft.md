@@ -1,62 +1,26 @@
-# 初期 Issue 草案
+# Initial issues draft
 
-## Auth0 + Convex の土台
+このファイルは初期設計時の issue 草案を、現在の Cloudflare-only runtime に合わせて
+更新した記録や。
 
-- Auth0Provider + ConvexProviderWithAuth0
-- `convex/auth.config.ts`
-- local / preview / production の環境契約
-- Cloudflare Workers Static Assets の SPA hosting
-- Supabase / Hono / TanStack Query は移行完了まで legacy と明示する
+## 実装済みの中心機能
 
-## Convex schema / 認可
+- Auth0 login と Worker JWT verification
+- D1 の draft / send / open / delete / reply state transition
+- sealed letter の本文・添付 visibility
+- private R2 photo capability
+- Scheduled Worker の delivery sweep
+- Queue の notification outbox / retry
+- React / TanStack Query の mobile flow
+- Preview deploy と critical E2E
 
-- users、settings、threads、letters、contents、attachments、deliveries、notification jobs、push subscriptions
-- 必須 indexes / pagination
-- 認証済み wrapper / 所有権チェック
-- args / return validator
-- 他ユーザー / 封をした本文 / 正確な配送時刻のテスト
+## 今後の issue 候補
 
-## 認証
+- Auth0 PROD tenant / Google OAuth Production client
+- Production Worker / D1 / R2 / Queue の初回構築
+- Production の backup / export / retention policy
+- Production traffic cutover と運用監視
 
-- Auth0 Google OAuth の DEV connection
-- login / logout / callback
-- `useConvexAuth()` を基準にしたルートガード
-- 通常 E2E と Google OAuth smoke の分離
-- DEV / PROD の tenant / OAuth client 分離
-
-## legacy Supabase の撤去
-
-- Supabase session provider / client / generated DB types を Convex に置き換える
-- local Supabase の script / 依存 / env を撤去する
-- Hono application API と TanStack Query cache を撤去する
-- migration / tests は Convex の coverage が通るまで残す
-- production data の棚卸しと rollback 判断を記録する
-
-## 作成 / 下書き
-
-Convex query / mutation で白紙の手紙エディタ、自動保存、配送レンジ、封の選択を実装する。
-
-## private R2 写真
-
-Convex 認可つき upload / download、非公開 bucket、短命な権限、metadata 検証、EXIF 除去、削除の復旧を実装する。
-
-## 送信 / 編集不可
-
-`sendLetter` mutation が所有権、下書き、本文、配送レンジ、正確な配送時刻、返信の不変条件を同一 transaction で強制する。
-
-## 配送 / 通知
-
-Convex cron + due index + internal mutation + 通知 outbox + Web Push action + generation token 付き retry を実装する。
-
-## 受信箱 / 開封 / 返信
-
-封をした本文の可視性、`openLetter`、一本道の返信、未来への再送を実装する。
-
-## CI / E2E
-
-- Convex schema の push / typecheck
-- 認可 / 状態遷移テスト
-- React Testing Library
-- Cloudflare SPA build
-- Playwright の重要フロー
-- Auth0 Google OAuth smoke は通常 E2E と分離する
+Production 操作は Preview data を流用せず、inventory、rollback、Human Gate を含む
+別 issue として作る。初期草案にあった別 backend の schema / client / scheduler /
+migration CLI は現行 repository へ追加しない。

@@ -2,7 +2,9 @@
 
 ## Comparison target
 
-- Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the configured shared Preview Convex connection; the deployed check also used `https://re-me-preview.hondasports.workers.dev`
+- Implementation state: authenticated local dev at `http://127.0.0.1:4173` using the
+  Cloudflare Worker API; the deployed check also used
+  `https://re-me-preview.hondasports.workers.dev`
 - Source visual truth: [`docs/design/concept.png`](docs/design/concept.png) and the documents under [`docs/design/`](docs/design/)
 - Source landing crop: [`docs/design/qa/reference-landing.png`](docs/design/qa/reference-landing.png)
 - Login comparison input (kept unchanged in this iteration): [`docs/design/qa/login-comparison.png`](docs/design/qa/login-comparison.png)
@@ -77,7 +79,8 @@ All comparison and implementation screenshots referenced by this record are comm
 
 ## Open questions
 
-- Authenticated visual captures and full E2E evidence use the shared Preview Convex connection because a task-local Convex deployment is not provisioned in this worktree.
+- Authenticated visual captures and full E2E evidence use the shared Cloudflare Preview
+  Worker because the current runtime is Worker / D1 / R2 / Queue.
 - If a final approved hero/envelope asset becomes available, it can replace the generated assets without changing the layout contract.
 
 ## Implementation checklist
@@ -87,7 +90,7 @@ All comparison and implementation screenshots referenced by this record are comm
 - [x] Apply card, sealed-opening, send-ritual, timeline, and navigation styling to the affected features.
 - [x] Capture and compare the rendered login and authenticated mobile screens at `390 x 844`.
 - [x] Run static/unit/worker/loop checks and anonymous mobile Playwright coverage.
-- [x] Run authenticated visual/E2E coverage with the configured Preview Auth0 + Convex runtime.
+- [x] Run authenticated visual/E2E coverage with the configured Preview Auth0 + Cloudflare runtime.
 - [x] Capture every user-facing screen in the core flow and compare them together with the source board.
 - [x] Verify active ambient motion and the reduced-motion path without changing the approved static composition.
 

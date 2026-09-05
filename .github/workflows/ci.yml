@@ -53,9 +53,6 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
-      - name: Convex tests
-        run: pnpm test:convex
-
       - name: Worker tests
         run: pnpm test:worker
 

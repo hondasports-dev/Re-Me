@@ -60,12 +60,6 @@ describe('assertBrowserSafeViteEnv', () => {
   it('rejects backend deploy keys and Auth0 secrets under VITE names', () => {
     expect(() =>
       assertBrowserSafeViteEnv({
-        VITE_CONVEX_DEPLOY_KEY: 'cvx_prod_must_not_bundle',
-      }),
-    ).toThrowError('privileged_browser_credential_rejected')
-
-    expect(() =>
-      assertBrowserSafeViteEnv({
         VITE_AUTH0_CLIENT_SECRET: 'oauth-client-secret',
       }),
     ).toThrowError('privileged_browser_credential_rejected')

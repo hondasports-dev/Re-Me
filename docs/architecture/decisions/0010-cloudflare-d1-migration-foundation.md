@@ -2,41 +2,31 @@
 
 ## Status
 
-Accepted for the Issue #60 foundation. Worker/API cutover and production migration remain separate gates.
+Historical record. Superseded for current runtime cleanup by
+[ADR-0012](0012-cloudflare-only-preview-runtime.md).
 
 ## Context
 
-Re:Me の移行前 runtime は Auth0 + Convex + Cloudflare Workers Static Assets で、Issue #60 の target は Auth0 を残したまま application data を D1、private photo object を WorkerのR2 binding、非同期通知をQueues、配送の起動をCronへ移すことや。現在のbranchではWorker API / D1 / R2 / Queueをruntimeとして実装し、Convexはdata cutoverとrollback windowのためにだけ保持する。
+この ADR は、Re:Me を Cloudflare Worker / D1 / private R2 / Queue へ移行する初期段階
+の判断を記録する。Production resource、export、data import、traffic cutover は
+当時も自動処理へ含めず、Human Gate の対象としていた。
 
-この段階で Convex runtime と client を先に外すと、既存の送信済み手紙、sealed 本文、exact delivery time、返信の一本道を同時に壊すリスクが高い。また、本番 resource / export の存在をこの repository からは確認できへんため、production data に対する自動操作は許可しない。
+## Recorded decisions
 
-## Decision
+1. D1 schema は numbered migration を正本にし、relationship を保てる text ID を採用する。
+2. Local / Preview / Production は Wrangler の named environment ごとに D1、R2、Queue、
+   scheduled binding を分離する。
+3. Worker が Auth0 identity、ownership、sealed visibility、immutable state transition
+   を検証し、D1 を browser から直接読ませない。
+4. exact delivery time は browser projection から隠し、delivery と notification outbox
+   を別 state として扱う。
+5. R2 object は private とし、capability、ETag、generation、reconcile state を使う。
 
-1. D1 の schema を `migrations/0001_initial_schema.sql` に置き、Convex document ID を D1 の `TEXT` ID として保持する。
-2. local / Preview / Production は Wrangler の named environment ごとに D1、R2、Queue、Cron binding を分離する。binding の名前は共通でも、resource name は環境ごとに別にする。
-3. `scripts/convex-to-d1-migration.ts` は Convex export の検証、relationship / ownership の検証、D1 SQL、R2 copy manifest、rollback SQL を生成する。default は dry-run で、D1 / R2 API は呼ばない。
-4. import は source table + source ID と source checksum を `migration_import_keys` に記録する。source の checksum または target mapping の drift は SQLite trigger で拒否する。
-5. import SQL は migration map が無い行だけを挿入し、既存 source の再実行は同じ map を更新する。target の予期せぬ unique conflict は statement を失敗させ、既存行を黙って上書きしない。atomic な実行が必要な runner は D1 `batch()` を使う。
-6. 本文と attachment metadata の sent 後 immutable boundary、sealed + unopened の read denial、`scheduled_at` の private boundary を D1 schema / migration validator / test で維持する。
-7. Production export、R2 copy、D1 import、traffic cutover、Convex cleanup はコードの自動処理に含めず、個別のHuman Gateで実行する。
+## Current result
 
-## Consequences
+Cloudflare Worker / D1 / R2 / Queue の実装と Preview cutover は完了した。Production は
+未デプロイ・未投入で、Preview data は migration source にしない。初期 migration の
+一時 bookkeeping table は `0003_remove_legacy_import_bookkeeping.sql` で撤去する。
 
-### Positive
-
-- schema と import の再現可能な review artifact ができる。
-- Convex ID / relationship / identity mapping を変換せずに rehearsal できる。
-- import の checksum drift、orphan、branching reply、sent state inconsistency を適用前に検出できる。
-- R2 本体は SQL に埋め込まず、copy と checksum 検証を別工程にできる。
-
-### Trade-offs
-
-- application APIはWorkerへ切り替わった。D1をbrowserから直接読まず、WorkerがAuth0 identityとownershipを検証する。
-- D1 resourceの作成、remote migration、R2 object copy、production cutoverはoperatorの手順とHuman Gateが必要や。
-- D1 の `TEXT` ID を採用するため、将来の backend 実装は Convex の ID type ではなく、認証済み user と relationship を Worker 側で検証せなあかん。
-
-## Rejected alternatives
-
-- **Convex runtime と並行して D1 を browser から直接読む**: 認可の source が二つになり、sealed content の denial と state transition の正本が曖昧になるため採用しない。
-- **target ID を新しく採番する**: relationship と rollback の検証が mapping table に依存し、identity / reply chain の誤接続を検出しにくいため採用しない。
-- **import で `ON CONFLICT DO NOTHING` を使って既存行を黙って無視する**: 部分移行や別データへの衝突を見逃すため採用しない。
+旧設計を再導入する source、client、scheduler、dependency、CI job、migration CLI は
+現行 repository に戻さない。

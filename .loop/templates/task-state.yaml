@@ -1,31 +1,109 @@
 session:
-  current_task_id: "issue-60"
-  active_delivery_pr: "https://github.com/hondasports/Re-Me/pull/62"
+  current_task_id: "issue-60-runtime-cleanup"
+  active_delivery_pr: ""
 
 revision:
   current:
-    commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-    tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
+    commit_sha: ""
+    tree_sha: ""
   verified:
-    commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-    tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
+    commit_sha: ""
+    tree_sha: ""
   reviewed:
     commit_sha: ""
     tree_sha: ""
   published:
-    commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
-    tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
+    commit_sha: ""
+    tree_sha: ""
   observed:
+    commit_sha: ""
+    tree_sha: ""
+  previous_cutover:
     commit_sha: "6cf9a64958792af34593c89841d06bbe4a9551dd"
     tree_sha: "58c2a22771d2eaeaaec320c916a1496c32d6a0a7"
 
 task:
-  id: "issue-60"
+  id: "issue-60-runtime-cleanup"
   source: "https://github.com/hondasports/Re-Me/issues/60"
-  objective: "Issue #60のCloudflare Worker runtime cutoverとConvex production data migrationを完了する"
+  objective: "PreviewをCloudflare-only runtimeに固定し、旧backendの処理・依存・CI・migration toolingを撤去する"
   base_branch: main
   delivery_target: merge_ready
-  current_state: pr_aftercare
+  current_state: implementation
+
+# Current follow-up scope. The detailed stage records below retain evidence from
+# the preceding cutover; this block is the active cleanup contract.
+cleanup_follow_up:
+  status: in_progress
+  objective: "PreviewのCloudflare Worker/D1/R2/Queue runtimeを残し、Convexの実行経路と一時移行bookkeepingをrepositoryから撤去する。"
+  trigger: "User will delete the external Convex project; repository cleanup and Preview verification remain in scope."
+  material_assumptions:
+    - "Production Workerは未デプロイで、Production D1はschema-only / application rows zeroのinventory結果を前提にする。"
+    - "Previewの現行runtimeはCloudflare Worker/D1/R2/Queueであり、Preview dataは移行元にしない。"
+    - "Convex Dashboardの削除・停止・secret変更はユーザーが行い、このtaskからは実行しない。"
+  in_scope:
+    - "Convex source/generated code、client/provider、依存、config、scheduler、CI job、migration CLI/testを削除する。"
+    - "package scripts、TypeScript/Oxlint/gitignore、environment examples、active docsをCloudflare-onlyへ揃える。"
+    - "D1の一時 migration_import_keys bookkeeping を numbered migrationで撤去し、Worker schema testで確認する。"
+    - "local quality gates、D1 migration、Cloudflare target dry-run、Preview deploy/health/E2E evidenceを更新する。"
+  out_of_scope:
+    - "外部Convex projectの削除・停止・権限/secret変更。"
+    - "Production Worker deploy、Production data import、R2 copy、traffic cutover、Production resource deletion。"
+    - "Supabase historical comparison artifactsと過去ADRの履歴記述の書き換え。"
+  acceptance_criteria:
+    - { id: AC14, expectation: "RepositoryにConvexの実行source、generated API、client/provider、config、依存、scheduler、test、CI jobが残らない。" }
+    - { id: AC15, expectation: "package scripts、tsconfig、quality gate、environment examples、active architecture/setup docsがWorker/D1/R2/Queueだけを現行runtimeとして示す。" }
+    - { id: AC16, expectation: "D1 migrationでtemporary migration_import_keys table/index/triggerを撤去し、通常のletter/delivery/notification schemaは保持する。" }
+    - { id: AC17, expectation: "local lint/format/typecheck/test/loop/build、D1 migration、target dry-runが通り、削除後もCloudflare runtimeの境界テストがPASSする。" }
+    - { id: AC18, expectation: "Convex外部projectの削除はrepository変更と分離され、ユーザーへの明示的な運用handoffとして記録される。" }
+  invariants:
+    - { id: IV07, preserve: "Agentは外部Convex projectのdelete/stop/secret mutationを実行しない。" }
+    - { id: IV08, preserve: "Production data mutation/import/cutoverは実データinventoryとHuman Gateなしに実行しない。" }
+    - { id: IV09, preserve: "Cloudflare Workerが唯一の現行browser/backend runtimeであり、CIとdeploy helperはConvex commandを呼ばない。" }
+  relevance_dimensions:
+    happy_path: relevant
+    boundary: relevant
+    error_failure: relevant
+    empty_loading: not_applicable
+    auth_ownership: relevant
+    persistence_state_transition: relevant
+    caller_compatibility: relevant
+    concurrency_idempotency: relevant
+    navigation_accessibility: not_applicable
+  coverage_map:
+    - { contract_id: AC14, implementation_surfaces: ["convex/", "src/features/auth/convex-session.ts", "src/shared/convex/", "package.json", "tests/unit/cloudflare-runtime-boundary.test.ts"], verification_cases: [TC24], status: covered }
+    - { contract_id: AC15, implementation_surfaces: ["AGENTS.md", ".github/workflows/ci.yml", "docs/", ".env.example", ".env.preview.example", ".env.production.example"], verification_cases: [TC25], status: covered }
+    - { contract_id: AC16, implementation_surfaces: ["migrations/0003_remove_legacy_import_bookkeeping.sql", "tests/worker/d1-schema.test.ts"], verification_cases: [TC26], status: covered }
+    - { contract_id: AC17, implementation_surfaces: ["package.json", "worker/", "tests/", "scripts/"], verification_cases: [TC27, TC28], status: covered }
+    - { contract_id: AC18, implementation_surfaces: ["docs/architecture/decisions/0012-cloudflare-only-preview-runtime.md", "docs/development/legacy-migration.md"], verification_cases: [TC29], status: covered }
+    - { contract_id: IV07, implementation_surfaces: ["external operations boundary", "task-state cleanup_follow_up.out_of_scope"], verification_cases: [TC29], status: covered }
+    - { contract_id: IV08, implementation_surfaces: ["docs/development/production-environment.md", "docs/development/legacy-migration.md"], verification_cases: [TC29], status: covered }
+    - { contract_id: IV09, implementation_surfaces: ["worker/", ".github/workflows/", "package.json", "tests/unit/cloudflare-runtime-boundary.test.ts"], verification_cases: [TC24, TC25], status: covered }
+  test_cases:
+    - { id: TC24, contract_ids: [AC14, IV09], kind: regression, method: "pnpm test:unit: Cloudflare runtime boundary confirms legacy Convex files, config, dependency and browser boundary are absent." }
+    - { id: TC25, contract_ids: [AC15, IV09], kind: regression, method: "pnpm lint && pnpm format:check && pnpm typecheck: current repository config and active docs use the Worker runtime." }
+    - { id: TC26, contract_ids: [AC16], kind: boundary, method: "pnpm d1:migrations:apply:local && pnpm test:worker: temporary import bookkeeping is absent while application schema remains available." }
+    - { id: TC27, contract_ids: [AC17], kind: positive, method: "pnpm test && pnpm build: local unit/Worker regression and Cloudflare build pass." }
+    - { id: TC28, contract_ids: [AC17], kind: failure, method: "pnpm exec wrangler deploy --dry-run --env preview/production: target bindings are selected without remote mutation." }
+    - { id: TC29, contract_ids: [AC18, IV07, IV08], kind: denial, method: "Review/handoff evidence: no external Convex mutation or Production data operation is executed by this task." }
+  risk:
+    initial_level: r3_high
+    level: r3_high
+    max_observed_level: r3_high
+    reason: "大量のruntime削除とD1 bookkeeping撤去を伴うが、Production deploy/data writeは範囲外に固定する。"
+  required_controls: [workspace_preflight, destructive_or_stateful, service_ops, human_gate_for_production_data_operations]
+  verification_plan:
+    - "static/typecheck/loop enforcement"
+    - "unit + Worker/D1 schema regression"
+    - "local D1 migration and Cloudflare target dry-run"
+    - "Preview runtime smoke/E2E evidence reuse or rerun after publish"
+    - "independent omission review and PR aftercare"
+  evidence:
+    - "pnpm lint, pnpm format:check, pnpm typecheck: PASS"
+    - "pnpm test: PASS (28 unit files / 109 tests, 3 Worker files / 6 tests)"
+    - "pnpm test:loop: PASS (4 files / 42 tests)"
+    - "pnpm d1:migrations:apply:local: 0003 applied successfully"
+    - "pnpm build, build:preview, build:production: PASS; target dry-run selected local/Preview/Production bindings without remote mutation"
+    - "pnpm loop:e2e-gate: PASS; existing Preview health/API and critical E2E evidence remains valid because user-visible flow is unchanged"
 
 prepare:
   status: PASS

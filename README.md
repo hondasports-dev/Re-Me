@@ -2,18 +2,17 @@
 
 > **未来のあなたへ**
 
-Re:Me は、今の自分から未来の自分へ手紙を送り、時間をまたいで自分自身と会話するための、モバイルファースト Web アプリです。
+Re:Me は、今の自分から未来の自分へ手紙を送り、時間をまたいで自分自身と会話する
+ための、モバイルファースト Web アプリや。
 
 ## コンセプト
 
 - 今の気持ち・判断・迷い・出来事を、分類せず自由な手紙として残す
-- 届ける時期は「数日後くらい」「数週間後くらい」「数か月後くらい」などのざっくり指定、または「未来に任せる」
+- 届ける時期はざっくり指定、または「未来に任せる」
 - 手紙は「封をする / 封をしない」を選べる
-  - **封をする**: 到着して明示的に開封するまで自分でも本文を読めない
-  - **封をしない**: 送信後も読み返せる
-- 送信後の内容は編集できない
-- 到着した手紙には返信でき、その返信もさらに未来へ送れる
-- 返信を重ねることで、数年単位の「自分との会話」が一つのスレッドとして育つ
+- 送信後の内容は編集できないが、プライバシーのため削除はできる
+- 到着した手紙へ返信し、その返信もさらに未来へ送る
+- 返信を重ねて、数年単位の「自分との会話」を一本道のスレッドに育てる
 
 ## プロダクト原則
 
@@ -29,9 +28,7 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
 ```text
 手紙を書く
   ↓
-届ける時期を選ぶ
-  ↓
-封をする / しない
+届ける時期と封を選ぶ
   ↓
 未来へ送る
   ↓
@@ -43,63 +40,59 @@ Re:Me は、今の自分から未来の自分へ手紙を送り、時間をま�
   ↓
 読む
   ↓
-返信を書く
-  ↓
-返信も未来へ送る
+返信を未来へ送る
 ```
 
 ## デザインリファレンス
 
-実装時の主要な画面構成・遷移・トーン&マナーは、以下のモバイルファースト UI コンセプトを基準にします。
+実装時の主要な画面構成・遷移・トーン&マナーは、以下のモバイルファースト UI コンセプトを基準にするで。
 
 ![Re:Me モバイル画面遷移](docs/design/re-me-mobile-flow.jpg)
 
-詳細は [デザインリファレンス](docs/design/README.md) と [UX / 画面遷移](docs/product/ux-flow.md) を参照してください。
+詳細は [デザインリファレンス](docs/design/README.md) と [UX / 画面遷移](docs/product/ux-flow.md) を参照してな。
 
 ## 技術スタック
 
-- **Runtime**: Node.js 24 LTS
-- **Package manager**: pnpm
-- **Frontend**: React + TypeScript + Vite
-- **Routing**: React Router
-- **Server state**: Convex reactive query / mutation
-- **UI**: Mantine + Re:Me custom design tokens / components
-- **Toolchain**: Oxlint + Oxfmt + TypeScript (`tsc`)
-- **Hosting**: Cloudflare Workers Static Assets + `@cloudflare/vite-plugin`
-- **Auth**: Auth0 + Google OAuth
-- **Backend / Database**: Convex functions + database + realtime
-- **Image Storage**: private Cloudflare R2 via `@convex-dev/r2`
-- **Delivery**: Convex Cron / Scheduler + internal mutations
-- **Notification**: Web Push + Convex outbox
-- **Test**: Vitest + React Testing Library + Playwright
+- Node.js 24 LTS / pnpm
+- React + TypeScript + Vite
+- React Router / Mantine
+- Auth0 + Google OAuth
+- Cloudflare Workers Static Assets
+- Cloudflare Worker + Hono API
+- Cloudflare D1 / private R2 / Queues / Scheduled Worker
+- HTTP API + TanStack Query
+- Oxlint / Oxfmt / TypeScript
+- Vitest + React Testing Library + Playwright
 
-詳細は [技術スタック](docs/architecture/tech-stack.md) を参照してください。
+詳細は [技術スタック](docs/architecture/tech-stack.md) と
+[アーキテクチャ概要](docs/architecture/overview.md) を参照してな。
 
 ## セキュリティ上の主要設計
 
-- `letters` metadata と `letter_contents` 本文を分離
-- sealed letter は Convex authorization により、開封前の本人 client からも本文を取得不可
-- exact `scheduledAt` は private delivery document に保存し、ユーザーには delivery window のみ公開
-- 送信後編集不可を専用 mutation / function surface で強制
-- Delivery と Notification を outbox で分離
-- Auth0 / Convex / Cloudflare の secret は browser bundle へ公開しない
-
-target backend の正本は `convex/schema.ts` と function validators である。`supabase/` は production data migration まで残す legacy 比較 artifact であり、runtime ではない。
-
-> 日常の local 開発は Convex local backend を使い、cloud の無料枠を食わない。CI E2E だけ共有 Preview の remote Convex を使う。本番運用では可用性・休止条件・容量・料金を再評価する。
+- `letters` metadata と `letter_contents` 本文を分離する
+- sealed letter は到着・明示的な開封まで Worker API が本文と添付を返さない
+- exact `scheduledAt` は内部 D1 row にだけ置き、browser response / log に出さない
+- 送信後編集不可を専用 Worker route、D1 transaction、trigger で強制する
+- Delivery と Notification を D1 outbox で分離する
+- Auth0 / Cloudflare の secret は browser bundle へ公開しない
+- 写真本体は private R2 に置き、短命 capability と owner / state 検証を通す
 
 ## 環境方針
 
-環境ごとに provider resource を分離する。
+環境ごとに Auth0 と Cloudflare resource を分離する。
 
-- **Local**: Auth0 DEV tenant/application + Convex local backend（`pnpm dev:full`）+ Vite/local Worker。cloud の個人 developer deployment は正本にしない
-- **Preview / CI E2E**: Auth0 DEV preview callback + 共有 Convex preview deployment。CI は Playwright の前に Preview へ `convex deploy` する
-- **Production**: Auth0 PROD tenant/application + Convex production deployment + Cloudflare production Worker
-- **Google OAuth**: DEV client と production client を分離する
+- **Local**: Auth0 DEV + local Worker / D1 / R2 / Queue
+- **Preview / CI E2E**: Auth0 DEV の固定 callback + `re-me-preview` Worker / D1 / R2 /
+  Queue
+- **Production**: `re-me` の config はあるが、Auth0 PROD と Worker の初回 deploy は
+  未実施
 
-Convex の接続先・初回セットアップは [Local / Preview 環境](docs/development/preview-environment.md) と [開発セットアップ](docs/development/setup.md) を正とする。
+Preview の接続先・初回セットアップは
+[Local / Preview 環境](docs/development/preview-environment.md) と
+[開発セットアップ](docs/development/setup.md) を正とする。
 
-通常の自動 E2E は Google OAuth のログイン画面へ依存せず、Auth0 の database test identity で session を作る。Google OAuth の実連携は Auth0 callback から Convex authenticated query までを少数の smoke test で確認する。
+通常の自動 E2E は Google OAuth UI に依存せず、Auth0 database test identity の
+storage state を使う。Google OAuth の実連携は少数の smoke test で確認する。
 
 ## ドキュメント
 
@@ -118,7 +111,7 @@ Convex の接続先・初回セットアップは [Local / Preview 環境](docs/
 - [データモデル](docs/architecture/data-model.md)
 - [認証・セキュリティ](docs/architecture/auth-security.md)
 - [手紙の配送・通知](docs/architecture/delivery-notifications.md)
-- [ADR: Auth0 + Convex + Cloudflare](docs/architecture/decisions/0009-auth0-convex-cloudflare.md)
+- [ADR: Cloudflare-only Preview runtime](docs/architecture/decisions/0012-cloudflare-only-preview-runtime.md)
 - [ADR: 送信後編集不可](docs/architecture/decisions/0002-immutable-letter.md)
 - [ADR: ざっくり配送](docs/architecture/decisions/0003-delivery-window.md)
 - [ADR: React / Vite / React Router](docs/architecture/decisions/0007-react-frontend-toolchain.md)
@@ -132,11 +125,14 @@ Convex の接続先・初回セットアップは [Local / Preview 環境](docs/
 - [品質ゲート](docs/development/quality-gates.md)
 - [本番準備](docs/development/production-readiness.md)
 - [Production 環境](docs/development/production-environment.md)
-- [Legacy data migration](docs/development/legacy-migration.md)
+- [Legacy data migration status](docs/development/legacy-migration.md)
 - [移行前 Supabase baseline](supabase/README.md)
 - [デザインリファレンス](docs/design/README.md)
 - [開発ルール](AGENTS.md)
 
 ## ステータス
 
-プロダクト要件・UX と Auth0 + Convex + Cloudflare の target architecture は確定済み。フロントエンドは React / Mantine、Auth0 + Convex の provider 骨格、DEV tenant / local Convex backend の接続、E2E 用 Auth0 test identity、Convex schema / authorization harness まで入っています。production 用 Google Cloud OAuth client と production data migration は後続です。
+Preview の application runtime は Cloudflare Worker / D1 / R2 / Queue へ移行済み。
+repository から旧 backend の source、client、scheduler、依存、CI job、migration CLI
+は撤去した。Production はまだ未デプロイ・未投入で、Production data migration は
+不要や。初回 Production 構築と traffic 切替は別 task と Human Gate で行う。

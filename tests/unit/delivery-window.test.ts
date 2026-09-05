@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { MS_PER_DAY, resolveDeliveryWindow } from '../../convex/lib/deliveryWindow'
+import { MS_PER_DAY, resolveDeliveryWindow } from '../../worker/constants'
 
 describe('resolveDeliveryWindow', () => {
   it('keeps few_days inside 3 to 7 days and can land on either bound', () => {

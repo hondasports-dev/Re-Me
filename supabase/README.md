@@ -1,6 +1,7 @@
 # Legacy Supabase artifacts
 
-このディレクトリは **runtime ではない**。Auth0 + Convex へ移行したあとも、production data migration / rollback 方針が固まるまで invariant 比較用に残す。
+このディレクトリは **runtime ではない**。Cloudflare Worker + D1 へ移行したあとも、
+過去 schema の invariant 比較と履歴確認用に残す。
 
 残すもの:
 
@@ -9,7 +10,7 @@
 
 通常の `pnpm test` / Quality gates / E2E は local Supabase を起動しない。比較が必要なときだけ `pnpm db:start` する。
 
-最終削除は [legacy data migration](../docs/development/legacy-migration.md) と Human Gate で行う。
+不要になった migration の削除は、参照が無いことを確認した別 PR と Human Gate で行う。
 
 ---
 
@@ -19,7 +20,8 @@
 
 ## Source of truth (legacy comparison)
 
-現行 backend の正本は `convex/schema.ts` である。legacy PostgreSQL / RLS を比較するときは Dashboard の手作業ではなく `supabase/migrations/` を正とする。
+現行 backend の正本は `worker/` と `migrations/` である。過去 PostgreSQL / RLS を比較
+するときは Dashboard の手作業ではなく `supabase/migrations/` を正とする。
 
 変更時は新しい migration を追加し、既存 migration を書き換えない。
 
@@ -69,7 +71,9 @@
 
 ## Auth (legacy)
 
-これらの migration は Supabase Auth を前提に書かれている。現行 runtime の authentication は Auth0、authorization は Convex function である。新しい Supabase client / Service Role Worker path を追加しない。
+これらの migration は Supabase Auth を前提に書かれた過去 artifact や。現行 runtime の
+authentication は Auth0、authorization は Worker API である。新しい Supabase client /
+Service Role Worker path を追加しない。
 
 ## Local comparison workflow
 

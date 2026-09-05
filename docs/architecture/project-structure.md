@@ -1,147 +1,128 @@
 # プロジェクト構成
 
-## 目的
-
-Frontend は feature-first、backend は Convex function の境界で整理する。Cloudflare Worker を第二の application backend にしない。
-
-## 目標構成
+Frontend は feature-first、backend は Cloudflare Worker の domain 境界で整理する。
+同じ責務を別の server runtime に複製しない。
 
 ```text
 .
-├── AGENTS.md
-├── README.md
-├── convex/
-│   ├── _generated/
-│   ├── auth.config.ts
-│   ├── schema.ts
-│   ├── crons.ts
-│   ├── users.ts
-│   ├── letters.ts
-│   ├── threads.ts
-│   ├── attachments.ts
-│   ├── delivery.ts
-│   ├── notifications.ts
-│   ├── notificationActions.ts
-│   ├── pushSubscriptions.ts
-│   └── lib/
-│       ├── auth.ts
-│       ├── authorization.ts
-│       ├── deliverLetters.ts
-│       ├── notificationPolicy.ts
-│       └── pushSubscriptions.ts
-├── docs/
-├── public/
 ├── src/
 │   ├── app/
 │   │   ├── App.tsx
-│   │   ├── main.tsx
 │   │   └── providers.tsx
-│   ├── router/
 │   ├── features/
 │   │   ├── auth/
 │   │   ├── compose/
-│   │   ├── traveling/
 │   │   ├── inbox/
-│   │   ├── letter/
-│   │   ├── thread/
-│   │   └── settings/
+│   │   ├── letters/
+│   │   ├── settings/
+│   │   └── traveling/
 │   ├── shared/
-│   │   ├── convex/
-│   │   │   └── client.ts
+│   │   ├── api/
+│   │   ├── config/
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   ├── types/
 │   │   └── utils/
 │   └── styles/
+├── worker/
+│   ├── app.ts
+│   ├── index.ts
+│   ├── db.ts
+│   ├── domain.ts
+│   ├── capability.ts
+│   ├── photo.ts
+│   ├── notification.ts
+│   ├── auth.ts
+│   └── ...
+├── migrations/
+│   ├── 0001_initial_schema.sql
+│   ├── 0002_allow_draft_delivery_settings.sql
+│   └── 0003_remove_legacy_import_bookkeeping.sql
 ├── tests/
 │   ├── unit/
-│   └── convex/
+│   └── worker/
 ├── e2e/
 ├── vite.config.ts
 ├── wrangler.jsonc
-├── convex.json
 ├── package.json
 └── pnpm-lock.yaml
 ```
 
 ## アプリの provider
 
-`src/app/providers.tsx` にアプリ全体の provider を集約する。
+`src/app/providers.tsx` に全体の provider を集約する。
 
-- MantineProvider
-- Auth0Provider
-- ConvexProviderWithAuth0
+- `QueryClientProvider`
+- `MantineProvider`
+- `ApiClientProvider`
+- `Auth0Provider`
+- `LiveAuthRuntimeProvider`
 - React Router
 
-Auth0 は login / logout / プロフィール、Convex auth は backend リクエストの準備完了を担当する。
+Auth0 runtime は access token を API client へ渡し、feature hook は API response を
+TanStack Query で扱う。認可ロジックを frontend に置かない。
 
-## フロントエンド feature の置き方
+## Feature の置き方
 
 ```text
 src/features/compose/
 ├── components/
 ├── hooks/
-│   ├── useDraftLetter.ts
-│   └── useSaveDraft.ts
 ├── model/
 └── pages/
 ```
 
-- feature 内だけのコードは feature 内に置く
-- Convex generated API を component に大量に直書きせず、意味のある feature hook で包む
-- Convex data を TanStack Query や global store に複製しない
-- フォーム / モーダル / アニメーション状態は React state / context に置く
-- 認可ロジックを frontend hook に置かない
+- feature 内だけの code は feature 内に置く
+- API 呼び出しは feature hook / `src/shared/api` で包む
+- server state を global store へ複製しない
+- form、modal、animation state は React state / context に置く
+- user-visible な画面・遷移には対応する Playwright を追加する
 
-## Convex backend の置き方
+## Worker の置き方
 
-- `schema.ts`: tables、validators、indexes の正本
-- `auth.config.ts`: Auth0 issuer / application id
-- `letters.ts`: ブラウザ向け query / mutation
-- `delivery.ts`: 正確な配送時刻と internal な配送遷移
-- `notifications.ts`: outbox の claim / 完了 / retry
-- `notificationActions.ts`: Web Push 送信（`use node`、internal のみ）
-- `pushSubscriptions.ts`: ブラウザ向け subscription upsert / disable
-- `lib/pushSubscriptions.ts`: endpoint 検証と owner 限定 upsert
-- `attachments.ts`: 非公開 R2 の upload / download 認可
-- `lib/authorization.ts`: 現在ユーザーと所有権を注入する共有 wrapper
+- `app.ts`: Hono route、error / CORS、health
+- `auth.ts`: Auth0 JWT 検証と D1 user 解決
+- `db.ts`: D1 row 型、query、projection
+- `domain.ts`: draft / send / open / delete / reply / delivery / notification の状態遷移
+- `capability.ts`: 短命な R2 capability
+- `photo.ts`: JPEG、metadata、サイズの server-side 検証
+- `notification.ts`: payload、retry、endpoint policy
+- `index.ts`: fetch、scheduled handler、Queue consumer
 
-public function は React が直接必要なものだけにする。Cron / scheduler callback、配送、通知完了は internal function にする。
+Worker の public route は必要最小限にし、generic な database patch route やブラウザ
+からの D1 / R2 直接アクセスを置かない。
 
 ## ルート設計
 
 ```text
-/                       -> 届いた手紙
-/login                  -> ログイン
-/write                  -> 手紙を書く
-/write/:letterId         -> 下書き編集
-/write/:letterId/send    -> 未来へ送る前の確認
-/traveling               -> 未来を旅する手紙
-/traveling/:letterId     -> 旅の途中の手紙（読み返し / 削除）
+/                         -> 届いた手紙
+/login                    -> ログイン
+/write/:letterId          -> 手紙を書く
+/write/:letterId/send    -> 未来へ送る確認
+/traveling                -> 未来を旅する手紙
+/traveling/:letterId     -> 旅の途中の手紙
 /letters/:letterId       -> 開封前 / 本文
 /letters/:letterId/reply -> 返信を書く
 /threads/:threadId       -> 時間をまたぐスレッド
 /settings                -> 設定
-/auth/callback           -> OAuth callback
+/auth/callback            -> OAuth callback
 ```
 
-認証が必要なルートは `useConvexAuth()` の loading / authenticated 状態を扱う。ただし router ガードは UX 用で、データアクセスは Convex function の認可が正本である。
+Router は UX の入口制御に留め、データアクセスは Worker API が認証・所有権・状態を
+強制する。
 
-## Cloudflare の境界
+## D1 と legacy artifact
 
-`worker/` は SPA hosting に必要な最小の入口だけにする。業務 API、R2 認可、配送 cron、通知の状態機械を Worker に置かない。
-
-将来 edge 固有の route を足す場合は、Convex と責務が重複しないこと、Auth0 token 検証、retry / rollback を ADR で先に定義する。
-
-## legacy 移行の境界
-
-`supabase/migrations/` は production data の移行まで残す legacy 成果物である。runtime の Supabase client / Hono application API / TanStack Query は置かない。
+`migrations/*.sql` が D1 schema の source of truth や。既存 migration は書き換えず、
+変更は番号付き migration を追加する。`supabase/migrations/` は過去 schema の比較・
+履歴確認用で、runtime の client や Worker path ではない。
 
 ## テストの置き場
 
 - 純粋関数 / React: feature の近く、または `tests/unit/`
-- Convex schema / functions / 認可: `tests/convex/`
-- Cloudflare asset / Worker の振る舞い: `tests/worker/`
+- Worker / D1 / R2 / Queue の振る舞い: `tests/worker/`
+- CI、deploy 境界、environment 文書: `tests/unit/`
 - 重要なユーザー操作: `e2e/`
 
-Google OAuth UI を通常 E2E に含めず、Auth0 database test identity の `storageState` と少数の Google OAuth connection smoke を分ける。
+通常 E2E は Auth0 database test identity の storage state を使い、Google OAuth UI は
+少数の smoke test に分ける。

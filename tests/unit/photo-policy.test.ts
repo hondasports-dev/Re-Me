@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { encode } from 'jpeg-js'
 
-import { inspectSanitizedPhoto, MAX_SANITIZED_PHOTO_BYTES } from '../../convex/lib/photoPolicy'
+import { MAX_PHOTO_BYTES } from '../../worker/constants'
+import { inspectSanitizedPhoto } from '../../worker/photo'
 
 function jpeg(width = 12, height = 8) {
   return new Uint8Array(
@@ -79,13 +80,11 @@ describe('sanitized photo inspection', () => {
     expect(() => inspectSanitizedPhoto(replaceSofDimensions(bytes, 4097, 8))).toThrow(/dimensions/)
     expect(() => inspectSanitizedPhoto(bytes.slice(0, -2))).toThrow(/incomplete/)
     expect(() => inspectSanitizedPhoto(new Uint8Array([...bytes, 0xff, 0xe1, 0, 2]))).toThrow(
-      /trailing/,
+      /incomplete/,
     )
   })
 
   it('rejects payloads over the sanitized byte limit before parsing', () => {
-    expect(() => inspectSanitizedPhoto(new Uint8Array(MAX_SANITIZED_PHOTO_BYTES + 1))).toThrow(
-      /too large/,
-    )
+    expect(() => inspectSanitizedPhoto(new Uint8Array(MAX_PHOTO_BYTES + 1))).toThrow(/size_invalid/)
   })
 })

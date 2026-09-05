@@ -26,8 +26,8 @@ Closes #
 
 - [ ] UI / mobile
 - [ ] Worker / health
-- [ ] Auth0 / Convex auth
-- [ ] Convex schema / functions
+- [ ] Auth0 / Worker auth
+- [ ] D1 schema / Worker API
 - [ ] Legacy PostgreSQL / RLS（比較用）
 - [ ] Cloudflare R2
 - [ ] PWA / Push
@@ -43,7 +43,6 @@ Closes #
 - [ ] `pnpm format:check`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
-- [ ] `pnpm test:convex`（schema / authorization 変更時）
 - [ ] `pnpm build`
 - [ ] 変更した画面 / 遷移を踏む Playwright
   踏んだ path:
@@ -77,7 +76,7 @@ Must-fix / residual risk:
 - DB schema / migration: なし
 - RLS / auth: なし
 - 環境変数 / Secret: なし
-- Cloudflare / Auth0 / Convex 設定変更: なし
+- Cloudflare / Auth0 設定変更: なし
 - Deploy 手順変更: なし
 
 ## 最終確認

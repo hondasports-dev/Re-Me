@@ -1,31 +1,31 @@
-# 初期実装の Issue 計画
+# Issue plan
 
-```text
-アーキテクチャ判断
-  ↓
-Auth0 + Convex の土台
-  ↓
-Convex schema + 認可
-  ↓
-Auth0 Google OAuth connection + Convex 認証
-  ↓
-legacy Supabase 境界の撤去
-  ↓
-作成 / 下書き
-  ├─ 写真 / private R2
-  └─ 送信 / 封
-       ↓
-Convex 配送 / 通知
-  ↓
-受信箱 / 開封
-  ↓
-返信 / スレッド
-  ↓
-PWA / Push
-  ↓
-移行片付け / CI 強化
-```
+## 現在の実装ライン
 
-Auth0 tenant、Convex deployment、Cloudflare environment の用意と production write を同じ Issue に混ぜない。Production data の移行は棚卸し、dry-run、rollback、Human Gate を独立した受け入れ条件にする。
+1. Auth0 DEV と Cloudflare Worker / D1 / R2 / Queue の環境分離
+2. Worker API の認証・所有権・sealed visibility
+3. draft → send → delivery → open → reply の domain flow
+4. private photo capability と attachment reconcile
+5. Scheduled Worker と Queue による delivery / notification
+6. Preview deploy、critical Playwright、required CI checks
+7. Production 初回構築と traffic 切替（未着手・別 Human Gate）
 
-各 Issue は最新の [ADR-0009](../architecture/decisions/0009-auth0-convex-cloudflare.md) を正本とし、旧 Supabase Issue / PR の記述だけで target architecture を上書きしない。
+Issue の acceptance criteria は、この repository の Worker / D1 contract と
+[アーキテクチャ概要](../architecture/overview.md) を正本にする。Preview は Cloudflare
+runtime を使い、Production data import は未実施や。
+
+## 完了済みの整理
+
+Cloudflare Preview への runtime cutover は完了し、旧 backend の source、client、
+scheduler、dependency、CI job、migration CLI は撤去済みや。Preview に残る外部
+resource の停止は対象確認付きの service operation として別管理する。
+
+## 未着手
+
+- Auth0 PROD tenant / Google OAuth Production client
+- Production Worker / D1 / R2 / Queue 初回 deploy
+- Production user / letter data の投入
+- Production traffic cutover と運用 runbook
+
+Production 操作や external resource の停止・削除は、対象と rollback を明示した
+別 Issue + Human Gate で行う。

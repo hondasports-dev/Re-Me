@@ -1,7 +1,10 @@
 # Worker-only local variables. Keep real values in .dev.vars.
-# Application backend secrets belong in Convex, not the Worker.
-WEB_PUSH_VAPID_PRIVATE_KEY=
+# Application backend secrets belong in the Worker and stay out of the browser.
+AUTH0_DOMAIN=
+AUTH0_AUDIENCE=
+CAPABILITY_SECRET=
+VAPID_PRIVATE_KEY=
 
 # Non-secret Worker configuration.
-WEB_PUSH_VAPID_PUBLIC_KEY=
-WEB_PUSH_SUBJECT=
+VAPID_PUBLIC_KEY=
+VAPID_SUBJECT=

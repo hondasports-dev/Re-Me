@@ -24,13 +24,13 @@ import {
   NOTIFICATION_CLAIM_LIMIT,
   RECONCILIATION_LIMIT,
   UPLOAD_CAPABILITY_SECONDS,
-  nextNotificationAvailableAt,
   resolveDeliveryWindow,
   type DeliveryMode,
   type LetterStatus,
 } from './constants'
 import { createCapability, verifyCapability } from './capability'
 import { HttpError } from './errors'
+import { nextNotificationAvailableAt, sanitizeNotificationErrorCode } from './notification'
 import { inspectSanitizedPhoto, type InspectedPhoto } from './photo'
 import type { AppEnv, AuthenticatedUser } from './types'
 
@@ -1254,10 +1254,6 @@ function validatePushSubscription(input: {
   ) {
     throw new HttpError(400, 'push_subscription_invalid')
   }
-}
-
-function sanitizeNotificationErrorCode(code: string): 'push_failed' | 'push_config_missing' {
-  return code === 'push_config_missing' ? 'push_config_missing' : 'push_failed'
 }
 
 function mapDatabaseError(error: unknown, fallback: string): HttpError {

@@ -2,114 +2,70 @@
 
 ## 配送モデル
 
-送信時に以下を一度だけ決定する。
+送信時に以下を一度だけ決定し、exact な時刻は内部 D1 row にだけ保存する。
 
 ```text
-配送モード
-  → 配送レンジ
-  → 正確な scheduledAt
-  → traveling
+配送 mode
+配送 window start / end
+内部 scheduled_at
 ```
 
-ユーザーへ返すのは配送レンジまで。正確な `scheduledAt` は `letterDeliveries` に置き、public function の返り値から除外する。
+browser API が返すのは mode と window で、`scheduled_at` は返さない。
 
-## 初期レンジ
+## Worker の起動
 
-| UI | `deliveryMode` | 初期レンジ |
-|---|---|---|
-| 数日後くらい | `few_days` | 3〜7日 |
-| 数週間後くらい | `few_weeks` | 14〜30日 |
-| 数か月後くらい | `few_months` | 60〜180日 |
-| 1年後くらい | `about_year` | 300〜430日 |
-| 未来に任せる | `surprise` | 30〜365日 |
+`worker/index.ts` の `scheduled()` が5分ごとに次を実行する。
 
-## 送信 transaction
+1. D1 の `letter_deliveries_due_idx` から due row を上限付きで claim する
+2. traveling letter を delivered へ遷移し、同じ transaction で notification outbox を作る
+3. claim した notification job を `NOTIFICATION_QUEUE` へ enqueue する
+4. enqueue 失敗は job を failed に戻し、次回 retry 可能にする
+5. R2 attachment の deleting / expired staging state を reconcile する
 
-`sendLetter` mutation は同一 transaction で以下を行う。
+scheduled handler は browser の認証文脈に依存せず、D1 の状態条件を毎回再確認する。
 
-1. 現在ユーザーと下書きの所有権を検証する
-2. 本文 / 添付状態を検証する
-3. 配送レンジと正確な `scheduledAt` を決定する
-4. 手紙を `traveling` にする
-5. `letterDeliveries` を作成する
-6. 返信の場合は親手紙を transaction 内で確保する
+## 通知の非同期処理
 
-Client は正確な時刻、所有者、traveling 状態を指定できない。
+Queue consumer は `jobId` と generation token を受け取り、次を行う。
 
-## スケジュール方針
+1. generation、status、lock timeout を確認して send target を claim する
+2. owner の有効な push subscription へ本文なしの arrival payload を送る
+3. 404 / 410 endpoint は無効化する
+4. 成功なら `sent`、一時失敗なら error code と backoff 時刻を記録する
+5. subscription が無い場合も到着状態を変更せず job だけを完了する
 
-正本は `letterDeliveries.scheduledAt` である。Convex cron（1分間隔）が due index を件数上限つきバッチで読み、internal mutation で配送する。
+通知 job は手紙の delivery state の代わりではない。push provider や Queue が停止
+しても、到着済みの手紙を traveling に戻さない。
 
-個別の `scheduler.runAt` は近距離の起こし最適化として将来使えるが、MVP の正本にはしない。cancel / 再スケジュール / 移行 / 復旧を database 状態から行えるようにする。
+## 冪等性と競合
 
-```text
-Convex cron
-  → 期限到来した配送 document（index、件数上限）
-  → deliverDueLetters internal mutation
-  → 手紙の到着 + 通知 outbox
-```
+- delivery row は letter ごとに一意で、claim は `status` と `scheduled_at` の条件付き
+  update で行う
+- notification job は letter ごとに一意で、generation token と lock timeout で
+  stale runner を無効化する
+- Queue の再配信や scheduled の重複実行があっても二重到着・二重 job を作らない
+- retry は指数 backoff と上限付き attempt count で行う
+- attachment finalize / delete も generation token と durable reconcile state で
+  single-flight にする
 
-## 冪等性
+## 観測
 
-- `traveling` かつ期限到来した手紙だけを配送する
-- 配送 mutation が現在状態を再検証する
-- 手紙ごとの通知 job を一つに固定する
-- 同じ cron / scheduled callback が重なっても delivered 状態と outbox を二重生成しない
-- バッチを超えた分は次回実行へ残す
+log には event 名、件数、endpoint host、error class だけを出す。本文、写真、R2
+object key、owner の外部 identifier、exact `scheduled_at`、secret は出さない。
 
-Convex mutation は transactional だが、外部 Push action は transaction ではない。両者を分離する。
+運用時は D1 で次を確認する。
 
-## 通知 outbox
+- due の pending delivery 数と最古の scheduled time
+- notification job の pending / processing / failed 数
+- lock timeout 後に再 claim されていること
+- delivered letter が traveling に戻っていないこと
+- deleting attachment が reconcile で減っていること
 
-```text
-手紙が到着
-  → 通知 pending
-  → generation を claim
-  → Web Push action
-  → sent / failed
-```
+## 検証
 
-`claimNotificationJobs` は pending / 再試行可能な failed job を claim し、generation token を発行する。`completeNotificationJob` は現在の generation と processing 状態が一致する場合だけ結果を書き込む。
-
-Action は at-most-once の失敗を前提とし、一時エラーは mutation が backoff と次回 retry を明示的に予約する。古い action の結果で新しい claim を上書きしない。
-
-## Push のプライバシー
-
-通知には本文、写真、場所、ユーザー入力を含めない。
-
-> Re:Me — あなた宛ての手紙が届いています。
-
-通知タップは `/`（届いた手紙）を開く。payload に `letterId` / 本文 / 写真 / `scheduledAt` を含めない。タップ後に、認証済みアプリが metadata / 読める本文を取得する。
-
-## タイムゾーン
-
-Convex の timestamp は UTC の epoch milliseconds。UI は `userSettings.timezone` またはブラウザのタイムゾーンへ変換する。送信後にタイムゾーンが変わっても、確定済み `scheduledAt` は変更しない。
-
-## 失敗 / 復旧
-
-- cron 失敗: due 行は traveling のまま残り、次回 sweep が再処理する
-- 配送 mutation 成功 / push 失敗: 手紙は delivered、job は failed / retry
-- Push が 404 / 410 を返した endpoint は `disabledAt` を立て、以降の claim 対象から外す
-- R2 / 添付失敗: 手紙送信前に添付の準備完了を検証する
-- 古くなった processing job: lock timeout 後に新しい generation で reclaim する
-- 基盤障害: 最古の due / pending 経過時間を監視し、復旧 sweep を実行する
-
-## 監視
-
-- due の traveling 件数 / 最古 due の経過時間
-- delivered 件数 / cron 実行
-- cron の skip / 失敗
-- 通知の pending / failed / retry 件数
-- 最古 pending 通知の経過時間
-- R2 認可 / upload / 削除の失敗
-
-## 必須テスト
-
-- 重なった cron で二重配送しない
-- 期限前の手紙は配送しない
-- 削除済み手紙は配送しない
-- 配送と outbox 作成が atomic
-- push 失敗で delivered 状態を戻さない
-- 古い generation の完了を拒否する
-- 正確な配送時刻が client の結果に出ない
-- バッチ上限を超えた残件を次回処理できる
+- `tests/worker/` で migration、ownership、state transition、delivery、notification、
+  attachment の integration を検証する
+- `tests/unit/notification-policy.test.ts` で payload privacy、retry、endpoint
+  invalidation policy を検証する
+- Preview では `/api/health`、authenticated API、force delivery、Queue / push の
+  smoke を確認する

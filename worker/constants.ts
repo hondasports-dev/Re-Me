@@ -11,6 +11,7 @@ export const NOTIFICATION_CLAIM_LIMIT = 50
 export const NOTIFICATION_LOCK_TIMEOUT_MS = 5 * 60 * 1000
 export const LOCK_TIMEOUT_MS = NOTIFICATION_LOCK_TIMEOUT_MS
 export const RECONCILIATION_LIMIT = 20
+export const MS_PER_DAY = 86_400_000
 
 export const deliveryWindowDays = {
   few_days: { minDays: 3, maxDays: 7 },
@@ -28,9 +29,8 @@ export function resolveDeliveryWindow(
   random: () => number = Math.random,
 ): { deliveryWindowStart: number; deliveryWindowEnd: number; scheduledAt: number } {
   const range = deliveryWindowDays[mode]
-  const day = 86_400_000
-  const deliveryWindowStart = now + range.minDays * day
-  const deliveryWindowEnd = now + range.maxDays * day
+  const deliveryWindowStart = now + range.minDays * MS_PER_DAY
+  const deliveryWindowEnd = now + range.maxDays * MS_PER_DAY
   const span = deliveryWindowEnd - deliveryWindowStart
   const unit = Math.min(0.999999999, Math.max(0, random()))
   return {
@@ -38,11 +38,6 @@ export function resolveDeliveryWindow(
     deliveryWindowEnd,
     scheduledAt: deliveryWindowStart + Math.floor(unit * (span + 1)),
   }
-}
-
-export function nextNotificationAvailableAt(now: number, attemptCount: number): number {
-  const cappedAttempt = Math.min(Math.max(attemptCount, 1), 6)
-  return now + Math.min(60, 2 ** cappedAttempt) * 60_000
 }
 
 export const letterStatuses = ['draft', 'traveling', 'delivered'] as const

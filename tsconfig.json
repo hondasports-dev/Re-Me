@@ -17,7 +17,6 @@
     "types": ["vite/client", "node", "@cloudflare/vitest-pool-workers/types"]
   },
   "include": [
-    "convex/**/*.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "worker-configuration.d.ts",

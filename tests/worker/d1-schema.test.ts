@@ -12,7 +12,6 @@ const expectedTables = [
   'letter_deliveries',
   'notification_jobs',
   'push_subscriptions',
-  'migration_import_keys',
 ]
 
 const expectedIndexes = [
@@ -20,7 +19,6 @@ const expectedIndexes = [
   'letters_parent_idx',
   'letter_deliveries_due_idx',
   'notification_jobs_ready_idx',
-  'migration_import_keys_target_idx',
 ]
 
 describe('D1 migration schema', () => {
@@ -30,11 +28,13 @@ describe('D1 migration schema', () => {
     ).all<{ name: string }>()
 
     expect(result.results.map((row) => row.name)).toEqual(expect.arrayContaining(expectedTables))
+    expect(result.results.map((row) => row.name)).not.toContain('migration_import_keys')
 
     const indexes = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     ).all<{ name: string }>()
     expect(indexes.results.map((row) => row.name)).toEqual(expect.arrayContaining(expectedIndexes))
+    expect(indexes.results.map((row) => row.name)).not.toContain('migration_import_keys_target_idx')
 
     const triggers = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE '%immutable%' ORDER BY name",
@@ -44,9 +44,13 @@ describe('D1 migration schema', () => {
         'letter_contents_immutable_after_send',
         'letter_attachments_immutable_after_send',
         'letters_immutable_fields_after_send',
-        'migration_import_keys_checksum_immutable',
-        'migration_import_keys_target_immutable',
       ]),
+    )
+    expect(triggers.results.map((row) => row.name)).not.toContain(
+      'migration_import_keys_checksum_immutable',
+    )
+    expect(triggers.results.map((row) => row.name)).not.toContain(
+      'migration_import_keys_target_immutable',
     )
   })
 
